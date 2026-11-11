@@ -1,0 +1,150 @@
+.resume {
+  background: var(--bg);
+}
+.p-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.p-bar .btn {
+  width: auto;
+  min-height: 44px;
+}
+.doc {
+  width: min(720px, 100% - 2 * var(--s-5));
+  margin: 0 auto;
+  padding: var(--s-8) 0 var(--s-9);
+}
+.doc-head h1 {
+  font: 600 var(--t-display) / 0.98 var(--font-display);
+  letter-spacing: -0.02em;
+}
+.doc-full {
+  margin-top: var(--s-3);
+  font-size: var(--t-lg);
+  color: var(--text-2);
+}
+.doc-lead {
+  margin-top: var(--s-6);
+  font-size: var(--t-lg);
+  line-height: 1.5;
+}
+.doc-music {
+  margin-top: var(--s-3);
+  color: var(--text-2);
+}
+.doc-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  margin-top: var(--s-5);
+  font-weight: 600;
+}
+.doc section {
+  margin-top: var(--s-8);
+}
+.doc h2 {
+  margin-bottom: var(--s-5);
+  font: 600 var(--t-xl) / 1.15 var(--font-display);
+}
+.entry + .entry {
+  margin-top: var(--s-6);
+}
+.entry h3,
+.sub-h {
+  font: 700 var(--t-md) / 1.35 var(--font-ui);
+}
+.sub-h {
+  margin: var(--s-6) 0 var(--s-2);
+}
+.when {
+  margin-top: var(--s-1);
+  color: var(--text-2);
+  font-size: var(--t-sm);
+}
+.entry p:not(.when):not(.entry-link) {
+  margin-top: var(--s-2);
+}
+.entry-link {
+  margin-top: var(--s-2);
+  font-size: var(--t-sm);
+  overflow-wrap: anywhere;
+}
+.doc ul {
+  margin: var(--s-2) 0 0;
+  padding-left: 1.25em;
+}
+.doc li + li {
+  margin-top: var(--s-2);
+}
+.skills {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+}
+.skills div {
+  display: grid;
+  grid-template-columns: 9.5em 1fr;
+  gap: var(--s-4);
+}
+.skills dt {
+  color: var(--text-2);
+}
+.skills dd {
+  margin: 0;
+}
+.doc-foot {
+  margin-top: var(--s-9);
+  color: var(--text-2);
+  font-size: var(--t-sm);
+}
+
+@media (max-width: 560px) {
+  .skills div {
+    grid-template-columns: 1fr;
+    gap: var(--s-1);
+  }
+}
+
+@media print {
+  html,
+  body,
+  .resume {
+    background: #fff;
+    color: #111;
+  }
+  .p-bar {
+    display: none;
+  }
+  .doc {
+    width: 100%;
+    padding: 0;
+  }
+  .doc-full,
+  .doc-music,
+  .when,
+  .skills dt,
+  .doc-foot {
+    color: #333;
+  }
+  a {
+    color: #111;
+  }
+  .doc a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    font-weight: 400;
+  }
+  .doc h1 {
+    font-size: 2.6rem;
+  }
+  .entry {
+    break-inside: avoid;
+  }
+}

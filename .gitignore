@@ -1,0 +1,6 @@
+node_modules
+dist
+.DS_Store
+
+# Original source files kept on this computer only. Audio the site uses lives in src/assets/audio.
+/audio/

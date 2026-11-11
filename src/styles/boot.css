@@ -1,0 +1,58 @@
+.boot {
+  position: relative;
+  display: grid;
+  align-items: center;
+  padding: var(--s-6) clamp(var(--s-5), 8vw, 8rem);
+  background: var(--bg);
+}
+.boot-notes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.boot-panel {
+  position: relative;
+  width: min(100%, 640px);
+  padding: var(--s-5);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+.boot-out {
+  margin: 0 0 var(--s-4);
+  font: 400 var(--t-sm) / 1.8 var(--font-mono);
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.boot-out .ok {
+  color: var(--accent);
+  font-weight: 700;
+}
+.boot-bar {
+  height: 8px;
+  background: var(--surface-2);
+  border-radius: var(--r-inner);
+  overflow: hidden;
+}
+.boot-bar span {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width 200ms var(--ease);
+}
+.boot-fail {
+  margin-top: var(--s-4);
+  color: var(--text);
+}
+.boot-skip {
+  position: absolute;
+  top: var(--s-5);
+  right: var(--s-6);
+  padding: var(--s-2) var(--s-3);
+  color: var(--text);
+  background: var(--surface);
+  border-radius: var(--r-inner);
+}

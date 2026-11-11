@@ -1,0 +1,47 @@
+/* Design system tokens. Every screen reads from these; nothing hard-codes a colour or a gap.
+   Contrast for each text/background pair is checked by scripts and recorded in docs/DESIGN.md. */
+:root {
+  /* Colour: warm near-black, one accent (brass). Crimson lives in the 3D hall only. */
+  --bg: #0b0709;
+  --surface: #171011;
+  --surface-2: #241a1b;
+  --text: #f5eee2;
+  --text-2: #cdbfa9;
+  --text-3: #a99a84;
+  --accent: #e3b552;
+  --on-accent: #1b1306;
+  --line: #85746a;
+  --focus: var(--accent);
+
+  /* Spacing: 4px base. Group related things with the small steps, separate groups with the large ones. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+
+  /* Type scale (rem at 16px root) */
+  --t-xs: 0.8125rem; /* 13 */
+  --t-sm: 0.9375rem; /* 15 */
+  --t-md: 1.0625rem; /* 17 */
+  --t-lg: 1.375rem; /* 22 */
+  --t-xl: 1.875rem; /* 30 */
+  --t-2xl: 3rem; /* 48 */
+  --t-display: clamp(3.25rem, 7vw, 5.5rem);
+
+  --font-ui: 'Figtree Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces Variable', Georgia, serif;
+  --font-mono: 'Space Mono', ui-monospace, Menlo, Consolas, monospace;
+
+  /* Radii: an inner element's radius = outer radius minus the padding between them. */
+  --r-panel: 12px;
+  --pad-panel: var(--s-2);
+  --r-inner: calc(var(--r-panel) - var(--pad-panel)); /* 4px */
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 160ms;
+}

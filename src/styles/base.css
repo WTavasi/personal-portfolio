@@ -1,0 +1,141 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html {
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--t-md);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  text-wrap: balance;
+}
+p {
+  margin: 0;
+}
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+a {
+  color: var(--accent);
+  text-underline-offset: 0.2em;
+}
+a:hover {
+  text-decoration-thickness: 2px;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The 3D hall lives behind every screen that wants it. */
+.world {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--bg);
+  opacity: 0;
+  transition: opacity 700ms var(--ease);
+}
+.world.is-ready {
+  opacity: 1;
+}
+.world[hidden] {
+  display: none;
+}
+#app {
+  position: relative;
+  z-index: 1;
+}
+.screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Buttons: state changes are instant (no fades); movement is the feedback. */
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  width: 100%;
+  min-height: 48px;
+  padding: 0 var(--s-4);
+  border: 0;
+  border-radius: var(--r-inner);
+  font-weight: 600;
+  text-align: left;
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn-primary {
+  min-height: 60px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: var(--t-lg);
+  font-weight: 700;
+}
+.btn-primary:hover {
+  background: #f1c96b;
+}
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.btn-secondary:hover {
+  background: #33262a;
+}
+.btn[aria-disabled='true'] {
+  color: var(--text-2);
+  cursor: not-allowed;
+}
+.btn[aria-disabled='true']:hover {
+  background: var(--surface-2);
+}
+.btn[aria-disabled='true']:active {
+  transform: none;
+}
+.btn-note {
+  font-size: var(--t-xs);
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
