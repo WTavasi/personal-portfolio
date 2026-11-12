@@ -35,6 +35,9 @@
   font-size: var(--t-lg);
   line-height: 1.5;
 }
+.doc-avail {
+  margin-top: var(--s-3);
+}
 .doc-music {
   margin-top: var(--s-3);
   color: var(--text-2);
@@ -90,7 +93,7 @@
 }
 .skills div {
   display: grid;
-  grid-template-columns: 9.5em 1fr;
+  grid-template-columns: 10.25rem 1fr; /* rem so skills and coursework columns line up */
   gap: var(--s-4);
 }
 .skills dt {
@@ -98,6 +101,10 @@
 }
 .skills dd {
   margin: 0;
+}
+.coursework {
+  margin-top: var(--s-4);
+  font-size: var(--t-sm);
 }
 .doc-foot {
   margin-top: var(--s-9);

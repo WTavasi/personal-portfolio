@@ -1,4 +1,4 @@
-import { person, contact, experience, projects, skills, education, music, credits } from '../content.js';
+import { person, contact, experience, projects, skills, education, certifications, music, credits } from '../content.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -29,8 +29,9 @@ export function resumeScreen({ go, world }) {
     <main class="doc">
       <header class="doc-head">
         <h1>${esc(person.name)}</h1>
-        <p class="doc-full">${esc(person.fullName)}</p>
+        <p class="doc-full">${esc(person.fullName)} · ${esc(person.location)}</p>
         <p class="doc-lead">${esc(person.description)}</p>
+        <p class="doc-avail">${esc(person.availability)}</p>
         <p class="doc-music">${esc(person.musicLine)}</p>
         <p class="doc-links">${contactLinks.join('')}</p>
       </header>
@@ -56,7 +57,8 @@ export function resumeScreen({ go, world }) {
             (p) => `
           <article class="entry">
             <h3>${esc(p.name)}</h3>
-            <p>${esc(p.detail)}</p>
+            <p class="when">${esc(p.stack)} · ${esc(p.year)}</p>
+            ${list(p.bullets)}
             ${p.href ? `<p class="entry-link">${ext(p.href, p.href.replace('https://', ''))}</p>` : ''}
           </article>`,
           )
@@ -71,10 +73,25 @@ export function resumeScreen({ go, world }) {
       </section>
 
       <section aria-labelledby="h-edu">
-        <h2 id="h-edu">Education and certification</h2>
+        <h2 id="h-edu">Education and certifications</h2>
         ${education
-          .map((e) => `<article class="entry"><h3>${esc(e.title)}</h3><p class="when">${esc(e.when)}</p></article>`)
+          .map(
+            (e) => `
+          <article class="entry">
+            <h3>${esc(e.title)}</h3>
+            <p class="when">${esc(e.when)}</p>
+            ${
+              e.coursework
+                ? `<dl class="skills coursework">${e.coursework
+                    .map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`)
+                    .join('')}</dl>`
+                : ''
+            }
+          </article>`,
+          )
           .join('')}
+        <h3 class="sub-h">Certifications and training</h3>
+        ${list(certifications)}
       </section>
 
       <section aria-labelledby="h-music">
