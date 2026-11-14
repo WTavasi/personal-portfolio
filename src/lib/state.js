@@ -1,4 +1,5 @@
-// Tiny persisted settings store (tempo + sound). No framework needed.
+// Tiny persisted store: tempo, sound, timing calibration and which movements are cleared.
+// It lives in localStorage on the visitor's own device and is never sent anywhere.
 
 export const TEMPOS = [
   { id: 'andante', name: 'Andante', bpm: 80 },
@@ -7,14 +8,19 @@ export const TEMPOS = [
 ];
 
 const KEY = 'wyclef.portfolio.settings.v1';
-const defaults = { tempo: 'moderato', sound: true };
+const defaults = { tempo: 'moderato', sound: true, latencyMs: 0, cleared: {} };
 
 function load() {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
     const tempo = TEMPOS.some((t) => t.id === raw.tempo) ? raw.tempo : defaults.tempo;
     const sound = typeof raw.sound === 'boolean' ? raw.sound : defaults.sound;
-    return { tempo, sound };
+    const latencyMs = Number.isFinite(raw.latencyMs) ? Math.max(-150, Math.min(300, raw.latencyMs)) : 0;
+    const cleared = {};
+    for (const [id, pct] of Object.entries(raw.cleared && typeof raw.cleared === 'object' ? raw.cleared : {})) {
+      if (Number.isFinite(pct)) cleared[id] = pct;
+    }
+    return { tempo, sound, latencyMs, cleared };
   } catch {
     return { ...defaults };
   }

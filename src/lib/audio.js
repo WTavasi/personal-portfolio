@@ -33,10 +33,12 @@ export function preloadTuning() {
   return tuningData;
 }
 
+// Resolves with the number of seconds until the recording starts to fade (0 if it is not playing),
+// so the hall music can come in underneath it.
 export async function playTuning() {
-  if (!getState().sound) return;
+  if (!getState().sound) return 0;
   const c = ensureAudio();
-  if (!c) return;
+  if (!c) return 0;
   tuningWanted = true;
   try {
     if (!tuningBuffer) {
@@ -46,10 +48,10 @@ export async function playTuning() {
     }
   } catch {
     if (tuningWanted && getState().sound) playTuningA(); // fall back to a synthesised A
-    return;
+    return 0;
   }
   // The person may have left the menu or turned sound off while the file was decoding.
-  if (!tuningWanted || !getState().sound || tuningVoice) return;
+  if (!tuningWanted || !getState().sound || tuningVoice) return 0;
 
   const t = c.currentTime;
   const length = tuningBuffer.duration - TUNING.offset;
@@ -66,6 +68,7 @@ export async function playTuning() {
   };
   src.start(t, TUNING.offset);
   tuningVoice = { src, gain };
+  return length - TUNING.fadeOut;
 }
 
 // Fade the recording out, for example when leaving the menu or turning sound off.

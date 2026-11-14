@@ -7,14 +7,18 @@ import './styles/base.css';
 import './styles/boot.css';
 import './styles/home.css';
 import './styles/resume.css';
+import './styles/concert.css';
 
 import { bootScreen } from './screens/boot.js';
 import { homeScreen } from './screens/home.js';
 import { resumeScreen } from './screens/resume.js';
+import { concertScreen } from './screens/concert.js';
+import { music } from './lib/music.js';
+import { hallCast } from './game/movements.js';
 import { getTempo } from './lib/state.js';
 
 // Hash routes keep this a static site. A recruiter can open <site>/#/resume and skip everything.
-const screens = { boot: bootScreen, home: homeScreen, resume: resumeScreen };
+const screens = { boot: bootScreen, home: homeScreen, resume: resumeScreen, concert: concertScreen };
 
 const canvas = document.getElementById('world');
 const root = document.getElementById('app');
@@ -29,6 +33,8 @@ const world = {
     if (this.api) return Promise.resolve();
     this.loading ??= import('./world/index.js').then(async ({ createWorld }) => {
       this.api = await createWorld({ canvas, bpm: getTempo().bpm, onStep });
+      this.api.setBeatSource(() => music.beats());
+      this.api.setCast(hallCast());
     });
     return this.loading;
   },
@@ -59,7 +65,8 @@ function route() {
   }
   if (!(key in screens)) key = 'boot';
   // The hall must be built before the home screen can show it.
-  if (key === 'home' && !world.api && !world.fallback) key = 'boot';
+  if ((key === 'home' || key === 'concert') && !world.api && !world.fallback) key = 'boot';
+  if (key === 'resume' || key === 'boot') music.stop(0.8);
 
   current?.destroy?.();
   const next = screens[key]({ go, world });

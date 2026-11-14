@@ -9,6 +9,8 @@ const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)')
 const MODES = {
   drift: { R: 22.5, az: 0.3, height: 7.6, ty: 4.0, lz: -10.5, period: 56 },
   podium: { R: 13.5, az: 0.16, height: 4.6, ty: 2.6, lz: -8.6, period: 56 },
+  // play: close behind the podium and almost still, so the stage sits above the game's track.
+  play: { R: 10.5, az: 0.05, height: 4.4, ty: 1.2, lz: -9.2, period: 56 },
 };
 const KEYS = ['R', 'az', 'height', 'ty', 'lz', 'period'];
 const BASE_FOV = 46;
@@ -68,6 +70,8 @@ export async function createWorld({ canvas, bpm, onStep }) {
   const still = reduceMotion();
   const lookAt = new THREE.Vector3();
 
+  let beatSource = null; // returns the music's beat while music plays, so lights follow the sound
+  let flash = 0; // a short extra burst of light when the player lands a note
   let pinned = null; // debug only: a fixed camera set from the console with ?stats
 
   function placeCamera(t) {
@@ -137,8 +141,14 @@ export async function createWorld({ canvas, bpm, onStep }) {
     placeCamera(t);
 
     // Everything breathes on the beat. Off entirely when the person prefers reduced motion.
-    const p = still ? 0 : clock.pulse(now);
-    const bar = still ? 0 : clock.barPulse(now);
+    const mb = beatSource?.();
+    const beats = mb ?? clock.beats(now);
+    const frac = beats - Math.floor(beats);
+    const inBar = ((beats % 4) + 4) % 4;
+    flash *= Math.exp(-dt * 7);
+    const p = still ? 0 : Math.min(1.6, Math.exp(-frac * 5) + flash);
+    const bar = still ? 0 : inBar < 1 ? Math.exp(-inBar * 4) : 0;
+    for (const m of fx.cast.bobbing) m.position.y = m.visible ? 0.012 * p : 0;
     const { key: keyLight, wash } = fx.lights;
     keyLight.intensity = fx.base.key * (1 + 0.12 * p);
     wash.intensity = fx.base.wash * (1 + 0.08 * p + 0.18 * bar);
@@ -200,6 +210,18 @@ export async function createWorld({ canvas, bpm, onStep }) {
     },
     setMode(name) {
       goal = MODES[name] ?? MODES.drift;
+    },
+    setBeatSource(fn) {
+      beatSource = fn;
+    },
+    flash(strength = 1) {
+      if (!still) flash = Math.max(flash, 0.6 * strength);
+    },
+    // Who is in the hall: { pianist, strings, winds, brass } on or off, audience from 0 to 1.
+    setCast(cast) {
+      fx.cast.set(cast);
+      renderer.shadowMap.needsUpdate = true;
+      dirty = true;
     },
     renderOnce() {
       dirty = true;

@@ -1,12 +1,18 @@
 import { person } from '../content.js';
 import { TEMPOS, getState, getTempo, setState, subscribe } from '../lib/state.js';
 import { ensureAudio, playTuning, stopTuning, playClick } from '../lib/audio.js';
-
-// Set to true when the rhythm game ships. Until then the primary action is the résumé,
-// and the concert button says plainly that it is not playable yet.
-const GAME_READY = false;
+import { music } from '../lib/music.js';
+import { playHallMusic } from '../game/hallmusic.js';
+import { MOVEMENTS, hallCast, isCleared, nextMovement } from '../game/movements.js';
 
 let begun = false; // remembered so coming back from the résumé skips the intro
+
+// The main button says where the visitor is in the concert.
+function concertLabel() {
+  const playable = MOVEMENTS.filter((m) => !m.soon);
+  if (!playable.some((m) => isCleared(m.id))) return 'Start the concert';
+  return nextMovement() ? 'Continue the concert' : 'Replay the concert';
+}
 
 export function homeScreen({ go, world }) {
   const el = document.createElement('section');
@@ -40,11 +46,8 @@ export function homeScreen({ go, world }) {
 
     <div class="menu" hidden>
       <div class="menu-group">
-        <button class="btn btn-primary" data-act="resume">View résumé</button>
-        <button class="btn btn-secondary" data-act="play" ${GAME_READY ? '' : 'aria-disabled="true"'}>
-          <span>Start the concert</span>
-          ${GAME_READY ? '' : '<span class="btn-note">Not playable yet</span>'}
-        </button>
+        <button class="btn btn-primary" data-act="play">${concertLabel()}</button>
+        <button class="btn btn-secondary" data-act="resume">View résumé</button>
       </div>
       <div class="menu-group">
         <div class="seg-row" role="radiogroup" aria-label="Tempo">${tempoButtons}</div>
@@ -57,6 +60,7 @@ export function homeScreen({ go, world }) {
     </div>
   `;
 
+  let themeTimer = 0; // starts the hall music as the tuning recording fades
   const $ = (s) => el.querySelector(s);
   const menu = $('.menu');
   const hint = $('.begin-hint');
@@ -75,13 +79,17 @@ export function homeScreen({ go, world }) {
     sw.setAttribute('aria-checked', String(s));
     sw.textContent = s ? 'On' : 'Off';
     world.api?.setBpm(t.bpm);
+    if (music.tag === 'hall') music.setBpm(t.bpm);
   }
 
   function begin(fromKeyboard = false) {
     if (begun && !menu.hidden) return;
     begun = true;
     ensureAudio();
-    playTuning();
+    // The orchestra tunes once, then the theme comes in underneath as the recording fades.
+    playTuning().then((seconds) => {
+      themeTimer = setTimeout(playHallMusic, seconds * 1000);
+    });
     world.api?.setMode('podium');
     hint.hidden = true;
     hit.hidden = true;
@@ -102,10 +110,14 @@ export function homeScreen({ go, world }) {
       return;
     }
     if (act === 'resume') go('resume');
-    else if (act === 'play' && GAME_READY) go('play');
+    else if (act === 'play') go('concert');
     else if (act === 'sound') {
       setState({ sound: !getState().sound });
-      if (!getState().sound) stopTuning(0.4);
+      if (!getState().sound) {
+        stopTuning(0.4);
+        clearTimeout(themeTimer);
+        playHallMusic(); // silent while sound is off, ready when it comes back on
+      }
       playClick();
     } else if (!begun && !e.target.closest('a')) begin(e.detail === 0);
   });
@@ -143,7 +155,9 @@ export function homeScreen({ go, world }) {
       window.addEventListener('keydown', onKey);
       world.show?.();
       world.api?.start();
+      world.api?.setCast(hallCast());
       if (begun) {
+        playHallMusic();
         world.api?.setMode('podium');
         hint.hidden = true;
         hit.hidden = true;
@@ -156,6 +170,7 @@ export function homeScreen({ go, world }) {
     destroy() {
       unsub();
       window.removeEventListener('keydown', onKey);
+      clearTimeout(themeTimer);
       stopTuning(0.8);
     },
   };

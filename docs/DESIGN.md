@@ -1,4 +1,4 @@
-# The Conductor's Podium: design brief (v0.2.1)
+# The Conductor's Podium: design brief (v0.3)
 
 Portfolio for Wyclef (Tavasi Wyclef Wasike). The home screen is a 3D concert hall. The camera drifts in a slow arc and the room pulses at the chosen tempo. A plain-HTML résumé (the recruiter view) is one click, or one URL (`/#/resume`), from every screen. Old `/#/program` links redirect there. The rhythm game arrives movement by movement.
 
@@ -7,7 +7,7 @@ Portfolio for Wyclef (Tavasi Wyclef Wasike). The home screen is a 3D concert hal
 - Home: "Click anywhere to begin" (any key also works). After that, a menu: View résumé, Start the concert (disabled until the game ships), tempo, sound.
 - Labels use plain words a non-musician understands: "Skip to résumé", "View résumé".
 - Boot: short. The log is the real loading progress of the hall, not a script.
-- Privacy: no cookies, no analytics, no forms, email link only. Tempo and sound are saved in localStorage on the device.
+- Privacy: no cookies, no analytics, no forms, email link only. Tempo, sound, timing calibration and game progress are saved in localStorage on the device.
 - Desktop first. The résumé view works on phones.
 
 ## Flow
@@ -70,9 +70,23 @@ PASS 18.88:1 (need 7) print: ink on paper
 - If WebGL is unavailable the site says so and the menu and résumé still work (tested).
 
 ## Sound
-- On the first click the hall plays a 24-second orchestra tuning recording (`src/assets/audio/orchestra-tuning.mp3`), downloaded while the hall loads. It skips the leading silence, fades out at the end, and fades out early if the person opens the résumé or turns sound off. If it cannot load, a synthesised A plays instead.
-- The résumé page never downloads it. Sound is on by default and the choice is remembered.
-- Credit is shown on the résumé page. The recording's licence must be confirmed before the site is public.
+- First click: the orchestra tuning recording plays once (`src/assets/audio/orchestra-tuning.mp3`). As it fades, a quiet version of the theme starts in the hall at the chosen tempo and keeps looping.
+- The theme is an original 8-bar piece in D major, written in beats in `src/lib/music.js` and synthesised in the browser, so it plays at 80, 120 or 160 BPM with no audio files. Each orchestra section (piano, strings, woodwinds, brass and timpani) is a separate layer. The hall plays the layers unlocked so far.
+- Recorded stems can replace the synthesised layers later without touching the game: see the note at the top of `music.js`.
+- The résumé page plays nothing and downloads no audio. Sound is on by default and the choice is remembered.
+- The tuning recording is credited on the résumé page. Its licence must be confirmed.
+
+## The game
+- One button (Space, Enter, click or tap). The orchestra gives a cue, the player answers on the beat. Esc pauses, and so does switching tabs.
+- I. Overture (About me): the bells play a one-bar rhythm, the player plays it back in the next bar. Ten rounds, the first is played for them.
+- II. Pipeline (Cloud and DevOps): chimes on beats 1 to 3 are build, test, stage; press on 4 to deploy. A low buzz is a failed test (do not press). A double chime means deploy on 3 and 4. Twenty rounds.
+- III. Balancer and IV. Encore are listed as "In rehearsal" until they are built.
+- Timing is judged against the audio clock, not animation frames: within 60 ms is Perfect, within 125 ms is Good (70% credit). 60% clears a movement.
+- Everything a player needs is also drawn on the track (cues, targets, a moving playhead, text labels), so the game works with sound off.
+- Calibrate timing: tap along with a click 12 times; the median offset is saved and applied to every press.
+- Clearing a movement shows a note with the matching part of the résumé, adds that section's players and music layer, and fills more of the audience. The résumé itself is never locked.
+- Progress (best score per movement) and the calibration value are saved on the visitor's device only.
+- `?autoplay` plays the game by itself, for testing.
 
 ## Privacy, third parties, legal
 - No cookies, no tracking, no forms, no third-party requests (fonts are self-hosted). Verified: opening the résumé makes zero external requests.
@@ -86,9 +100,8 @@ Only claims that can be backed up: a repo, a date, a number, a named employer. N
 ## Roadmap
 | Version | Ships |
 |---------|-------|
-| v0.2 | 3D hall home, real-progress boot, click to begin, tempo and sound, rewritten résumé |
-| v0.2.1 (this) | Hall rebuilt from reference photos, realistic seats, galleries, choir, orchestra layout; about 5x faster; résumé naming |
-| v0.3 | Web Audio clock, beat-map engine, calibration screen, Pipeline movement playable |
-| v0.4 | Unlocks and saved progress, hall fills (players and audience), stems |
-| v0.5 | Balancer movement, Encore boss, curtain call |
-| v1.0 | Polish, prerendered résumé for SEO, project screenshots |
+| v0.2 | 3D hall home, real-progress boot, click to begin, tempo and sound, résumé |
+| v0.3 (this) | Music engine, timing engine, calibration, Overture and Pipeline playable, hall fills with players and audience |
+| v0.4 | Balancer movement (woodwinds), tuning of difficulty from play-testing |
+| v0.5 | Encore boss (the score becomes the phone), curtain call |
+| v1.0 | Polish, prerendered résumé for SEO, project screenshots, Wyclef's own track |

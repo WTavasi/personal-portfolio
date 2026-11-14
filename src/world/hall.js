@@ -292,6 +292,23 @@ function standardKit() {
   return k.geometry();
 }
 
+// A seated person, split in two so clothes and skin can be tinted separately per person.
+// Sits on a seat whose top is about 0.5 m up, facing +z.
+function bodyKit() {
+  const k = new Kit();
+  k.box(0.42, 0.56, 0.24, 0xffffff, 0, 0.8, -0.05, -0.08);
+  k.box(0.38, 0.15, 0.44, 0xffffff, 0, 0.58, 0.16);
+  k.box(0.34, 0.5, 0.14, 0xffffff, 0, 0.27, 0.4);
+  return k.geometry();
+}
+function headKit(detail) {
+  const k = new Kit();
+  k.add(new THREE.IcosahedronGeometry(0.125, detail), 0xffffff, M(0, 1.23, -0.04));
+  return k.geometry();
+}
+const SKIN = [0x4a2f22, 0x6b4430, 0x8a5a3c, 0xa87150, 0xc48e68, 0xddb08c, 0x5c3a28, 0x7a4e36];
+const CLOTHES = [0x2b2f3a, 0x3a2d2a, 0x4a3b33, 0x26333a, 0x55463a, 0x3d2630, 0x2f3b2f, 0x6a5a4c, 0x1f2430, 0x5a3038];
+
 // An orchestra chair: four legs, padded seat, small back. Faces +z.
 function chairKit() {
   const k = new Kit();
@@ -407,11 +424,13 @@ export async function buildHall(scene, step) {
   const tint = () => new THREE.Color(1, 1, 1).multiplyScalar(0.9 + rand() * 0.14);
 
   // Add a run of seats; `positions` are seat centres in order along the run.
-  function seatRun(positions, faceAt) {
+  const audienceMx = []; // stalls and galleries; the choir terrace stays empty
+  function seatRun(positions, faceAt, audience = true) {
     const mats = positions.map(([x, y, z]) => {
       const f = faceAt(x, y, z);
       return facing(x, y, z, f[0], f[1]);
     });
+    if (audience) audienceMx.push(...mats);
     mats.forEach((m) => {
       seatMx.push(m);
       seatTint.push(tint());
@@ -493,7 +512,7 @@ export async function buildHall(scene, step) {
     for (const s of [-1, 1]) hall.box(1.3, y - 0.21, 0.85, COL.redCarpet, s * 10.85, (y - 0.21) / 2, z + 0.2);
     const run = [];
     for (let x = -9.8; x <= 9.81; x += SEAT) run.push([x, y, z]);
-    seatRun(run, (px, py, pz) => [px, pz + 5]);
+    seatRun(run, (px, py, pz) => [px, pz + 5], false);
   }
   hall.box(20.4, 1.35, 0.12, COL.mahogany, 0, STAGE_TOP + 0.675, -16.97); // choir front
   hall.box(20.6, 0.06, 0.2, COL.maple, 0, STAGE_TOP + 1.38, -16.97);
@@ -569,6 +588,7 @@ export async function buildHall(scene, step) {
   await step('Setting chairs and stands');
   const chairMx = [];
   const standMx = [];
+  const sectionMx = { strings: [], winds: [], brass: [] };
   const C = CONDUCTOR;
   const onArc = (r, phi) => [C.x + r * Math.sin(phi), C.z - r * Math.cos(phi)];
   const ARCS = [
@@ -582,6 +602,7 @@ export async function buildHall(scene, step) {
   ];
   for (const arc of ARCS) {
     const y = levelY(arc.lv);
+    const section = sectionMx[arc.lv === 0 ? 'strings' : arc.lv === 1 ? 'winds' : 'brass'];
     for (const [d0, d1] of arc.spans) {
       const p0 = THREE.MathUtils.degToRad(d0);
       const p1 = THREE.MathUtils.degToRad(d1);
@@ -590,6 +611,7 @@ export async function buildHall(scene, step) {
       for (const phi of phis) {
         const [x, z] = onArc(arc.r, phi);
         chairMx.push(facing(x, y, z, C.x, C.z));
+        section.push(chairMx[chairMx.length - 1]);
       }
       const standPhis = arc.pair
         ? phis.reduce((acc, p, k) => (k % 2 === 0 ? [...acc, k + 1 < n ? (p + phis[k + 1]) / 2 : p] : acc), [])
@@ -695,6 +717,51 @@ export async function buildHall(scene, step) {
     piano.rotation.y = -Math.PI / 2 + 0.18;
     scene.add(piano);
   }
+
+  /* ---------- People: hidden until movements are cleared ---------- */
+  const personMat = lambert();
+  const pick = (list) => new THREE.Color(list[Math.floor(rand() * list.length)]);
+  const people = (matrices, bodyGeo, headGeo, clothes) => {
+    const body = instances(bodyGeo, personMat, matrices, matrices.map(() => (clothes ? pick(clothes) : new THREE.Color(0x17161a))));
+    const head = instances(headGeo, personMat, matrices, matrices.map(() => pick(SKIN)));
+    scene.add(body, head);
+    return [body, head];
+  };
+  const bodyGeo = bodyKit();
+  const playerHead = headKit(1);
+  const lower = new THREE.Matrix4().makeTranslation(0, -0.03, 0);
+  const groups = {};
+  for (const [name, list] of Object.entries(sectionMx)) {
+    groups[name] = people(list.map((m) => m.clone().multiply(lower)), bodyGeo, playerHead, null);
+  }
+  const benchSeat = new THREE.Matrix4()
+    .compose(new THREE.Vector3(-5.45, STAGE_TOP, -7.55), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -Math.PI / 2 + 0.18, 0)), new THREE.Vector3(1, 1, 1))
+    .multiply(M(0.74, 0.04, 0.75, 0, Math.PI, 0));
+  groups.pianist = people([benchSeat], bodyGeo, playerHead, null);
+  for (const pair of Object.values(groups)) {
+    for (const m of pair) {
+      m.visible = false;
+      m.castShadow = true;
+    }
+  }
+  // The audience fills in a fixed, scattered order so the hall never fills row by row.
+  for (let i = audienceMx.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [audienceMx[i], audienceMx[j]] = [audienceMx[j], audienceMx[i]];
+  }
+  const crowd = people(audienceMx, bodyGeo, headKit(0), CLOTHES);
+  for (const m of crowd) {
+    m.count = 0;
+    m.frustumCulled = false; // its bounds would otherwise be measured while it is still empty
+  }
+  fx.cast = {
+    bobbing: Object.values(groups).flat(),
+    set(cast = {}) {
+      for (const [name, pair] of Object.entries(groups)) for (const m of pair) m.visible = !!cast[name];
+      const n = Math.round(audienceMx.length * Math.max(0, Math.min(1, cast.audience ?? 0)));
+      for (const m of crowd) m.count = n;
+    },
+  };
 
   /* ---------- Lighting ---------- */
   await step('Hanging the lights');

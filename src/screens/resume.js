@@ -102,7 +102,7 @@ export function resumeScreen({ go, world }) {
       </section>
 
       <footer class="doc-foot">
-        <p>This site sets no cookies and has no analytics. It saves your tempo and sound choice on your own device only.</p>
+        <p>This site sets no cookies and has no analytics. It saves your tempo, sound choice and game progress on your own device only.</p>
         ${credits.map((c) => `<p>${esc(c)}</p>`).join('')}
       </footer>
     </main>
