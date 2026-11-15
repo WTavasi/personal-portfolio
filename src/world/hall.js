@@ -41,7 +41,7 @@ const COL = {
   copper: 0xa8653a,
   drumHead: 0xe8dfcc,
   pipe: 0xd9d0c0,
-  acrylic: 0x8e8070, // unlit, so this reads as softly lit acrylic
+  acrylic: 0xa89a86, // unlit, so this reads as softly lit acrylic
   truss: 0x1a1819,
   pianoBlack: 0x0d0c0e,
   ivory: 0xf1ece0,
@@ -306,6 +306,66 @@ function headKit(detail) {
   k.add(new THREE.IcosahedronGeometry(0.125, detail), 0xffffff, M(0, 1.23, -0.04));
   return k.geometry();
 }
+// Seated musicians in concert black, one pose per instrument, facing +z.
+// Each pose is two meshes: clothes plus instrument (fixed colours), and skin (head, hair and
+// hands), which is tinted per person.
+const BLACK = 0x18171a;
+const SHIRT = 0xe9e4da;
+const WOOD = 0x4f2510;
+const WOOD_DARK = 0x4a2612;
+const BRASS = 0xd6a842;
+const BOW = 0x6b4a2e;
+function poseKits(kind) {
+  const suit = new Kit();
+  const skin = new Kit();
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  suit.box(0.42, 0.56, 0.24, BLACK, 0, 0.8, -0.05, -0.08);
+  suit.box(0.13, 0.22, 0.02, SHIRT, 0, 0.97, 0.075, -0.08);
+  suit.box(0.38, 0.15, 0.44, BLACK, 0, 0.58, 0.16);
+  suit.box(0.34, 0.5, 0.14, BLACK, 0, 0.27, 0.4);
+  suit.box(0.36, 0.07, 0.24, 0x0c0b0c, 0, 0.035, 0.47);
+  skin.add(new THREE.IcosahedronGeometry(0.115, 1), 0xffffff, M(0, 1.25, -0.04));
+  skin.add(new THREE.IcosahedronGeometry(0.122, 1), 0x2a1d16, M(0, 1.29, -0.07, 0, 0, 0, 1, 0.62, 1));
+  skin.box(0.09, 0.08, 0.09, 0xffffff, 0, 1.11, -0.03); // neck
+  const arm = (shoulder, elbow, hand) => {
+    suit.bar(shoulder, elbow, 0.1, BLACK);
+    suit.bar(elbow, hand, 0.085, BLACK);
+    skin.box(0.075, 0.075, 0.09, 0xffffff, hand.x, hand.y, hand.z);
+  };
+  const L = V(-0.21, 1.02, -0.05);
+  const R = V(0.21, 1.02, -0.05);
+  if (kind === 'violin') {
+    suit.add(new THREE.BoxGeometry(0.2, 0.045, 0.36), WOOD, M(-0.19, 1.09, 0.17, 0.12, 0.75, 0));
+    suit.bar(V(-0.3, 1.08, 0.3), V(-0.4, 1.06, 0.42), 0.03, WOOD_DARK);
+    arm(L, V(-0.36, 0.88, 0.16), V(-0.39, 1.04, 0.42));
+    arm(R, V(0.33, 0.9, 0.12), V(0.16, 1.02, 0.27));
+    suit.bar(V(0.18, 1.03, 0.28), V(-0.42, 1.13, 0.04), 0.012, BOW);
+  } else if (kind === 'cello') {
+    suit.box(0.4, 0.62, 0.17, WOOD, 0, 0.63, 0.5);
+    suit.bar(V(0, 0.93, 0.47), V(0, 1.42, 0.41), 0.04, WOOD_DARK);
+    suit.bar(V(0, 0.31, 0.52), V(0, 0.0, 0.58), 0.015, 0x888888);
+    arm(L, V(-0.32, 0.95, 0.2), V(-0.05, 1.17, 0.42));
+    arm(R, V(0.33, 0.78, 0.2), V(0.22, 0.68, 0.6));
+    suit.bar(V(0.22, 0.68, 0.6), V(-0.38, 0.63, 0.62), 0.012, BOW);
+  } else if (kind === 'wind') {
+    suit.bar(V(0, 1.16, 0.1), V(0, 0.72, 0.43), 0.035, 0x141214);
+    suit.add(new THREE.CylinderGeometry(0.05, 0.025, 0.08, 8), 0x141214, M(0, 0.7, 0.45, -0.65, 0, 0));
+    arm(L, V(-0.25, 0.82, 0.12), V(-0.03, 0.99, 0.24));
+    arm(R, V(0.25, 0.8, 0.15), V(0.03, 0.87, 0.33));
+  } else if (kind === 'brass') {
+    suit.bar(V(0, 1.17, 0.1), V(0, 1.12, 0.52), 0.045, BRASS);
+    suit.add(new THREE.CylinderGeometry(0.095, 0.02, 0.2, 12, 1, true), BRASS, M(0, 1.11, 0.62, Math.PI / 2, 0, 0));
+    suit.box(0.06, 0.09, 0.12, BRASS, 0, 1.08, 0.3);
+    arm(L, V(-0.23, 0.92, 0.2), V(-0.04, 1.1, 0.36));
+    arm(R, V(0.23, 0.92, 0.2), V(0.04, 1.14, 0.3));
+  } else {
+    // pianist: hands forward on the keys
+    arm(L, V(-0.26, 0.86, 0.22), V(-0.18, 0.8, 0.46));
+    arm(R, V(0.26, 0.86, 0.22), V(0.18, 0.8, 0.46));
+  }
+  return { suit: suit.geometry(), skin: skin.geometry() };
+}
+
 const SKIN = [0x4a2f22, 0x6b4430, 0x8a5a3c, 0xa87150, 0xc48e68, 0xddb08c, 0x5c3a28, 0x7a4e36];
 const CLOTHES = [0x2b2f3a, 0x3a2d2a, 0x4a3b33, 0x26333a, 0x55463a, 0x3d2630, 0x2f3b2f, 0x6a5a4c, 0x1f2430, 0x5a3038];
 
@@ -588,7 +648,9 @@ export async function buildHall(scene, step) {
   await step('Setting chairs and stands');
   const chairMx = [];
   const standMx = [];
-  const sectionMx = { strings: [], winds: [], brass: [] };
+  const poseMx = { violin: [], cello: [], wind: [], brass: [] };
+  const proxies = { about: new Kit(), experience: new Kit(), projects: new Kit(), skills: new Kit(), education: new Kit() };
+  const centroid = { experience: [], projects: [], skills: [] };
   const C = CONDUCTOR;
   const onArc = (r, phi) => [C.x + r * Math.sin(phi), C.z - r * Math.cos(phi)];
   const ARCS = [
@@ -602,7 +664,7 @@ export async function buildHall(scene, step) {
   ];
   for (const arc of ARCS) {
     const y = levelY(arc.lv);
-    const section = sectionMx[arc.lv === 0 ? 'strings' : arc.lv === 1 ? 'winds' : 'brass'];
+    const section = arc.lv === 0 ? 'experience' : arc.lv === 1 ? 'projects' : 'skills';
     for (const [d0, d1] of arc.spans) {
       const p0 = THREE.MathUtils.degToRad(d0);
       const p1 = THREE.MathUtils.degToRad(d1);
@@ -610,8 +672,13 @@ export async function buildHall(scene, step) {
       const phis = Array.from({ length: n }, (_, k) => p0 + ((k + 0.5) * (p1 - p0)) / n);
       for (const phi of phis) {
         const [x, z] = onArc(arc.r, phi);
-        chairMx.push(facing(x, y, z, C.x, C.z));
-        section.push(chairMx[chairMx.length - 1]);
+        const mx = facing(x, y, z, C.x, C.z);
+        chairMx.push(mx);
+        const kind = arc.lv === 0 ? (x < 0 || arc.r < 3 ? 'violin' : 'cello') : arc.lv === 1 ? 'wind' : 'brass';
+        poseMx[kind].push(mx.clone().multiply(new THREE.Matrix4().makeTranslation(0, -0.02, 0)));
+        proxies[section].box(0.9, 1.6, 1.0, 0xffffff, x, y + 0.8, z);
+        // Markers sit over one side of each section so they never stack in the middle of the stage.
+        if ((section === 'experience' && x < -1.5) || section === 'projects') centroid[section].push(new THREE.Vector3(x, y, z));
       }
       const standPhis = arc.pair
         ? phis.reduce((acc, p, k) => (k % 2 === 0 ? [...acc, k + 1 < n ? (p + phis[k + 1]) / 2 : p] : acc), [])
@@ -718,50 +785,64 @@ export async function buildHall(scene, step) {
     scene.add(piano);
   }
 
-  /* ---------- People: hidden until movements are cleared ---------- */
+  /* ---------- People: the orchestra rehearses, the audience fills as sections are explored ---------- */
   const personMat = lambert();
   const pick = (list) => new THREE.Color(list[Math.floor(rand() * list.length)]);
-  const people = (matrices, bodyGeo, headGeo, clothes) => {
-    const body = instances(bodyGeo, personMat, matrices, matrices.map(() => (clothes ? pick(clothes) : new THREE.Color(0x17161a))));
-    const head = instances(headGeo, personMat, matrices, matrices.map(() => pick(SKIN)));
-    scene.add(body, head);
-    return [body, head];
+  const musicians = (kind, matrices) => {
+    if (!matrices.length) return;
+    const { suit, skin } = poseKits(kind);
+    const a = instances(suit, personMat, matrices);
+    const b = instances(skin, personMat, matrices, matrices.map(() => pick(SKIN)));
+    a.castShadow = b.castShadow = true;
+    scene.add(a, b);
   };
-  const bodyGeo = bodyKit();
-  const playerHead = headKit(1);
-  const lower = new THREE.Matrix4().makeTranslation(0, -0.03, 0);
-  const groups = {};
-  for (const [name, list] of Object.entries(sectionMx)) {
-    groups[name] = people(list.map((m) => m.clone().multiply(lower)), bodyGeo, playerHead, null);
-  }
+  for (const [kind, list] of Object.entries(poseMx)) musicians(kind, list);
   const benchSeat = new THREE.Matrix4()
     .compose(new THREE.Vector3(-5.45, STAGE_TOP, -7.55), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -Math.PI / 2 + 0.18, 0)), new THREE.Vector3(1, 1, 1))
     .multiply(M(0.74, 0.04, 0.75, 0, Math.PI, 0));
-  groups.pianist = people([benchSeat], bodyGeo, playerHead, null);
-  for (const pair of Object.values(groups)) {
-    for (const m of pair) {
-      m.visible = false;
-      m.castShadow = true;
-    }
-  }
+  musicians('pianist', [benchSeat]);
+
   // The audience fills in a fixed, scattered order so the hall never fills row by row.
   for (let i = audienceMx.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [audienceMx[i], audienceMx[j]] = [audienceMx[j], audienceMx[i]];
   }
-  const crowd = people(audienceMx, bodyGeo, headKit(0), CLOTHES);
-  for (const m of crowd) {
-    m.count = 0;
-    m.frustumCulled = false; // its bounds would otherwise be measured while it is still empty
-  }
-  fx.cast = {
-    bobbing: Object.values(groups).flat(),
-    set(cast = {}) {
-      for (const [name, pair] of Object.entries(groups)) for (const m of pair) m.visible = !!cast[name];
-      const n = Math.round(audienceMx.length * Math.max(0, Math.min(1, cast.audience ?? 0)));
-      for (const m of crowd) m.count = n;
-    },
+  const crowdBody = instances(bodyKit(), personMat, audienceMx, audienceMx.map(() => pick(CLOTHES)));
+  const crowdHead = instances(headKit(1), personMat, audienceMx, audienceMx.map(() => pick(SKIN)));
+  scene.add(crowdBody, crowdHead);
+  for (const m of [crowdBody, crowdHead]) m.frustumCulled = false; // bounds would be measured while empty
+  fx.setAudience = (share) => {
+    const n = Math.round(audienceMx.length * Math.max(0, Math.min(1, share)));
+    crowdBody.count = crowdHead.count = n;
   };
+  fx.setAudience(0);
+
+  /* ---------- Sections: what can be clicked, where its marker sits, where the camera goes ---------- */
+  proxies.about.box(1.4, 2.4, 1.6, 0xffffff, C.x, STAGE_TOP + 1.2, C.z);
+  proxies.education.box(16, 10.5, 2, 0xffffff, 0, 10.6, BACK_Z + 1.2);
+  for (const deg of [18, 26, 34, 42]) {
+    const [tx, tz] = onArc(9.55, THREE.MathUtils.degToRad(deg));
+    proxies.skills.box(0.9, 1.2, 0.9, 0xffffff, tx, levelY(3) + 0.6, tz);
+    centroid.skills.push(new THREE.Vector3(tx, levelY(3), tz));
+  }
+  const mid = (list) => list.reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / list.length);
+  const proxyMat = new THREE.MeshBasicMaterial();
+  const at = (v, dy) => v.clone().setY(v.y + dy);
+  const sectionAnchors = {
+    about: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
+    experience: at(mid(centroid.experience), 1.9),
+    projects: at(mid(centroid.projects), 2.6),
+    skills: at(mid(centroid.skills), 2.0),
+    education: new THREE.Vector3(0, 12.2, BACK_Z + 1),
+  };
+  fx.sections = {};
+  for (const [id, kit] of Object.entries(proxies)) {
+    const mesh = new THREE.Mesh(kit.geometry(), proxyMat);
+    mesh.visible = false; // never drawn; only used to find what the pointer is over
+    mesh.userData.section = id;
+    scene.add(mesh);
+    fx.sections[id] = { id, proxy: mesh, anchor: sectionAnchors[id], focus: at(sectionAnchors[id], -1.4) };
+  }
 
   /* ---------- Lighting ---------- */
   await step('Hanging the lights');
@@ -805,7 +886,8 @@ export async function buildHall(scene, step) {
 
   const cableGeo = new THREE.BufferGeometry();
   cableGeo.setAttribute('position', new THREE.Float32BufferAttribute(cables, 3));
-  scene.add(new THREE.LineSegments(cableGeo, new THREE.LineBasicMaterial({ color: 0x3a302a })));
+  const cableLines = new THREE.LineSegments(cableGeo, new THREE.LineBasicMaterial({ color: 0x3a302a }));
+  scene.add(cableLines);
 
   // Merge and add the static hall
   scene.add(new THREE.Mesh(hall.geometry(), lambert()));
@@ -872,7 +954,13 @@ export async function buildHall(scene, step) {
   house.target.position.set(0, 2, -6);
   scene.add(house, house.target);
 
-  fx.lights = { hemi, key, wash, house };
+  // A follow spot that moves to whichever section is hovered or open.
+  const follow = new THREE.SpotLight(0xfff0d8, 0, 34, 0.2, 0.55, 2);
+  follow.position.set(0, 13, 2);
+  follow.target.position.set(0, 1, -9);
+  scene.add(follow, follow.target);
+
+  fx.lights = { hemi, key, wash, house, follow };
   fx.base = { key: key.intensity, wash: wash.intensity };
 
   // Light shafts from the truss
@@ -901,7 +989,8 @@ export async function buildHall(scene, step) {
     dustGeo,
     new THREE.PointsMaterial({
       color: 0xffe6bf,
-      size: 0.05,
+      map: glowTex,
+      size: 0.06,
       transparent: true,
       opacity: 0.5,
       depthWrite: false,
@@ -909,6 +998,9 @@ export async function buildHall(scene, step) {
     }),
   );
   scene.add(fx.dust);
+
+  // Things that only make sense once the lights are on; hidden while the hall is a wireframe.
+  fx.lit = [cableLines, fx.glowBig, fx.glowSmall, fx.dust, ...fx.shafts.map((x) => x.mesh)];
 
   scene.fog = new THREE.FogExp2(0x140b08, 0.011);
   scene.background = new THREE.Color(0x0e0806);

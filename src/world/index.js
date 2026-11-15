@@ -1,42 +1,53 @@
 import * as THREE from 'three';
 import { buildHall, nextFrame } from './hall.js';
-import { BeatClock } from '../lib/beat.js';
 
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Camera presets. The camera swings in a slow arc around a point on the stage.
-// drift: above the back of the stalls. podium: closer, after the first click.
-const MODES = {
-  drift: { R: 22.5, az: 0.3, height: 7.6, ty: 4.0, lz: -10.5, period: 56 },
-  podium: { R: 13.5, az: 0.16, height: 4.6, ty: 2.6, lz: -8.6, period: 56 },
-  // play: close behind the podium and almost still, so the stage sits above the game's track.
-  play: { R: 10.5, az: 0.05, height: 4.4, ty: 1.2, lz: -9.2, period: 56 },
+// Camera poses: a position and a point to look at. The overview drifts in a slow arc; every
+// other pose holds still apart from a faint sway. The camera eases between poses.
+const OVERVIEW = { R: 22.5, swing: 0.28, height: 7.6, target: new THREE.Vector3(0, 4.0, -10.5), period: 60 };
+const BUILD = { R: 30, swing: 0.55, height: 14, target: new THREE.Vector3(0, 3.2, -9), period: 90 };
+const SECTION_VIEWS = {
+  // Each view leaves its section left of centre, clear of the panel on the right.
+  about: { pos: [2.2, 3.3, -1.2], target: [-0.3, 2.0, -8.2] },
+  experience: { pos: [1.2, 4.3, -2.8], target: [-0.6, 1.4, -8.8] },
+  projects: { pos: [-1.2, 5.0, -3.6], target: [2.6, 1.7, -12.2] },
+  skills: { pos: [-0.2, 5.4, -5.2], target: [6.2, 2.0, -13.6] },
+  education: { pos: [-2.6, 4.6, -9.0], target: [3.2, 8.4, -22.0] },
 };
-const KEYS = ['R', 'az', 'height', 'ty', 'lz', 'period'];
 const BASE_FOV = 46;
 
-// Rendering budget. Drift is slow, so 60 frames a second is plenty even on 120 Hz screens.
+// Rendering budget: 60 frames a second at most, and resolution capped for Intel laptops
+// with Retina screens. Text stays sharp because it is HTML, not part of the 3D scene.
 const MIN_FRAME_MS = 12;
-// Intel laptops with Retina screens choke above this; text stays sharp because it is HTML.
 const MAX_PIXEL_RATIO = 1.25;
 
-export async function createWorld({ canvas, bpm, onStep }) {
+export async function createWorld({ canvas, onStep }) {
+  let renderer = null;
+  let scene = null;
+  let camera = null;
+  const blueprintMat = new THREE.MeshBasicMaterial({
+    color: 0xe3b552,
+    wireframe: true,
+    transparent: true,
+    opacity: 0.17,
+    toneMapped: false,
+    fog: false,
+  });
+
+  // Each loading step redraws the wireframe, so the visitor watches the hall go up.
   const step = async (label) => {
     await onStep?.(label);
+    if (renderer && scene) {
+      placeCamera(performance.now() / 1000);
+      renderer.render(scene, camera);
+    }
     await nextFrame();
   };
 
   await step('Starting the renderer');
-  const renderer = new THREE.WebGLRenderer({
-    canvas,
-    antialias: true,
-    stencil: false,
-    powerPreference: 'high-performance',
-  });
-  // Quality steps, highest first. We drop a step if the machine cannot keep up.
-  const levels = [Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO), 1, 0.8].filter(
-    (v, i, a) => i === 0 || v < a[0],
-  );
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, stencil: false, powerPreference: 'high-performance' });
+  const levels = [Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO), 1, 0.8].filter((v, i, a) => i === 0 || v < a[0]);
   let level = 0;
   renderer.setPixelRatio(levels[level]);
   renderer.shadowMap.enabled = true;
@@ -46,63 +57,93 @@ export async function createWorld({ canvas, bpm, onStep }) {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.1, 90);
-  const fx = await buildHall(scene, step);
+  scene = new THREE.Scene();
+  scene.overrideMaterial = blueprintMat;
+  camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.1, 90);
 
+  let dirty = true;
   const resize = () => {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    renderer.setSize(w, h, false);
-    camera.aspect = w / h;
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     dirty = true;
   };
-
-  let dirty = true;
   resize();
   window.addEventListener('resize', resize);
 
-  // Camera state eases toward the active mode so switching modes glides.
-  const cur = { ...MODES.drift };
-  let goal = MODES.drift;
-  const clock = new BeatClock(bpm);
   const still = reduceMotion();
-  const lookAt = new THREE.Vector3();
+  const camPos = new THREE.Vector3();
+  const camTarget = new THREE.Vector3();
+  const goalPos = new THREE.Vector3();
+  const goalTarget = new THREE.Vector3();
+  let pose = 'build';
+  let pinned = null; // debug only, set from the console with ?stats
 
-  let beatSource = null; // returns the music's beat while music plays, so lights follow the sound
-  let flash = 0; // a short extra burst of light when the player lands a note
-  let pinned = null; // debug only: a fixed camera set from the console with ?stats
-
-  function placeCamera(t) {
+  function orbit(o, t, outPos, outTarget) {
+    const swing = still ? 0 : o.swing * Math.sin((2 * Math.PI * t) / o.period);
+    outTarget.copy(o.target);
+    outPos.set(Math.sin(swing) * o.R, o.height, o.target.z + Math.cos(swing) * o.R);
+  }
+  function goal(t) {
+    if (pose === 'build') return orbit(BUILD, t, goalPos, goalTarget);
+    if (pose === 'overview') return orbit(OVERVIEW, t, goalPos, goalTarget);
+    const v = SECTION_VIEWS[pose];
+    const sway = still ? 0 : 0.12 * Math.sin((2 * Math.PI * t) / 23);
+    goalPos.set(v.pos[0] + sway, v.pos[1], v.pos[2]);
+    goalTarget.set(...v.target);
+  }
+  function placeCamera(t, k = 1) {
     if (pinned) {
       camera.position.set(pinned[0], pinned[1], pinned[2]);
       camera.lookAt(pinned[3], pinned[4], pinned[5]);
-      return;
+      return false;
     }
-    const swing = still ? 0 : cur.az * Math.sin((2 * Math.PI * t) / cur.period);
-    const bob = still ? 0 : 0.2 * Math.sin((2 * Math.PI * t) / 31);
-    lookAt.set(0, cur.ty, cur.lz);
-    camera.position.set(Math.sin(swing) * cur.R, cur.height + bob, cur.lz + Math.cos(swing) * cur.R);
-    camera.lookAt(lookAt);
+    goal(t);
+    const before = camPos.distanceToSquared(goalPos) + camTarget.distanceToSquared(goalTarget);
+    camPos.lerp(goalPos, k);
+    camTarget.lerp(goalTarget, k);
+    camera.position.copy(camPos);
+    camera.lookAt(camTarget);
+    return before > 1e-5;
   }
+  placeCamera(0);
+
+  const fx = await buildHall(scene, step);
+  for (const o of fx.lit) o.visible = false;
 
   await step('Warming up the shaders');
-  placeCamera(0);
-  renderer.shadowMap.needsUpdate = true;
-  // Compile every shader now, during loading, so the first frames do not stutter.
+  // Compile the real materials too, so the reveal does not stutter.
+  scene.overrideMaterial = null;
   if (renderer.extensions.has('KHR_parallel_shader_compile')) await renderer.compileAsync(scene, camera);
   else renderer.compile(scene, camera);
+  scene.overrideMaterial = blueprintMat;
+  renderer.shadowMap.needsUpdate = true;
   renderer.render(scene, camera);
+
+  /* ------------------------------------------------- hover, selection, reveal */
+
+  const follow = fx.lights.follow;
+  let hover = null;
+  let selected = null;
+  let spotLevel = 0;
+  const spotGoal = new THREE.Vector3();
+  let reveal = null; // { start, duration, resolve } while the lights come up
+  let revealed = false;
+  const frameListeners = new Set();
+
+  function spotTarget() {
+    const id = selected ?? hover;
+    return id ? fx.sections[id] : null;
+  }
+
+  /* ------------------------------------------------------------- the loop */
 
   let running = false;
   let raf = 0;
   let last = performance.now();
   let lastDraw = 0;
-  const t0 = last;
   const samples = [];
 
-  // If the machine struggles, step resolution down rather than stutter forever.
   function adapt(interval) {
     if (level >= levels.length - 1) return;
     samples.push(interval);
@@ -110,7 +151,6 @@ export async function createWorld({ canvas, bpm, onStep }) {
     samples.sort((a, b) => a - b);
     const slow = samples[Math.floor(samples.length * 0.7)];
     samples.length = 0;
-    // Most frames slower than about 45 a second: take one step down.
     if (slow > 22) {
       level++;
       renderer.setPixelRatio(levels[level]);
@@ -125,58 +165,75 @@ export async function createWorld({ canvas, bpm, onStep }) {
     lastDraw = now;
     const dt = Math.min((now - last) / 1000, 0.1);
     last = now;
-    const t = (now - t0) / 1000;
+    const t = now / 1000;
 
-    const k = 1 - Math.exp(-dt * 1.8);
-    let moving = false;
-    for (const key of KEYS) {
-      const d = goal[key] - cur[key];
-      if (Math.abs(d) > 1e-3) moving = true;
-      cur[key] += d * k;
-    }
-
-    // With reduced motion the scene is still, so only draw when something changed.
-    if (still && !moving && !dirty) return;
+    let changing = dirty;
     dirty = false;
-    placeCamera(t);
 
-    // Everything breathes on the beat. Off entirely when the person prefers reduced motion.
-    const mb = beatSource?.();
-    const beats = mb ?? clock.beats(now);
-    const frac = beats - Math.floor(beats);
-    const inBar = ((beats % 4) + 4) % 4;
-    flash *= Math.exp(-dt * 7);
-    const p = still ? 0 : Math.min(1.6, Math.exp(-frac * 5) + flash);
-    const bar = still ? 0 : inBar < 1 ? Math.exp(-inBar * 4) : 0;
-    for (const m of fx.cast.bobbing) m.position.y = m.visible ? 0.012 * p : 0;
-    const { key: keyLight, wash } = fx.lights;
-    keyLight.intensity = fx.base.key * (1 + 0.12 * p);
-    wash.intensity = fx.base.wash * (1 + 0.08 * p + 0.18 * bar);
-    for (const s of fx.shafts) s.mat.opacity = s.base * (1 + 0.5 * p + 0.25 * bar);
-    fx.lampMat.color.setScalar(0.85 + 0.3 * p);
-    fx.glowBig.material.opacity = 0.5 + 0.25 * p;
-    fx.glowSmall.material.opacity = 0.7 + 0.25 * p;
-    fx.scoreMat.emissiveIntensity = 0.45 + 0.3 * p;
-    const fov = BASE_FOV - 0.3 * p;
-    if (Math.abs(camera.fov - fov) > 0.001) {
-      camera.fov = fov;
-      camera.updateProjectionMatrix();
+    // The lights come up: the wireframe fades, then the real hall brightens from dark.
+    if (reveal) {
+      const p = Math.min(1, (now - reveal.start) / reveal.duration);
+      if (p < 0.25) {
+        blueprintMat.opacity = 0.17 * (1 - p / 0.25);
+      } else {
+        if (scene.overrideMaterial) {
+          scene.overrideMaterial = null;
+          for (const o of fx.lit) o.visible = true;
+        }
+        const q = (p - 0.25) / 0.75;
+        renderer.toneMappingExposure = 0.03 + 0.97 * q * q * (3 - 2 * q);
+      }
+      if (p >= 1) {
+        renderer.toneMappingExposure = 1;
+        revealed = true;
+        reveal.resolve();
+        reveal = null;
+      }
+      changing = true;
     }
 
-    if (!still) {
+    const k = still ? 1 : 1 - Math.exp(-dt * (pose === 'overview' || pose === 'build' ? 1.4 : 2.2));
+    if (placeCamera(t, k)) changing = true;
+
+    // Follow spot eases toward the hovered or open section.
+    const s = spotTarget();
+    const want = s && revealed ? (selected ? 950 : 600) : 0;
+    if (s) spotGoal.copy(s.focus);
+    if (Math.abs(spotLevel - want) > 1 || (s && follow.target.position.distanceToSquared(spotGoal) > 1e-4)) {
+      const sk = still ? 1 : 1 - Math.exp(-dt * 6);
+      spotLevel += (want - spotLevel) * sk;
+      if (s) follow.target.position.lerp(spotGoal, sk);
+      follow.position.set(follow.target.position.x * 0.6, 13, follow.target.position.z + 9);
+      follow.intensity = spotLevel;
+      follow.target.updateMatrixWorld();
+      changing = true;
+    }
+
+    if (!still && revealed) {
       const pos = fx.dust.geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
-        let y = pos.getY(i) + dt * 0.12;
+        let y = pos.getY(i) + dt * 0.1;
         if (y > 10) y = 2;
         pos.setY(i, y);
-        pos.setX(i, pos.getX(i) + Math.sin(t * 0.3 + i) * dt * 0.05);
+        pos.setX(i, pos.getX(i) + Math.sin(t * 0.3 + i) * dt * 0.04);
       }
       pos.needsUpdate = true;
+      changing = true;
     }
 
+    // With reduced motion the scene only redraws when something actually changes.
+    if (still && !changing) return;
     renderer.render(scene, camera);
+    for (const fn of frameListeners) fn();
     if (interval < 200) adapt(interval);
   }
+
+  /* --------------------------------------------------------- picking, markers */
+
+  const ray = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  const proxyList = Object.values(fx.sections).map((s) => s.proxy);
+  const tmp = new THREE.Vector3();
 
   if (new URLSearchParams(location.search).has('stats')) {
     window.__hallStats = () => ({
@@ -194,6 +251,10 @@ export async function createWorld({ canvas, bpm, onStep }) {
   }
 
   return {
+    sections: Object.keys(fx.sections),
+    get revealed() {
+      return revealed;
+    },
     start() {
       if (running) return;
       running = true;
@@ -205,29 +266,46 @@ export async function createWorld({ canvas, bpm, onStep }) {
       running = false;
       cancelAnimationFrame(raf);
     },
-    setBpm(next) {
-      clock.setBpm(next);
+    // Turn the lights on. Resolves when the hall is fully lit.
+    reveal() {
+      if (revealed) return Promise.resolve();
+      pose = 'overview';
+      return new Promise((resolve) => {
+        reveal = { start: performance.now(), duration: still ? 1 : 2600, resolve };
+      });
     },
-    setMode(name) {
-      goal = MODES[name] ?? MODES.drift;
-    },
-    setBeatSource(fn) {
-      beatSource = fn;
-    },
-    flash(strength = 1) {
-      if (!still) flash = Math.max(flash, 0.6 * strength);
-    },
-    // Who is in the hall: { pianist, strings, winds, brass } on or off, audience from 0 to 1.
-    setCast(cast) {
-      fx.cast.set(cast);
-      renderer.shadowMap.needsUpdate = true;
+    // 'overview' or a section id
+    setView(name) {
+      pose = name === 'overview' || SECTION_VIEWS[name] ? name : 'overview';
       dirty = true;
     },
-    renderOnce() {
+    setHover(id) {
+      hover = id;
+    },
+    setSelected(id) {
+      selected = id;
+    },
+    setAudience(share) {
+      fx.setAudience(share);
       dirty = true;
-      lastDraw = 0;
-      frame(performance.now());
-      cancelAnimationFrame(raf);
+    },
+    // Which section is under a point on the screen, or null.
+    pick(clientX, clientY) {
+      if (!revealed) return null;
+      ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+      ray.setFromCamera(ndc, camera);
+      const hit = ray.intersectObjects(proxyList, false)[0];
+      return hit ? hit.object.userData.section : null;
+    },
+    // Screen position of a section's marker, or null when it is behind the camera.
+    project(id) {
+      tmp.copy(fx.sections[id].anchor).project(camera);
+      if (tmp.z > 1) return null;
+      return { x: ((tmp.x + 1) / 2) * window.innerWidth, y: ((1 - tmp.y) / 2) * window.innerHeight };
+    },
+    onFrame(fn) {
+      frameListeners.add(fn);
+      return () => frameListeners.delete(fn);
     },
     dispose() {
       this.stop();

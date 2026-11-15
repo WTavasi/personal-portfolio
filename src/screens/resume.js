@@ -1,4 +1,5 @@
-import { person, contact, experience, projects, skills, education, certifications, music, credits } from '../content.js';
+import { person, contact, experience, projects, skills, education, certifications, honors, interests, credits } from '../content.js';
+import { pdfLink } from '../lib/pdf.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -17,22 +18,21 @@ export function resumeScreen({ go, world }) {
     contact.email && `<a href="mailto:${esc(contact.email)}">${esc(contact.email)}</a>`,
     contact.github && ext(contact.github, 'GitHub'),
     contact.linkedin && ext(contact.linkedin, 'LinkedIn'),
-    contact.resumeUrl && ext(contact.resumeUrl, 'Résumé (PDF)'),
   ].filter(Boolean);
 
   el.innerHTML = `
     <nav class="p-bar" aria-label="Résumé">
-      <button class="btn btn-secondary" data-act="home">Enter the hall</button>
+      <button class="btn btn-secondary" data-act="home">Back to the hall</button>
+      ${pdfLink()}
       <button class="btn btn-secondary" data-act="print">Print</button>
     </nav>
 
     <main class="doc">
       <header class="doc-head">
         <h1>${esc(person.name)}</h1>
-        <p class="doc-full">${esc(person.fullName)} · ${esc(person.location)}</p>
+        <p class="doc-full">${esc(person.headline)} · ${esc(person.location)}</p>
         <p class="doc-lead">${esc(person.description)}</p>
         <p class="doc-avail">${esc(person.availability)}</p>
-        <p class="doc-music">${esc(person.musicLine)}</p>
         <p class="doc-links">${contactLinks.join('')}</p>
       </header>
 
@@ -94,15 +94,14 @@ export function resumeScreen({ go, world }) {
         ${list(certifications)}
       </section>
 
-      <section aria-labelledby="h-music">
-        <h2 id="h-music">Music and leadership</h2>
-        ${list(music.bullets)}
-        <h3 class="sub-h">Honors</h3>
-        ${list(music.honors)}
+      <section aria-labelledby="h-honors">
+        <h2 id="h-honors">Honors and interests</h2>
+        ${list(honors)}
+        <p class="interests">${esc(interests)}</p>
       </section>
 
       <footer class="doc-foot">
-        <p>This site sets no cookies and has no analytics. It saves your tempo, sound choice and game progress on your own device only.</p>
+        <p>This site sets no cookies and has no analytics. It saves your sound settings on your own device only.</p>
         ${credits.map((c) => `<p>${esc(c)}</p>`).join('')}
       </footer>
     </main>
@@ -110,7 +109,7 @@ export function resumeScreen({ go, world }) {
 
   el.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'home') go('home');
+    if (act === 'home') go('hall');
     if (act === 'print') window.print();
   });
 

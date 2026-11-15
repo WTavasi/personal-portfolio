@@ -1,18 +1,31 @@
 // Web Audio helpers. Browsers only allow audio after a user gesture, so nothing here
 // makes a sound until ensureAudio() is called from a key press or click.
-import { getState } from './state.js';
+import { getState, subscribe } from './state.js';
 import tuningUrl from '../assets/audio/orchestra-tuning.mp3';
 
 let ctx = null;
+let master = null;
+
+const level = () => (getState().sound ? getState().volume : 0);
 
 export function ensureAudio() {
   if (!ctx) {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return null;
     ctx = new AC();
+    // Every sound on the site goes through this one gain, so sound and volume apply to all of it.
+    master = ctx.createGain();
+    master.gain.value = level();
+    master.connect(master);
+    subscribe(() => master.gain.setTargetAtTime(level(), ctx.currentTime, 0.04));
   }
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state === 'suspended' && !document.hidden) ctx.resume();
   return ctx;
+}
+
+// The shared output, created on first use.
+export function audioOut() {
+  return ensureAudio() ? master : null;
 }
 
 /* ---------- The orchestra tuning recording, played on the first click ---------- */
@@ -62,7 +75,7 @@ export async function playTuning() {
   gain.gain.exponentialRampToValueAtTime(TUNING.level, t + TUNING.fadeIn);
   gain.gain.setValueAtTime(TUNING.level, t + length - TUNING.fadeOut);
   gain.gain.linearRampToValueAtTime(0, t + length);
-  src.connect(gain).connect(c.destination);
+  src.connect(gain).connect(master);
   src.onended = () => {
     if (tuningVoice?.src === src) tuningVoice = null;
   };
@@ -70,6 +83,9 @@ export async function playTuning() {
   tuningVoice = { src, gain };
   return length - TUNING.fadeOut;
 }
+
+// True while the tuning recording is playing or about to.
+export const tuningActive = () => tuningWanted && !!tuningVoice;
 
 // Fade the recording out, for example when leaving the menu or turning sound off.
 export function stopTuning(seconds = 0.6) {
@@ -105,7 +121,7 @@ export function playTuningA() {
   lp.type = 'lowpass';
   lp.frequency.value = 2400;
 
-  out.connect(lp).connect(c.destination);
+  out.connect(lp).connect(master);
 
   // A few harmonics with a gentle vibrato give a reedy tone without samples.
   [
@@ -143,7 +159,7 @@ export function playClick(high = false) {
   osc.frequency.setValueAtTime(high ? 1200 : 820, t);
   g.gain.setValueAtTime(0.05, t);
   g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
-  osc.connect(g).connect(c.destination);
+  osc.connect(g).connect(master);
   osc.start(t);
   osc.stop(t + 0.07);
 }

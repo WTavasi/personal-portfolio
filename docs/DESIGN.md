@@ -1,17 +1,38 @@
-# The Conductor's Podium: design brief (v0.3)
+# The Conductor's Podium: design brief (v0.4)
 
-Portfolio for Wyclef (Tavasi Wyclef Wasike). The home screen is a 3D concert hall. The camera drifts in a slow arc and the room pulses at the chosen tempo. A plain-HTML résumé (the recruiter view) is one click, or one URL (`/#/resume`), from every screen. Old `/#/program` links redirect there. The rhythm game arrives movement by movement.
+Portfolio for Wyclef Tavasi. The site opens on a terminal that builds a 3D concert hall, then lets the visitor into an open rehearsal: the orchestra is seated, a quiet theme plays, and each part of the stage holds one part of the résumé. Nothing has to be played or won. A plain-HTML résumé is one click, or one URL (`/#/resume`), from every screen.
 
 ## Decisions so far
-- Hall style: low-poly shapes with rich lighting (soft shadows, fog, light shafts, glowing lamps), built in code. No model files, so no licensing questions.
-- Home: "Click anywhere to begin" (any key also works). After that, a menu: View résumé, Start the concert (disabled until the game ships), tempo, sound.
-- Labels use plain words a non-musician understands: "Skip to résumé", "View résumé".
-- Boot: short. The log is the real loading progress of the hall, not a script.
-- Privacy: no cookies, no analytics, no forms, email link only. Tempo, sound, timing calibration and game progress are saved in localStorage on the device.
-- Desktop first. The résumé view works on phones.
+- Interactive, not a game. Earlier rhythm-game versions were dropped; there is no score, tempo or timing.
+- One name on screen: Wyclef Tavasi, as on the master résumé.
+- Music is the setting, not the subject: the résumé content leads, and music appears only as a one-line interest on the résumé page.
+- Hall style: low-poly shapes with rich, steady lighting, built in code. No model files, so no licensing questions. (The TurboSquid reference model is licensed for editorial use only, so it could not be used on the site.)
+- Privacy: no cookies, no analytics, no forms, email link only. Sound on or off and volume are saved in localStorage on the device.
+- Desktop first. The hall and the résumé both work on phones.
 
 ## Flow
-Boot -> Home (hall, click to begin) -> menu -> Résumé, or the game when it exists. The résumé is reachable from every screen.
+Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -> the hall (explore sections) <-> résumé. Old `#/program` and `#/home` links still work.
+
+## The terminal
+- A terminal window runs `npm run build:hall`. Every line is a real loading step with its real duration; behind the window the hall goes up as a brass wireframe, step by step, and slowly turns.
+- When it finishes it waits for the visitor: Sound on or off, a volume slider, Enter the hall (the Enter key works too) and View résumé.
+- Entering: the window drops away, the wireframe fades, the house lights come up over about 2.5 seconds, and the orchestra tuning recording plays. The hall theme comes in as the tuning fades.
+- No WebGL: the log says so plainly and the hall opens as a list of sections.
+
+## The sections
+| On stage | Section | Content |
+|---|---|---|
+| Conductor's podium | About | Headline, summary, availability, contact, PDF download |
+| Strings | Experience | Webmasters KE, Delta Creative Solutions |
+| Woodwinds | Projects | All ten projects with stack, year and GitHub links |
+| Brass and timpani | Skills | The eight skill groups |
+| Organ | Education | Degree and coursework, certifications, honors |
+
+- Indicators: a brass ring and label floats over each section and breathes slowly; hovering a section lights it with a follow spot and turns the cursor into a pointer; a hint line at the bottom explains what to do until the first section is opened.
+- The section list at the bottom is the keyboard and screen-reader route (the markers are a pointer affordance only). Esc closes a panel and returns focus to where it came from.
+- Opening a section glides the camera to it, opens the panel on the right, and crossfades to that section's theme.
+- Each section explored seats more of the audience. With all five explored the full orchestra plays and the hall applauds once.
+- Downloadable PDF: any PDF placed in `src/assets/resume/` becomes the download on the hall, the About panel and the résumé page. No PDF, no buttons.
 
 ## The hall (from Wyclef's reference photos)
 - Warm wood: honey maple wall panelling and stage planks, darker wood on gallery fronts and stage edge.
@@ -19,30 +40,27 @@ Boot -> Home (hall, click to begin) -> menu -> Résumé, or the game when it exi
 - Side galleries on two levels wrap from beside the choir to the back of the stalls, with lamps on the parapets.
 - Choir terrace of six rows behind the orchestra, red-carpeted stairs at each side, organ pipes above.
 - Orchestra on three semicircular risers, laid out like a standard seating chart: strings in front, woodwinds in the middle, brass and timpani at the back, harp at the back left, grand piano at the front left in concerto position. Black four-legged chairs, tripod music stands with sheet music.
-- Conductor's podium with a brass rail and the score (the score later becomes the boss).
+- Conductor's podium with a brass rail and the score.
 - Ceiling: stepped soffits with downlights, a ring of acoustic reflectors over the orchestra, a lighting truss with spotlights and light shafts.
 - Small realistic touches: green exit signs, aisle step lights.
-- Lighting: house lights at half, stage fully lit. A blue stage wash is kept in reserve for the boss fight.
+- Musicians in concert black, each posed with an instrument for their section: violins, cellos, clarinets, trumpets, plus the pianist.
+- Lighting: house lights at half, stage fully lit, steady. No beat-synced pulsing.
 
 ## Performance budget
-- About 23 draw calls and 120k triangles for the whole hall. Static scenery is merged; seats, chairs, stands and pipes are instanced.
-- Lambert materials with vertex colours; four lights (hemisphere, key spot with shadows, organ wash, house fill).
+- About 35 draw calls and 160k triangles with a full house. Static scenery is merged; seats, chairs, stands, musicians, audience and pipes are instanced.
+- Lambert materials with vertex colours; five lights (hemisphere, key spot with shadows, organ wash, house fill, follow spot).
 - The shadow map is drawn once, since nothing that casts a shadow moves.
 - No post-processing. Lamp glow uses additive sprites.
 - Pixel ratio capped at 1.25, frame rate capped at 60, and resolution steps down automatically (1.0, then 0.8) if the machine cannot keep up.
 - With reduced motion, frames are only drawn when something changes.
-- Measured in a software renderer at Retina density: v0.2 took 6.7 s per frame, this version 1.3 s. Real GPUs are far faster; the ratio is the point.
-
-## Game plan (unchanged)
-Movements: Overture (About), Pipeline (Cloud and DevOps), Balancer (Distributed systems), Encore boss (iOS). Each cleared movement fades in another orchestra section (stem) and seats more of the audience. The boss: the conductor's score builds note by note, the staff lines fold into a phone frame, and the notes become app UI you shoot on the beat.
-Tempo: Andante 80, Moderato 120 (default), Vivace 160. Beat maps are authored in beats, so any tempo and any replacement track at a matching BPM works.
+- Measured in a software renderer at Retina density: v0.2 took 6.7 s per frame, v0.2.1 1.3 s, this version 1.5 s with the orchestra and audience seated. Real GPUs are far faster; the ratio is the point.
 
 ## Design system (src/styles/tokens.css)
 - Colour: warm near-black surfaces, one accent (brass #e3b552) used for the primary action, selected states and links. Crimson appears only inside the 3D hall.
 - Spacing: 4px base (4, 8, 12, 16, 24, 32, 48, 64, 96). Related things sit close, groups are separated by the larger steps. No dividers, borders or coloured-edge cards for grouping.
 - Type: Fraunces (display and section headings, upright only), Figtree (UI and body), Space Mono (boot log only). Numerals use tabular figures. Headings use balanced wrapping.
 - Radii: panel 12px, padding 8px, so inner controls are 4px (inner = outer minus padding).
-- Feedback: state changes are instant. Movement is the feedback (press shifts 1px, menu slides in 240ms, the room's pulse changes the moment the tempo changes). Nothing fades on hover.
+- Feedback: state changes are instant. Movement is the feedback (press shifts 1px, panels slide in, the camera glides to what was chosen). Nothing fades on hover.
 - Icons: none. Labels do the work.
 
 ## Contrast (computed by scripts/contrast.py)
@@ -56,37 +74,25 @@ PASS  6.83:1 (need 4.5) tertiary on panel: muted on surface
 PASS  9.63:1 (need 7) CTA label: onAccent on accent
 PASS 10.49:1 (need 4.5) accent text/link on bg: accent on bg
 PASS  9.83:1 (need 4.5) accent on panel: accent on surface
-PASS 14.70:1 (need 7) text on selected tempo: text on surface2
+PASS 14.70:1 (need 7) text on surface2 (section buttons)
 PASS  4.49:1 (need 3) borders and focus (UI components): line on bg
 PASS  8.88:1 (need 3) accent focus ring on panel: accent on surface2
 PASS 18.88:1 (need 7) print: ink on paper
 ```
 
 ## Accessibility
-- Every action works by keyboard; any key (except Tab) begins; arrow keys move through tempo; one visible focus style.
-- The canvas has a text alternative. A live region announces tempo changes.
-- prefers-reduced-motion stops the camera drift and the beat pulse and the notes rain.
-- Beat flashing stays under 3 per second at the fastest tempo (160 BPM = 2.7 per second) and at low amplitude.
+- Every action works by keyboard: Enter opens the hall, the section list opens each panel, Esc closes it and returns focus. One visible focus style.
+- The canvas has a text alternative. A live region announces each section as it opens and the loading steps as they run.
+- prefers-reduced-motion stops the camera drift, cuts camera moves instead of gliding, stops the marker breathing, and only redraws when something changes.
+- Nothing flashes.
 - If WebGL is unavailable the site says so and the menu and résumé still work (tested).
 
 ## Sound
-- First click: the orchestra tuning recording plays once (`src/assets/audio/orchestra-tuning.mp3`). As it fades, a quiet version of the theme starts in the hall at the chosen tempo and keeps looping.
-- The theme is an original 8-bar piece in D major, written in beats in `src/lib/music.js` and synthesised in the browser, so it plays at 80, 120 or 160 BPM with no audio files. Each orchestra section (piano, strings, woodwinds, brass and timpani) is a separate layer. The hall plays the layers unlocked so far.
-- Recorded stems can replace the synthesised layers later without touching the game: see the note at the top of `music.js`.
-- The résumé page plays nothing and downloads no audio. Sound is on by default and the choice is remembered.
+- The orchestra tuning recording (`src/assets/audio/orchestra-tuning.mp3`) plays once, as the visitor enters the hall.
+- Each section has its own looping theme: hall, about, experience, projects, skills, education and finale. Placeholders are synthesised in the browser (`src/lib/themes.js`).
+- To use Wyclef's own compositions, drop a file named after the section into `src/assets/themes/` (for example `experience.mp3`). It replaces the placeholder with no code change. See the README in that folder.
+- One master volume covers everything. Sound pauses when the tab is hidden. The résumé page plays nothing and downloads no audio.
 - The tuning recording is credited on the résumé page. Its licence must be confirmed.
-
-## The game
-- One button (Space, Enter, click or tap). The orchestra gives a cue, the player answers on the beat. Esc pauses, and so does switching tabs.
-- I. Overture (About me): the bells play a one-bar rhythm, the player plays it back in the next bar. Ten rounds, the first is played for them.
-- II. Pipeline (Cloud and DevOps): chimes on beats 1 to 3 are build, test, stage; press on 4 to deploy. A low buzz is a failed test (do not press). A double chime means deploy on 3 and 4. Twenty rounds.
-- III. Balancer and IV. Encore are listed as "In rehearsal" until they are built.
-- Timing is judged against the audio clock, not animation frames: within 60 ms is Perfect, within 125 ms is Good (70% credit). 60% clears a movement.
-- Everything a player needs is also drawn on the track (cues, targets, a moving playhead, text labels), so the game works with sound off.
-- Calibrate timing: tap along with a click 12 times; the median offset is saved and applied to every press.
-- Clearing a movement shows a note with the matching part of the résumé, adds that section's players and music layer, and fills more of the audience. The résumé itself is never locked.
-- Progress (best score per movement) and the calibration value are saved on the visitor's device only.
-- `?autoplay` plays the game by itself, for testing.
 
 ## Privacy, third parties, legal
 - No cookies, no tracking, no forms, no third-party requests (fonts are self-hosted). Verified: opening the résumé makes zero external requests.
@@ -100,8 +106,7 @@ Only claims that can be backed up: a repo, a date, a number, a named employer. N
 ## Roadmap
 | Version | Ships |
 |---------|-------|
-| v0.2 | 3D hall home, real-progress boot, click to begin, tempo and sound, résumé |
-| v0.3 (this) | Music engine, timing engine, calibration, Overture and Pipeline playable, hall fills with players and audience |
-| v0.4 | Balancer movement (woodwinds), tuning of difficulty from play-testing |
-| v0.5 | Encore boss (the score becomes the phone), curtain call |
-| v1.0 | Polish, prerendered résumé for SEO, project screenshots, Wyclef's own track |
+| v0.3 | Rhythm-game prototype (retired) |
+| v0.4 (this) | Interactive hall: terminal build, wireframe reveal, five clickable sections, swappable themes, PDF download, seated orchestra |
+| Next | Wyclef's one-page PDF, his own section themes, project screenshots in the Projects panel |
+| v1.0 | Polish, prerendered résumé for SEO |

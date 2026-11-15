@@ -38,7 +38,7 @@
 .doc-avail {
   margin-top: var(--s-3);
 }
-.doc-music {
+.interests {
   margin-top: var(--s-3);
   color: var(--text-2);
 }
@@ -134,7 +134,7 @@
     padding: 0;
   }
   .doc-full,
-  .doc-music,
+  .interests,
   .when,
   .skills dt,
   .doc-foot {

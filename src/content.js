@@ -3,23 +3,21 @@
 // Kept in line with the master résumé (Wyclef_Tavasi_Resume_Master.docx).
 //
 // Contact details below are public. Empty values are not rendered.
-// TODO(wyclef): set resumeUrl if you want a PDF link.
+// The downloadable PDF is whatever PDF sits in src/assets/resume/ (see src/lib/pdf.js).
 
 export const person = {
-  name: 'Wyclef',
-  fullName: 'Tavasi Wyclef Wasike',
+  name: 'Wyclef Tavasi',
+  headline: 'Software engineer: cloud, backend, mobile and distributed systems',
   location: 'Houston, TX',
   description:
     'Software engineer working across cloud, backend, mobile and distributed systems, with professional experience since January 2026. Builds web, mobile and backend systems in TypeScript, Python, Java, C#, C++, Kotlin and Swift, deploys with Docker and AWS, and has studied Kubernetes, networking (Cisco CCNA curriculum) and cloud security.',
   availability: 'Authorized to work in the US without sponsorship. Available full-time from January 2027.',
-  musicLine: 'Also a trained conductor, arranger and producer, with eight years on clarinet.',
 };
 
 export const contact = {
   github: 'https://github.com/WTavasi',
   email: 'wycleftavasi@gmail.com',
   linkedin: 'https://www.linkedin.com/in/wycleftavasi/',
-  resumeUrl: '',
 };
 
 export const experience = [
@@ -202,15 +200,10 @@ export const certifications = [
 // Third-party media used on the site, credited on the résumé page.
 export const credits = ['Orchestra tuning recording: "Orchestra Tuning Sound Effect" by Effects Grinder.'];
 
-export const music = {
-  bullets: [
-    'Clarinet for over eight years. Also oboe, alto and tenor saxophone, piano and flute.',
-    'Formally trained as a conductor, arranger and music producer, with four years in orchestra including a leadership role.',
-    'Became band leader and conductor at a school that had no band. The band won about eight trophies and performed for the president and deputy president on multiple occasions.',
-  ],
-  honors: [
-    'Several top-student certificates in music and overall in high school.',
-    'Represented Kenya at the national Spell It Right spelling bee, placing 10th of over 200 competitors.',
-    'Took part in several university hackathons, most recently JengaSec at Strathmore.',
-  ],
-};
+export const honors = [
+  'Represented Kenya at the national Spell It Right spelling bee, placing 10th of over 200 competitors.',
+  'Took part in several university hackathons, most recently JengaSec at Strathmore.',
+  'Several top-student certificates in high school.',
+];
+
+export const interests = 'Music: clarinet and several other instruments, orchestra and band leadership, conducting and arranging.';
