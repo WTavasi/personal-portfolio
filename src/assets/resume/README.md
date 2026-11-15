@@ -1,5 +1,3 @@
 # Downloadable résumé
 
-Put one PDF in this folder (any file name) and the site offers it as a download, saved as `Wyclef-Tavasi-Resume.pdf`, in the hall's top bar, the About panel and the résumé page. With no PDF here, those buttons do not appear.
-
-A one-page résumé works best for this.
+The PDF in this folder is what the site offers as "Download résumé (PDF)" (saved as `Wyclef-Tavasi-Resume.pdf`) and what the résumé page's Print button opens. To update it, replace the PDF here. Keep only one PDF in the folder.

@@ -15,24 +15,25 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 
 ## The terminal
 - A terminal window runs `npm run build:hall`. Every line is a real loading step with its real duration; behind the window the hall goes up as a brass wireframe, step by step, and slowly turns.
-- When it finishes it waits for the visitor: Sound on or off, a volume slider, Enter the hall (the Enter key works too) and View résumé.
+- When it finishes it waits for the visitor: Sound on or off, a volume slider and Enter the hall (the Enter key works too). Skip to résumé stays in the corner throughout.
 - Entering: the window drops away, the wireframe fades, the house lights come up over about 2.5 seconds, and the orchestra tuning recording plays. The hall theme comes in as the tuning fades.
 - No WebGL: the log says so plainly and the hall opens as a list of sections.
 
 ## The sections
 | On stage | Section | Content |
 |---|---|---|
-| Conductor's podium | About | Headline, summary, availability, contact, PDF download |
+| The conductor on the podium | About | Headline, summary, availability, contact, PDF download |
 | Strings | Experience | Webmasters KE, Delta Creative Solutions |
 | Woodwinds | Projects | All ten projects with stack, year and GitHub links |
 | Brass and timpani | Skills | The eight skill groups |
-| Organ | Education | Degree and coursework, certifications, honors |
+| The choir, holding open scores | Education | Degree and coursework, certifications, honors |
 
 - Indicators: a brass ring and label floats over each section and breathes slowly; hovering a section lights it with a follow spot and turns the cursor into a pointer; a hint line at the bottom explains what to do until the first section is opened.
-- The section list at the bottom is the keyboard and screen-reader route (the markers are a pointer affordance only). Esc closes a panel and returns focus to where it came from.
-- Opening a section glides the camera to it, opens the panel on the right, and crossfades to that section's theme.
-- Each section explored seats more of the audience. With all five explored the full orchestra plays and the hall applauds once.
-- Downloadable PDF: any PDF placed in `src/assets/resume/` becomes the download on the hall, the About panel and the résumé page. No PDF, no buttons.
+- The section buttons at the bottom carry only the section names. They are the keyboard and screen-reader route (the markers are a pointer affordance only). Esc closes a panel and returns focus to where it came from.
+- Opening a section glides the camera to it, opens the panel on the right, and the music narrows to that section alone.
+- Players sway gently while their section is playing and go still when another section is soloed. The conductor beats a 4/4 pattern in time with the music. All motion stops with reduced motion.
+- Each section explored seats more of the audience. With all five explored the hall applauds once.
+- The one-page PDF in `src/assets/resume/` is the download everywhere (hall top bar, About panel, résumé page), and the résumé page's Print button opens it.
 
 ## The hall (from Wyclef's reference photos)
 - Warm wood: honey maple wall panelling and stage planks, darker wood on gallery fronts and stage edge.
@@ -43,11 +44,11 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 - Conductor's podium with a brass rail and the score.
 - Ceiling: stepped soffits with downlights, a ring of acoustic reflectors over the orchestra, a lighting truss with spotlights and light shafts.
 - Small realistic touches: green exit signs, aisle step lights.
-- Musicians in concert black, each posed with an instrument for their section: violins, cellos, clarinets, trumpets, plus the pianist.
+- Musicians in concert black, each posed with an instrument for their section: violins, cellos, clarinets, trumpets, plus the pianist, a conductor with a baton on the podium, and a choir standing on the terrace with open scores.
 - Lighting: house lights at half, stage fully lit, steady. No beat-synced pulsing.
 
 ## Performance budget
-- About 35 draw calls and 160k triangles with a full house. Static scenery is merged; seats, chairs, stands, musicians, audience and pipes are instanced.
+- About 40 draw calls and 190k triangles with a full house. Static scenery is merged; seats, chairs, stands, musicians, audience and pipes are instanced.
 - Lambert materials with vertex colours; five lights (hemisphere, key spot with shadows, organ wash, house fill, follow spot).
 - The shadow map is drawn once, since nothing that casts a shadow moves.
 - No post-processing. Lamp glow uses additive sprites.
@@ -88,10 +89,10 @@ PASS 18.88:1 (need 7) print: ink on paper
 - If WebGL is unavailable the site says so and the menu and résumé still work (tested).
 
 ## Sound
-- The orchestra tuning recording (`src/assets/audio/orchestra-tuning.mp3`) plays once, as the visitor enters the hall.
-- Each section has its own looping theme: hall, about, experience, projects, skills, education and finale. Placeholders are synthesised in the browser (`src/lib/themes.js`).
-- To use Wyclef's own compositions, drop a file named after the section into `src/assets/themes/` (for example `experience.mp3`). It replaces the placeholder with no code change. See the README in that folder.
-- One master volume covers everything. Sound pauses when the tab is hidden. The résumé page plays nothing and downloads no audio.
+- The orchestra tuning recording (`src/assets/audio/orchestra-tuning.mp3`) plays once, as the visitor enters the hall; then the theme comes in.
+- The theme is five stems (piano, strings, woodwinds, brass, choir) that start on the same sample and loop together. Between sections all play quietly; a section brings its stem up and fades the rest; About brings everything up.
+- The current stems are generated placeholders (8 bars, D major, 80 BPM). Wyclef replaces them with his own stems under the same names; see `src/assets/themes/README.md`. `BPM` in `src/lib/themes.js` keeps the conductor in time.
+- Stems download and decode while the hall builds. One master volume covers everything. Sound pauses when the tab is hidden. The résumé page plays nothing and downloads no audio.
 - The tuning recording is credited on the résumé page. Its licence must be confirmed.
 
 ## Privacy, third parties, legal

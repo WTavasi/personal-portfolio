@@ -10,12 +10,14 @@ const ext = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopen
 const list = (items) => `<ul>${items.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`;
 
 // Each part of the stage stands for one part of the résumé.
+// About is the conductor, Experience the strings, Projects the woodwinds, Skills the brass and
+// timpani, Education the choir.
 const SECTIONS = [
-  { id: 'about', label: 'About', where: 'The podium' },
-  { id: 'experience', label: 'Experience', where: 'The strings' },
-  { id: 'projects', label: 'Projects', where: 'The woodwinds' },
-  { id: 'skills', label: 'Skills', where: 'The brass and timpani' },
-  { id: 'education', label: 'Education', where: 'The organ' },
+  { id: 'about', label: 'About' },
+  { id: 'experience', label: 'Experience' },
+  { id: 'projects', label: 'Projects' },
+  { id: 'skills', label: 'Skills' },
+  { id: 'education', label: 'Education' },
 ];
 const byId = Object.fromEntries(SECTIONS.map((s) => [s.id, s]));
 
@@ -83,7 +85,6 @@ function body(id) {
 // Remembered for the visit, so coming back from the résumé keeps what was explored.
 const visited = new Set();
 let fullHouse = false;
-const idleTheme = () => (fullHouse ? 'finale' : 'hall');
 const audienceShare = () => 0.12 + (0.88 * visited.size) / SECTIONS.length;
 
 export function hallScreen({ go, world }) {
@@ -118,17 +119,14 @@ export function hallScreen({ go, world }) {
       <p class="hall-hint" data-bind="hint"></p>
       <nav class="sections panel" aria-label="Sections">
         ${SECTIONS.map(
-          (s) => `<button class="sec" data-open="${s.id}"><span class="sec-label">${s.label}</span><span class="sec-where">${s.where}</span></button>`,
+          (s) => `<button class="sec" data-open="${s.id}"><span class="sec-label">${s.label}</span></button>`,
         ).join('')}
       </nav>
     </div>
 
     <aside class="sheet panel" hidden aria-labelledby="sheet-h">
       <header class="sheet-head">
-        <div>
-          <p class="sheet-where" data-bind="where"></p>
-          <h2 id="sheet-h" tabindex="-1"></h2>
-        </div>
+        <h2 id="sheet-h" tabindex="-1"></h2>
         <button class="btn btn-secondary sheet-close" data-act="close">Close</button>
       </header>
       <div class="sheet-body"></div>
@@ -170,7 +168,7 @@ export function hallScreen({ go, world }) {
     api?.setView(id);
     api?.setSelected(id);
     api?.setAudience(audienceShare());
-    $('[data-bind="where"]').textContent = s.where;
+    api?.setActive(id);
     $('#sheet-h').textContent = s.label;
     $('.sheet-body').innerHTML = body(id);
     $('.sheet-body').scrollTop = 0;
@@ -201,7 +199,8 @@ export function hallScreen({ go, world }) {
     el.querySelectorAll('.sec').forEach((b) => b.setAttribute('aria-current', 'false'));
     api?.setView('overview');
     api?.setSelected(null);
-    themes.play(idleTheme(), { quiet: true });
+    api?.setActive(null);
+    themes.play(null);
     (lastOpener && document.contains(lastOpener) ? lastOpener : el.querySelector(`.sec[data-open="${was}"]`))?.focus({
       preventScroll: true,
     });
@@ -233,7 +232,7 @@ export function hallScreen({ go, world }) {
     if (act === 'sound') {
       ensureAudio();
       setState({ sound: !getState().sound });
-      if (getState().sound && !themes.playing && !tuningActive()) themes.play(open ?? idleTheme(), { quiet: !open });
+      if (getState().sound && !themes.playing && !tuningActive()) themes.play(open);
       return playClick();
     }
     if (overUi(e.target) || !api) return;
@@ -282,7 +281,7 @@ export function hallScreen({ go, world }) {
         if (!api.revealed) api.reveal();
       }
       // Back from the résumé: pick the music up again.
-      if (!themes.playing && !tuningActive()) themes.play(idleTheme(), { quiet: true });
+      if (!themes.playing && !tuningActive()) themes.play(open);
       $('.sec')?.setAttribute('data-first', '');
     },
     destroy() {
@@ -292,6 +291,7 @@ export function hallScreen({ go, world }) {
       api?.setHover(null);
       api?.setSelected(null);
       api?.setView('overview');
+      api?.setActive(null);
     },
   };
 }

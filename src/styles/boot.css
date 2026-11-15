@@ -137,11 +137,6 @@
 }
 .term-actions {
   display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: var(--s-2);
-}
-.term-actions .btn-secondary {
-  min-height: 60px;
 }
 .kbd {
   padding: 2px var(--s-2);

@@ -31,6 +31,7 @@ const world = {
     if (this.api) return Promise.resolve();
     this.loading ??= import('./world/index.js').then(async ({ createWorld }) => {
       this.api = await createWorld({ canvas, onStep });
+      this.api.setBeatSource(() => themes.beats());
       this.api.start();
     });
     return this.loading;

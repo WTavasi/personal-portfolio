@@ -1,15 +1,21 @@
-# Section themes
+# The hall's music
 
-Drop an audio file here named after a section and the site plays it instead of the generated placeholder:
+The hall plays one piece split into five stems, one per section of the orchestra. Between sections all five play quietly together. Opening a section fades the others out so only that section is heard; About (the conductor) brings the whole orchestra up.
 
-| File name | Plays when |
-|---|---|
-| `hall` | Between sections, quietly |
-| `about` | The podium (About) is open |
-| `experience` | The strings (Experience) are open |
-| `projects` | The woodwinds (Projects) are open |
-| `skills` | The brass and timpani (Skills) are open |
-| `education` | The organ (Education) is open |
-| `finale` | Every section has been explored |
+| File | Section | Heard alone when |
+|---|---|---|
+| `piano.mp3` | Piano | Only in the full orchestra |
+| `strings.mp3` | Strings | Experience is open |
+| `woodwinds.mp3` | Woodwinds | Projects is open |
+| `brass.mp3` | Brass and timpani | Skills is open |
+| `choir.mp3` | Choir | Education is open |
 
-Any of `.mp3`, `.m4a`, `.ogg` or `.wav`, for example `experience.mp3`. Each file loops, so end it where it can join its own start cleanly. Keep files small (a 30 to 60 second loop at 128 kbps is about 0.5 to 1 MB).
+The files here now are generated placeholders: an 8-bar phrase in D major at 80 BPM, 24 seconds long.
+
+To use your own piece, export one stem per section and replace these files, keeping the names (`.m4a`, `.ogg` and `.wav` also work). The stems must:
+
+- all be exactly the same length, starting together on beat 1;
+- loop cleanly, so the end joins the start without a gap or click;
+- share one tempo. Set `BPM` in `src/lib/themes.js` to that tempo so the conductor's baton keeps time.
+
+If a stem is missing, the others still play. Keep each file small: about 30 to 60 seconds at 96 to 128 kbps.

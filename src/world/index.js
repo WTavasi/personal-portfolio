@@ -13,7 +13,7 @@ const SECTION_VIEWS = {
   experience: { pos: [1.2, 4.3, -2.8], target: [-0.6, 1.4, -8.8] },
   projects: { pos: [-1.2, 5.0, -3.6], target: [2.6, 1.7, -12.2] },
   skills: { pos: [-0.2, 5.4, -5.2], target: [6.2, 2.0, -13.6] },
-  education: { pos: [-2.6, 4.6, -9.0], target: [3.2, 8.4, -22.0] },
+  education: { pos: [-2.4, 4.4, -9.6], target: [3.4, 2.6, -19.0] },
 };
 const BASE_FOV = 46;
 
@@ -130,6 +130,9 @@ export async function createWorld({ canvas, onStep }) {
   let reveal = null; // { start, duration, resolve } while the lights come up
   let revealed = false;
   const frameListeners = new Set();
+  let active = null; // which section is playing on its own, or null for everyone
+  let beatSource = null;
+  const fallbackStart = performance.now();
 
   function spotTarget() {
     const id = selected ?? hover;
@@ -210,6 +213,9 @@ export async function createWorld({ canvas, onStep }) {
     }
 
     if (!still && revealed) {
+      // Without music the conductor keeps time on his own, at the same tempo.
+      const beats = beatSource?.() ?? ((now - fallbackStart) / 1000) * (80 / 60);
+      fx.animate(t, beats, active, dt);
       const pos = fx.dust.geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
         let y = pos.getY(i) + dt * 0.1;
@@ -284,6 +290,12 @@ export async function createWorld({ canvas, onStep }) {
     },
     setSelected(id) {
       selected = id;
+    },
+    setActive(id) {
+      active = id;
+    },
+    setBeatSource(fn) {
+      beatSource = fn;
     },
     setAudience(share) {
       fx.setAudience(share);

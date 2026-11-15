@@ -1,7 +1,7 @@
 import { person } from '../content.js';
 import { getState, setState, subscribe } from '../lib/state.js';
 import { ensureAudio, preloadTuning, playTuning, playClick } from '../lib/audio.js';
-import { themes } from '../lib/themes.js';
+import { themes, preloadThemes } from '../lib/themes.js';
 
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -34,7 +34,6 @@ export function bootScreen({ go, world }) {
           </div>
           <div class="term-actions">
             <button class="btn btn-primary" data-act="enter">Enter the hall <span class="kbd" aria-hidden="true">Enter</span></button>
-            <a class="btn btn-secondary" href="#/resume">View résumé</a>
           </div>
         </div>
       </div>
@@ -115,6 +114,7 @@ export function bootScreen({ go, world }) {
 
   async function run() {
     preloadTuning();
+    preloadThemes(); // the music downloads and decodes while the hall builds
     const when = new Date().toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     write(`Last login: ${when} on console\n`, 'muted');
     await type('npm run build:hall');
@@ -158,8 +158,8 @@ export function bootScreen({ go, world }) {
     ensureAudio();
     // The orchestra tunes as the lights come up; the hall theme comes in as the tuning fades.
     playTuning().then((seconds) => {
-      if (!seconds) themes.play('hall', { quiet: true });
-      else setTimeout(() => !themes.playing && themes.play('hall', { quiet: true }), seconds * 1000);
+      if (!seconds) themes.play();
+      else setTimeout(() => !themes.playing && themes.play(), seconds * 1000);
     });
     if (world.api) world.api.reveal();
     el.classList.add('is-leaving');

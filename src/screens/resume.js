@@ -1,5 +1,5 @@
 import { person, contact, experience, projects, skills, education, certifications, honors, interests, credits } from '../content.js';
-import { pdfLink } from '../lib/pdf.js';
+import { pdfLink, resumePdf } from '../lib/pdf.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -110,7 +110,9 @@ export function resumeScreen({ go, world }) {
   el.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'home') go('hall');
-    if (act === 'print') window.print();
+    // Print the one-page PDF when there is one (the browser's PDF viewer prints it as designed);
+    // otherwise print this page, which has its own print styles.
+    if (act === 'print') resumePdf ? window.open(resumePdf, '_blank', 'noopener') : window.print();
   });
 
   return {
