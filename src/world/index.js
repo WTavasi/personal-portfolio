@@ -302,6 +302,11 @@ export async function createWorld({ canvas, onStep }) {
       fx.setAudience(share);
       dirty = true;
     },
+    // The full-house moment: the audience applauds and throws flowers onto the stage.
+    celebrate() {
+      fx.celebrate(reduceMotion(), performance.now() / 1000);
+      dirty = true;
+    },
     // Which section is under a point on the screen, or null.
     pick(clientX, clientY) {
       if (!revealed) return null;

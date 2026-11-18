@@ -23,12 +23,23 @@ export function ensureAudio() {
   return ctx;
 }
 
+// Browsers keep audio paused until the visitor interacts with the page. Sound that was set up
+// before then (the tuning on the boot screen) starts on the first click, tap or key press.
+const GESTURES = ['pointerdown', 'keydown', 'touchend'];
+export function resumeOnGesture() {
+  const wake = () => {
+    GESTURES.forEach((g) => window.removeEventListener(g, wake, true));
+    ensureAudio();
+  };
+  GESTURES.forEach((g) => window.addEventListener(g, wake, true));
+}
+
 // The shared output, created on first use.
 export function audioOut() {
   return ensureAudio() ? master : null;
 }
 
-/* ---------- The orchestra tuning recording, played on the first click ---------- */
+/* ---------- The orchestra tuning recording, played while the hall builds ---------- */
 
 // The file starts with almost a second of silence and stops without a fade, so playback
 // skips the silence and fades out over the last two seconds.

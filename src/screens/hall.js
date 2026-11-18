@@ -1,7 +1,7 @@
 import { person, contact, experience, projects, skills, education, certifications, honors } from '../content.js';
 import { getState, setState, subscribe } from '../lib/state.js';
 import { ensureAudio, stopTuning, tuningActive, playClick } from '../lib/audio.js';
-import { themes } from '../lib/themes.js';
+import { themes, prepareApplause } from '../lib/themes.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -227,6 +227,7 @@ export function hallScreen({ go, world }) {
     if (!fullHouse && visited.size === SECTIONS.length) {
       fullHouse = true;
       themes.applause();
+      api?.celebrate();
       live.textContent = `${s.label} opened. Every section explored: full house.`;
     } else {
       live.textContent = `${s.label} opened.`;
@@ -325,6 +326,8 @@ export function hallScreen({ go, world }) {
         api.start();
         if (!api.revealed) api.reveal();
       }
+      // The applause is rendered in the background, ready for when the house is full.
+      setTimeout(prepareApplause, 3000);
       // Back from the résumé: pick the music up again.
       if (!themes.playing && !tuningActive()) themes.play(open);
       $('.sec')?.setAttribute('data-first', '');

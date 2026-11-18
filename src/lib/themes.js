@@ -7,6 +7,8 @@
 // with your stems under the same names. Every stem must be the same length and tempo and loop
 // cleanly; set BPM below to your piece's tempo so the conductor keeps time with it.
 import { audioOut } from './audio.js';
+import { prepareApplause } from './applause.js';
+export { prepareApplause };
 
 export const BPM = 80;
 export const STEMS = ['piano', 'strings', 'woodwinds', 'brass', 'percussion', 'choir'];
@@ -133,34 +135,18 @@ export const themes = {
     return ((ctx.currentTime - playingSet.t0) * BPM) / 60;
   },
 
-  // A round of applause, once every section has been explored.
-  applause(seconds = 4.5) {
+  // A round of applause with cheers, once every section has been explored. It plays over the
+  // music, which carries on underneath.
+  async applause() {
     const out = output();
     if (!out) return;
-    const t0 = ctx.currentTime + 0.05;
+    const buffer = await prepareApplause();
+    if (!buffer) return;
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.linearRampToValueAtTime(0.5, t0 + 0.6);
-    g.gain.setValueAtTime(0.5, t0 + seconds - 1.4);
-    g.gain.linearRampToValueAtTime(0.0001, t0 + seconds);
-    const f = ctx.createBiquadFilter();
-    f.type = 'bandpass';
-    f.frequency.value = 1700;
-    f.Q.value = 0.6;
-    f.connect(g).connect(out);
-    const noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
-    const d = noise.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    for (let i = 0; i < seconds * 70; i++) {
-      const t = t0 + Math.random() * seconds;
-      const s = ctx.createBufferSource();
-      s.buffer = noise;
-      const e = ctx.createGain();
-      e.gain.setValueAtTime(0.0001, t);
-      e.gain.linearRampToValueAtTime(0.12 + Math.random() * 0.25, t + 0.003);
-      e.gain.exponentialRampToValueAtTime(0.0001, t + 0.05 + Math.random() * 0.04);
-      s.connect(e).connect(f);
-      s.start(t, Math.random() * 1.5, 0.1);
-    }
+    g.gain.value = 2.6; // the crowd sits just under the full orchestra
+    src.connect(g).connect(out);
+    src.start(ctx.currentTime + 0.05);
   },
 };

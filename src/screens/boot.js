@@ -1,6 +1,6 @@
 import { person } from '../content.js';
 import { getState, setState, subscribe } from '../lib/state.js';
-import { ensureAudio, preloadTuning, playTuning, playClick } from '../lib/audio.js';
+import { ensureAudio, preloadTuning, playTuning, stopTuning, tuningActive, resumeOnGesture, playClick } from '../lib/audio.js';
 import { themes, preloadThemes } from '../lib/themes.js';
 
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -9,8 +9,9 @@ const SPIN = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '�
 const PROMPT = 'wyclef@portfolio ~/concert-hall %';
 
 // A terminal that builds the hall. Every line is a real loading step, timed as it runs, while
-// the hall goes up as a wireframe behind the window. When it is done the visitor chooses
-// their sound settings and enters when they are ready.
+// the hall goes up as a wireframe behind the window and the orchestra tunes. When it is done
+// the visitor chooses their sound settings and enters when they are ready; the hall theme
+// starts as they enter.
 export function bootScreen({ go, world }) {
   const el = document.createElement('section');
   el.className = 'screen boot';
@@ -112,9 +113,19 @@ export function bootScreen({ go, world }) {
     $('.range-out').textContent = `${Math.round(s.volume * 100)}%`;
   }
 
+  // The orchestra tunes while the hall builds. If the browser holds audio back until the
+  // visitor interacts, it starts on their first click or key press.
+  function startTuning() {
+    if (entering || !getState().sound || tuningActive()) return;
+    ensureAudio();
+    playTuning();
+  }
+
   async function run() {
     preloadTuning();
     preloadThemes(); // the music downloads and decodes while the hall builds
+    resumeOnGesture();
+    startTuning();
     const when = new Date().toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
     write(`Last login: ${when} on console\n`, 'muted');
     await type('npm run build:hall');
@@ -156,11 +167,9 @@ export function bootScreen({ go, world }) {
     if (entering || ready.hidden) return;
     entering = true;
     ensureAudio();
-    // The orchestra tunes as the lights come up; the hall theme comes in as the tuning fades.
-    playTuning().then((seconds) => {
-      if (!seconds) themes.play();
-      else setTimeout(() => !themes.playing && themes.play(), seconds * 1000);
-    });
+    // The tuning fades as the lights come up and the hall theme begins.
+    stopTuning(1.6);
+    themes.play();
     if (world.api) world.api.reveal();
     el.classList.add('is-leaving');
     await sleep(instant ? 0 : 480);
@@ -173,6 +182,7 @@ export function bootScreen({ go, world }) {
     if (act === 'sound') {
       setState({ sound: !getState().sound });
       playClick();
+      startTuning();
     }
   });
   vol.addEventListener('input', () => setState({ volume: Number(vol.value) / 100 }));

@@ -1,4 +1,4 @@
-# The Conductor's Podium: design brief (v0.5)
+# The Conductor's Podium: design brief (v0.6)
 
 Portfolio for Wyclef Tavasi. The site opens on a terminal that builds a 3D concert hall, then lets the visitor into an open rehearsal: the orchestra is seated, a quiet theme plays, and each part of the stage holds one part of the résumé. Nothing has to be played or won. A plain-HTML résumé is one click, or one URL (`/#/resume`), from every screen.
 
@@ -16,7 +16,8 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 ## The terminal
 - A terminal window runs `npm run build:hall`. Every line is a real loading step with its real duration; behind the window the hall goes up as a brass wireframe, step by step, and slowly turns.
 - When it finishes it waits for the visitor: Sound on or off, a volume slider and Enter the hall (the Enter key works too). Skip to résumé stays in the corner throughout.
-- Entering: the window drops away, the wireframe fades, the house lights come up over about 2.5 seconds, and the orchestra tuning recording plays. The hall theme comes in as the tuning fades.
+- The orchestra tuning recording plays while the hall builds. Browsers hold back sound until a visitor interacts with a page, so where autoplay is not allowed it starts on the first click or key press.
+- Entering: the window drops away, the wireframe fades, the house lights come up over about 2.5 seconds, the tuning fades out and the hall theme begins.
 - No WebGL: the log says so plainly and the hall opens as a list of sections.
 
 ## The sections
@@ -33,7 +34,7 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 - The section buttons at the bottom carry only the section names. They are the keyboard and screen-reader route (the markers are a pointer affordance only). Esc closes a panel and returns focus to where it came from.
 - Opening a section glides the camera to it, opens the panel on the right, and the music narrows to that section alone. The panel title carries a subtitle naming the section of the orchestra ("Projects, with the woodwinds") and ends with a fun fact about it. Both appear only in the zoomed-in panel.
 - Players sway gently while their section is playing and go still when another section is soloed. String players bow, the timpanist and mallet players strike, roughly once a beat. The conductor beats a 4/4 pattern in time with the music. All motion stops with reduced motion.
-- Each section explored seats more of the audience. With all six explored the hall applauds once.
+- Each section explored seats more of the audience. With all six explored the house applauds: everyone raises their hands and claps at their own pace, bouquets are thrown from the front rows and stay on the stage, and a crowd of clapping, cheers and whistles plays over the music, which carries on. With reduced motion the flowers are simply there and nobody moves.
 - Buttons: the hall's top right holds only Sound and View résumé. The résumé page holds Back to the hall, Print, Mail and Download. Print and Download use the one-page PDF in `src/assets/resume/`; Mail opens the visitor's mail app with a ready-written message linking to the PDF (a `mailto:` link cannot attach files).
 
 ## The hall (from Wyclef's reference photos)
@@ -41,22 +42,23 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 - Crimson theatre seats in curved, raked rows. Each seat has two side standards with armrests, a cushion and a reclined back.
 - Side galleries on two levels wrap from beside the choir to the back of the stalls, with lamps on the parapets.
 - Choir terrace of six rows behind the orchestra, red-carpeted stairs at each side, organ pipes above.
-- Orchestra on three semicircular risers, laid out like a standard seating chart. Strings on the floor: first violins front left, second violins behind them, violas centre right, cellos on the right, four double basses standing right beside the cellos. Woodwinds in the centre: 2 flutes and 2 oboes in front, 2 clarinets and 2 bassoons behind. Four horns left of the woodwinds; 3 trumpets, 3 trombones and a tuba at the back. Percussion at the back right: four timpani set close around the timpanist (32, 29, 26 and 23 inch), a xylophone with resonators, a glockenspiel, a triangle and a bass drum. Harp at the back left, grand piano at the front left in concerto position. Black four-legged chairs, tripod music stands shared by each pair.
+- Orchestra on three semicircular risers, laid out like a standard seating chart. Strings on the floor: first violins front left, second violins behind them, violas centre right, cellos on the right, four double basses standing right beside the cellos. Woodwinds in the centre: 2 flutes and 2 oboes in front, 2 clarinets and 2 bassoons behind. Four horns left of the woodwinds; 3 trumpets, 3 trombones and a tuba at the back. Percussion at the back right: four timpani set close around the timpanist (32, 29, 26 and 23 inch), a xylophone with resonators, a glockenspiel, a triangle and a bass drum. Grand piano at the front left in concerto position. Black four-legged chairs, tripod music stands shared by each pair.
 - Conductor's podium with a brass rail and the score.
 - Ceiling: stepped soffits with downlights, a ring of acoustic reflectors over the orchestra, a lighting truss with spotlights and light shafts.
 - Small realistic touches: green exit signs, aisle step lights.
+- The audience: seated people with arms, a nose and one of six hairstyles (short, long, bun, afro, ponytail, bald) in a range of hair colours, dressed in varied colours.
 - Musicians in concert black, each modelled with a real-proportioned instrument held the way it is played: violin-family bodies with waists, f-holes, bridge, fingerboard, scroll and strings, and a bow whose hair rests on the strings between bridge and fingerboard. Arms are solved from shoulder to hand so every hand lands on its instrument. Plus the pianist, a conductor with the baton in the right hand, and a choir with open scores.
 - Lighting: house lights at half, stage fully lit, steady. No beat-synced pulsing.
 
 ## Performance budget
-- About 29 draw calls and 217k triangles with a full house. Static scenery is merged; seats, chairs, stands, audience and pipes are instanced; the orchestra is one merged mesh (about 92k triangles).
-- The whole orchestra (players, instruments, bows, percussion) is one merged mesh and one draw call. Motion runs in the vertex shader: each vertex knows the point its player sways around, and moving parts know the elbow they turn around, so the CPU updates six numbers a frame. Draw calls went from 40 to 29.
+- About 36 draw calls and 460k triangles with a full house. Static scenery is merged; seats, chairs, stands, audience and pipes are instanced; the orchestra is one merged mesh (about 92k triangles). The audience is about 215 triangles a person; the clapping, like the orchestra's movement, runs in the vertex shader.
+- The whole orchestra (players, instruments, bows, percussion) is one merged mesh and one draw call. Motion runs in the vertex shader: each vertex knows the point its player sways around, and moving parts know the elbow they turn around, so the CPU updates six numbers a frame.
 - Lambert materials with vertex colours; five lights (hemisphere, key spot with shadows, organ wash, house fill, follow spot).
 - The shadow map is drawn once, since nothing that casts a shadow moves.
 - No post-processing. Lamp glow uses additive sprites.
 - Pixel ratio capped at 1.25, frame rate capped at 60, and resolution steps down automatically (1.0, then 0.8) if the machine cannot keep up.
 - With reduced motion, frames are only drawn when something changes.
-- Measured in a software renderer at Retina density: v0.2 took 6.7 s per frame, v0.2.1 1.3 s, this version 1.5 s with the orchestra and audience seated. Real GPUs are far faster; the ratio is the point.
+- Measured in a software renderer at Retina density: v0.2 took 6.7 s per frame, v0.2.1 1.3 s, v0.5 1.5 s, and v0.6 (detailed audience) 1.75 s with a full house. Real GPUs are far faster; the ratio is the point.
 
 ## Design system (src/styles/tokens.css)
 - Colour: warm near-black surfaces, one accent (brass #e3b552) used for the primary action, selected states and links. Crimson appears only inside the 3D hall.
@@ -91,10 +93,11 @@ PASS 18.88:1 (need 7) print: ink on paper
 - If WebGL is unavailable the site says so and the menu and résumé still work (tested).
 
 ## Sound
-- The orchestra tuning recording (`src/assets/audio/orchestra-tuning.mp3`) plays once, as the visitor enters the hall; then the theme comes in.
+- The orchestra tuning recording (`src/assets/audio/orchestra-tuning.mp3`) plays once, while the hall builds on the boot screen; entering the hall fades it out and starts the theme.
 - The theme is six stems (piano, strings, woodwinds, brass, percussion, choir) that start on the same sample and loop together. Between sections all play quietly; a section brings its stem up and fades the rest; About brings everything up.
 - The current stems are generated placeholders (8 bars, D major, 80 BPM). Wyclef replaces them with his own stems under the same names; see `src/assets/themes/README.md`. `BPM` in `src/lib/themes.js` keeps the conductor in time.
 - Stems download and decode while the hall builds. One master volume covers everything. Sound pauses when the tab is hidden. The résumé page plays nothing and downloads no audio.
+- The applause is synthesised in the browser (clappers, cheering voices, whistles, the room's roar and a little reverb), rendered once in the background a few seconds after the hall opens, so it needs no audio file.
 - The tuning recording is credited on the résumé page. Its licence must be confirmed.
 
 ## Privacy, third parties, legal
@@ -111,6 +114,7 @@ Only claims that can be backed up: a repo, a date, a number, a named employer. N
 |---------|-------|
 | v0.3 | Rhythm-game prototype (retired) |
 | v0.4 | Interactive hall: terminal build, wireframe reveal, five clickable sections, swappable themes, PDF download, seated orchestra |
-| v0.5 (this) | Sound fix, simpler buttons, Mail, percussion section, accurate orchestra with bowing and striking, subtitles and fun facts |
+| v0.5 | Sound fix, simpler buttons, Mail, percussion section, accurate orchestra with bowing and striking, subtitles and fun facts |
+| v0.6 (this) | Tuning during boot, harp removed, detailed audience with hairstyles, applause with flowers and crowd sound |
 | Next | Wyclef's own section themes, project screenshots in the Projects panel |
 | v1.0 | Polish, prerendered résumé for SEO |

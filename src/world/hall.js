@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { linear, M, Kit, slab, sector, lambert, instances, facing } from './kit.js';
 import { buildOrchestra } from './orchestra.js';
+import { buildCrowd } from './crowd.js';
 
 // The concert hall, built from primitives in code: no model files, no licences to check, and a
 // small download. Units are metres. The stage is toward -z, the audience toward +z, and the
@@ -182,20 +183,6 @@ function standardKit() {
   return k.geometry();
 }
 
-// A seated person, split in two so clothes and skin can be tinted separately per person.
-// Sits on a seat whose top is about 0.5 m up, facing +z.
-function bodyKit() {
-  const k = new Kit();
-  k.box(0.42, 0.56, 0.24, 0xffffff, 0, 0.8, -0.05, -0.08);
-  k.box(0.38, 0.15, 0.44, 0xffffff, 0, 0.58, 0.16);
-  k.box(0.34, 0.5, 0.14, 0xffffff, 0, 0.27, 0.4);
-  return k.geometry();
-}
-function headKit(detail) {
-  const k = new Kit();
-  k.add(new THREE.IcosahedronGeometry(0.125, detail), 0xffffff, M(0, 1.23, -0.04));
-  return k.geometry();
-}
 // Concert black for the conductor.
 const BLACK = 0x18171a;
 const SHIRT = 0xe9e4da;
@@ -224,8 +211,6 @@ function conductorKits() {
   return { body: body.geometry(), right: arm(true), left: arm(false) };
 }
 
-const SKIN = [0x4a2f22, 0x6b4430, 0x8a5a3c, 0xa87150, 0xc48e68, 0xddb08c, 0x5c3a28, 0x7a4e36];
-const CLOTHES = [0x2b2f3a, 0x3a2d2a, 0x4a3b33, 0x26333a, 0x55463a, 0x3d2630, 0x2f3b2f, 0x6a5a4c, 0x1f2430, 0x5a3038];
 
 // An orchestra chair: four legs, padded seat, small back. Faces +z.
 function chairKit() {
@@ -519,7 +504,7 @@ export async function buildHall(scene, step) {
   scene.add(chairs, stands);
   fx.chairCount = orchestra.chairMx.length;
   fx.orchestraTriangles = orchestra.triangles;
-  // Props on stage that cast shadows: podium, harp, timpani
+  // Props on stage that cast shadows: the podium
   const props = new Kit();
   props.box(1.1, 0.24, 1.1, COL.walnut, C.x, STAGE_TOP + 0.12, C.z);
   props.box(1.0, 0.03, 1.0, COL.redCarpet, C.x, STAGE_TOP + 0.255, C.z);
@@ -527,18 +512,6 @@ export async function buildHall(scene, step) {
   props.box(1.04, 0.045, 0.045, COL.brass, C.x, STAGE_TOP + 1.18, C.z + 0.5);
   props.box(0.03, 1.0, 0.03, COL.stand, C.x, STAGE_TOP + 0.75, C.z - 0.48);
   props.box(0.92, 0.56, 0.03, COL.stand, C.x, STAGE_TOP + 1.3, C.z - 0.5, -0.42);
-  // Harp, back left
-  {
-    const [hx, hz] = onArc(8.2, THREE.MathUtils.degToRad(-60));
-    const base = new THREE.Vector3(hx, levelY(2), hz);
-    const along = new THREE.Vector3(Math.cos(0.6), 0, -Math.sin(0.6));
-    const p = (a, h) => base.clone().addScaledVector(along, a).setY(base.y + h);
-    props.box(0.4, 0.12, 0.4, COL.brass, base.x, base.y + 0.06, base.z);
-    props.bar(p(0, 0.1), p(0, 1.85), 0.07, COL.brass);
-    props.bar(p(0.08, 0.15), p(0.95, 1.6), 0.16, COL.mapleDeep);
-    props.bar(p(0, 1.85), p(0.5, 1.95), 0.07, COL.brass);
-    props.bar(p(0.5, 1.95), p(0.95, 1.6), 0.07, COL.brass);
-  }
   const propMesh = new THREE.Mesh(props.geometry(), lambert());
   propMesh.castShadow = propMesh.receiveShadow = true;
   scene.add(propMesh);
@@ -598,7 +571,6 @@ export async function buildHall(scene, step) {
 
   /* ---------- People: the conductor beats time, the audience fills as sections are explored ---------- */
   const personMat = lambert();
-  const pick = (list) => new THREE.Color(list[Math.floor(rand() * list.length)]);
 
   // The conductor on the podium, facing the orchestra.
   const maestro = new THREE.Group();
@@ -624,6 +596,7 @@ export async function buildHall(scene, step) {
   const SIDE = [0, -0.38, 0.42, 0.05];
   fx.animate = (t, beats, active, dt) => {
     orchestra.animate(t, beats, active, dt);
+    crowd.animate(t, dt);
     const b = beats ?? 0;
     const frac = b - Math.floor(b);
     const beat = ((Math.floor(b) % 4) + 4) % 4;
@@ -632,21 +605,16 @@ export async function buildHall(scene, step) {
     rightArm.rotation.set(0.05 + 0.32 * Math.cos(frac * 6.283), -side, 0);
     leftArm.rotation.set(0.15 + 0.08 * Math.cos(frac * 6.283), 0.15 - side * 0.3, 0);
   };
-  fx.animate(0, 0, null, 1);
 
   // The audience fills in a fixed, scattered order so the hall never fills row by row.
   for (let i = audienceMx.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [audienceMx[i], audienceMx[j]] = [audienceMx[j], audienceMx[i]];
   }
-  const crowdBody = instances(bodyKit(), personMat, audienceMx, audienceMx.map(() => pick(CLOTHES)));
-  const crowdHead = instances(headKit(1), personMat, audienceMx, audienceMx.map(() => pick(SKIN)));
-  scene.add(crowdBody, crowdHead);
-  for (const m of [crowdBody, crowdHead]) m.frustumCulled = false; // bounds would be measured while empty
-  fx.setAudience = (share) => {
-    const n = Math.round(audienceMx.length * Math.max(0, Math.min(1, share)));
-    crowdBody.count = crowdHead.count = n;
-  };
+  const crowd = buildCrowd(scene, audienceMx, rand, { stageTop: STAGE_TOP, stageFrontZ });
+  fx.setAudience = (share) => crowd.setCount(Math.round(audienceMx.length * Math.max(0, Math.min(1, share))));
+  fx.celebrate = (instant, now) => crowd.celebrate(instant, now);
+  fx.animate(0, 0, null, 1);
   fx.setAudience(0);
 
   /* ---------- Sections: what can be clicked, where its marker sits, where the camera goes ---------- */
