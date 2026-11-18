@@ -2,22 +2,57 @@ import { person, contact, experience, projects, skills, education, certification
 import { getState, setState, subscribe } from '../lib/state.js';
 import { ensureAudio, stopTuning, tuningActive, playClick } from '../lib/audio.js';
 import { themes } from '../lib/themes.js';
-import { pdfLink } from '../lib/pdf.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const ext = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}</a>`;
 const list = (items) => `<ul>${items.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`;
 
-// Each part of the stage stands for one part of the résumé.
-// About is the conductor, Experience the strings, Projects the woodwinds, Skills the brass and
-// timpani, Education the choir.
+// Each part of the stage stands for one part of the résumé. The subtitle and the fun fact only
+// appear in the panel, once the camera has moved in on that section.
 const SECTIONS = [
-  { id: 'about', label: 'About' },
-  { id: 'experience', label: 'Experience' },
-  { id: 'projects', label: 'Projects' },
-  { id: 'skills', label: 'Skills' },
-  { id: 'education', label: 'Education' },
+  {
+    id: 'about',
+    label: 'About',
+    title: 'About',
+    with: 'from the podium',
+    fact: 'Conducting with a baton only became usual in the early 1800s. Before that, orchestras were usually led from the keyboard or by the first violinist.',
+  },
+  {
+    id: 'experience',
+    label: 'Experience',
+    title: 'Experience',
+    with: 'with the strings',
+    fact: 'A violin bow is strung with roughly 150 to 200 hairs from a horse’s tail. Rosin makes them grip the string so it vibrates.',
+  },
+  {
+    id: 'projects',
+    label: 'Projects',
+    title: 'Projects',
+    with: 'with the woodwinds',
+    fact: 'The whole orchestra tunes to an A played by the oboe, because its clear, steady tone carries across the stage.',
+  },
+  {
+    id: 'skills',
+    label: 'Skills',
+    title: 'Skills',
+    with: 'with the brass',
+    fact: 'Uncoiled, the tubing of a French horn in F is about 3.7 metres (12 feet) long.',
+  },
+  {
+    id: 'certifications',
+    label: 'Certifications',
+    title: 'Certifications and honors',
+    with: 'with the percussion',
+    fact: 'The glockenspiel sounds two octaves higher than it is written, so its part stays on the staff instead of floating above it.',
+  },
+  {
+    id: 'education',
+    label: 'Education',
+    title: 'Education',
+    with: 'with the choir',
+    fact: 'Beethoven’s Ninth Symphony (1824) was one of the first major symphonies to bring a choir into the music.',
+  },
 ];
 const byId = Object.fromEntries(SECTIONS.map((s) => [s.id, s]));
 
@@ -32,8 +67,7 @@ function body(id) {
       <p class="sheet-lead">${esc(person.headline)}</p>
       <p>${esc(person.description)}</p>
       <p>${esc(person.availability)} Based in ${esc(person.location)}.</p>
-      <p class="sheet-links">${links.join('')}</p>
-      <div class="sheet-actions">${pdfLink('btn btn-primary')}<a class="btn btn-secondary" href="#/resume">View full résumé</a></div>`;
+      <p class="sheet-links">${links.join('')}</p>`;
   }
   if (id === 'experience') {
     return experience
@@ -77,9 +111,16 @@ function body(id) {
         }
       </article>`,
       )
-      .join('')}
+      .join('')}`;
+}
+
+function sectionBody(id) {
+  if (id === 'certifications') {
+    return `
     <article class="item"><h3>Certifications and training</h3>${list(certifications)}</article>
     <article class="item"><h3>Honors</h3>${list(honors)}</article>`;
+  }
+  return body(id);
 }
 
 // Remembered for the visit, so coming back from the résumé keeps what was explored.
@@ -101,9 +142,8 @@ export function hallScreen({ go, world }) {
         <p>${esc(person.headline)}</p>
       </div>
       <nav class="hall-nav" aria-label="Site">
-        <a class="link-quiet" href="#/resume">Résumé</a>
-        ${pdfLink('link-quiet', 'Download PDF')}
         <button class="link-quiet" data-act="sound" aria-pressed="true"></button>
+        <a class="btn btn-secondary nav-btn" href="#/resume">View résumé</a>
       </nav>
     </header>
 
@@ -126,7 +166,10 @@ export function hallScreen({ go, world }) {
 
     <aside class="sheet panel" hidden aria-labelledby="sheet-h">
       <header class="sheet-head">
-        <h2 id="sheet-h" tabindex="-1"></h2>
+        <div class="sheet-titles">
+          <h2 id="sheet-h" tabindex="-1"></h2>
+          <p class="sheet-with" data-bind="with"></p>
+        </div>
         <button class="btn btn-secondary sheet-close" data-act="close">Close</button>
       </header>
       <div class="sheet-body"></div>
@@ -169,8 +212,10 @@ export function hallScreen({ go, world }) {
     api?.setSelected(id);
     api?.setAudience(audienceShare());
     api?.setActive(id);
-    $('#sheet-h').textContent = s.label;
-    $('.sheet-body').innerHTML = body(id);
+    $('#sheet-h').textContent = s.title;
+    $('[data-bind="with"]').textContent = s.with;
+    $('.sheet-body').innerHTML = `${sectionBody(id)}
+      <aside class="fact"><p class="fact-h">Fun fact</p><p>${esc(s.fact)}</p></aside>`;
     $('.sheet-body').scrollTop = 0;
     sheet.hidden = false;
     el.classList.add('has-sheet');

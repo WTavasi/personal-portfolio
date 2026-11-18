@@ -8,6 +8,24 @@ const ext = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopen
 
 const list = (items) => `<ul>${items.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`;
 
+function mailtoFor(to) {
+  const site = new URL(window.location.pathname, window.location.origin).href;
+  const lines = [
+    'Hello,',
+    '',
+    `Here is the résumé of ${person.name}, a software engineer working across cloud, backend, mobile and distributed systems, based in ${person.location}.`,
+    person.availability,
+    '',
+    resumePdf ? `Résumé (PDF): ${new URL(resumePdf, window.location.href).href}` : null,
+    `Résumé (web): ${site}#/resume`,
+    `Interactive portfolio: ${site}`,
+    '',
+    `Contact: ${[contact.email, contact.linkedin].filter(Boolean).join(' | ')}`,
+  ].filter((l) => l !== null);
+  const q = (v) => encodeURIComponent(v);
+  return `mailto:${q(to)}?subject=${q(`Résumé: ${person.name}, software engineer`)}&body=${q(lines.join('\n'))}`;
+}
+
 // The résumé is the recruiter view: plain HTML you can read, search, print and link to
 // directly at /#/resume. It does not depend on the 3D hall or on playing anything.
 export function resumeScreen({ go, world }) {
@@ -23,9 +41,21 @@ export function resumeScreen({ go, world }) {
   el.innerHTML = `
     <nav class="p-bar" aria-label="Résumé">
       <button class="btn btn-secondary" data-act="home">Back to the hall</button>
-      ${pdfLink()}
-      <button class="btn btn-secondary" data-act="print">Print</button>
+      <div class="p-actions">
+        <button class="btn btn-secondary" data-act="print">Print</button>
+        <button class="btn btn-secondary" data-act="mail" aria-expanded="false" aria-controls="mail-form">Mail</button>
+        ${pdfLink('btn btn-primary', 'Download')}
+      </div>
     </nav>
+
+    <form class="mail-form" id="mail-form" hidden novalidate>
+      <label for="mail-to">Send this résumé to</label>
+      <div class="mail-row">
+        <input id="mail-to" type="email" aria-describedby="mail-note" autocomplete="email" placeholder="name@company.com" required />
+        <button class="btn btn-primary" type="submit">Write the email</button>
+      </div>
+      <p class="mail-note" id="mail-note" data-bind="mail-note" aria-live="polite">This opens your own mail app with a message ready to send. The address you type stays on your device; this site does not store or send it.</p>
+    </form>
 
     <main class="doc">
       <header class="doc-head">
@@ -107,12 +137,43 @@ export function resumeScreen({ go, world }) {
     </main>
   `;
 
+  const form = el.querySelector('.mail-form');
+  const mailBtn = el.querySelector('[data-act="mail"]');
+  const toInput = el.querySelector('#mail-to');
+
   el.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'home') go('hall');
+    if (act === 'mail') {
+      form.hidden = !form.hidden;
+      mailBtn.setAttribute('aria-expanded', String(!form.hidden));
+      if (!form.hidden) toInput.focus();
+    }
     // Print the one-page PDF when there is one (the browser's PDF viewer prints it as designed);
     // otherwise print this page, which has its own print styles.
     if (act === 'print') resumePdf ? window.open(resumePdf, '_blank', 'noopener') : window.print();
+  });
+
+  const note = el.querySelector('[data-bind="mail-note"]');
+  const NOTE = note.textContent;
+  toInput.addEventListener('input', () => {
+    toInput.removeAttribute('aria-invalid');
+    note.textContent = NOTE;
+  });
+
+  // A mailto: link written in the browser. The visitor's own mail app sends it, so nothing
+  // leaves this page and no address is kept. Mail apps cannot take attachments this way, so the
+  // message links to the PDF instead.
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const to = toInput.value.trim();
+    if (!toInput.checkValidity() || !to) {
+      toInput.setAttribute('aria-invalid', 'true');
+      note.textContent = 'Please enter an email address, like name@company.com.';
+      return toInput.focus();
+    }
+    toInput.removeAttribute('aria-invalid');
+    window.location.href = mailtoFor(to);
   });
 
   return {

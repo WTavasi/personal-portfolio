@@ -16,7 +16,7 @@ export function ensureAudio() {
     // Every sound on the site goes through this one gain, so sound and volume apply to all of it.
     master = ctx.createGain();
     master.gain.value = level();
-    master.connect(master);
+    master.connect(ctx.destination);
     subscribe(() => master.gain.setTargetAtTime(level(), ctx.currentTime, 0.04));
   }
   if (ctx.state === 'suspended' && !document.hidden) ctx.resume();

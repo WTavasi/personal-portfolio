@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { linear, M, Kit, slab, sector, lambert, instances, facing } from './kit.js';
+import { buildOrchestra } from './orchestra.js';
 
 // The concert hall, built from primitives in code: no model files, no licences to check, and a
 // small download. Units are metres. The stage is toward -z, the audience toward +z, and the
@@ -49,102 +50,7 @@ const COL = {
 
 /* ------------------------------------------------------------------ helpers */
 
-const colorCache = new Map();
-function linear(hex) {
-  if (!colorCache.has(hex)) colorCache.set(hex, new THREE.Color(hex)); // stored as linear
-  return colorCache.get(hex);
-}
 
-// Paint a geometry with one colour, or with {top, side, bottom} chosen by face direction.
-function paint(geo, color) {
-  const nor = geo.attributes.normal;
-  const n = geo.attributes.position.count;
-  const arr = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    let hex = color;
-    if (typeof color === 'object') {
-      const ny = nor.getY(i);
-      hex = ny > 0.5 ? color.top : ny < -0.5 ? color.bottom ?? color.side : color.side;
-    }
-    const c = linear(hex);
-    arr[i * 3] = c.r;
-    arr[i * 3 + 1] = c.g;
-    arr[i * 3 + 2] = c.b;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(arr, 3));
-}
-
-function prep(geo, color, matrix, keepUv) {
-  const g = geo.index ? geo.toNonIndexed() : geo.clone();
-  if (matrix) g.applyMatrix4(matrix);
-  for (const name of Object.keys(g.attributes)) {
-    if (name === 'position' || name === 'normal' || (keepUv && name === 'uv')) continue;
-    g.deleteAttribute(name);
-  }
-  g.clearGroups();
-  paint(g, color);
-  return g;
-}
-
-const _q = new THREE.Quaternion();
-const _e = new THREE.Euler();
-const _p = new THREE.Vector3();
-const _s = new THREE.Vector3();
-const UP = new THREE.Vector3(0, 1, 0);
-
-function M(x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) {
-  _e.set(rx, ry, rz);
-  _q.setFromEuler(_e);
-  return new THREE.Matrix4().compose(_p.set(x, y, z), _q, _s.set(sx, sy, sz));
-}
-
-// A bag of parts that becomes one geometry (one draw call).
-class Kit {
-  constructor(keepUv = false) {
-    this.parts = [];
-    this.keepUv = keepUv;
-  }
-  add(geo, color, matrix) {
-    this.parts.push(prep(geo, color, matrix, this.keepUv));
-    return this;
-  }
-  box(w, h, d, color, x, y, z, rx = 0, ry = 0, rz = 0) {
-    return this.add(new THREE.BoxGeometry(w, h, d), color, M(x, y, z, rx, ry, rz));
-  }
-  cyl(r0, r1, h, seg, color, x, y, z, rx = 0, ry = 0, rz = 0) {
-    return this.add(new THREE.CylinderGeometry(r0, r1, h, seg), color, M(x, y, z, rx, ry, rz));
-  }
-  // A thin square bar from point a to point b (legs, struts, poles).
-  bar(a, b, t, color) {
-    const dir = new THREE.Vector3().subVectors(b, a);
-    const len = dir.length();
-    const q = new THREE.Quaternion().setFromUnitVectors(UP, dir.normalize());
-    const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5);
-    return this.add(new THREE.BoxGeometry(t, len, t), color, new THREE.Matrix4().compose(mid, q, new THREE.Vector3(1, 1, 1)));
-  }
-  geometry() {
-    return mergeGeometries(this.parts, false);
-  }
-}
-
-// Floor-plan shapes use (x, -z). slab() extrudes one upward between two heights.
-function slab(shape, y0, y1, curveSegments = 40) {
-  const g = new THREE.ExtrudeGeometry(shape, { depth: y1 - y0, bevelEnabled: false, curveSegments });
-  g.rotateX(-Math.PI / 2);
-  g.translate(0, y0, 0);
-  return g;
-}
-
-function sector(cx, cy, r0, r1, a0, a1) {
-  const s = new THREE.Shape();
-  s.moveTo(cx + r1 * Math.cos(a0), cy + r1 * Math.sin(a0));
-  s.absarc(cx, cy, r1, a0, a1, false);
-  s.lineTo(cx + r0 * Math.cos(a1), cy + r0 * Math.sin(a1));
-  s.absarc(cx, cy, r0, a1, a0, true);
-  return s;
-}
-
-const lambert = (o = {}) => new THREE.MeshLambertMaterial({ vertexColors: true, ...o });
 
 function canvasTexture(size, draw, repeatable = true) {
   const c = document.createElement('canvas');
@@ -254,22 +160,6 @@ function shaft(from, to, radius, opacity, tex) {
   return { mesh, mat, base: opacity };
 }
 
-// Instanced mesh from a list of matrices (and optional per-instance tints).
-function instances(geo, mat, matrices, tints) {
-  const m = new THREE.InstancedMesh(geo, mat, matrices.length);
-  matrices.forEach((mx, i) => m.setMatrixAt(i, mx));
-  if (tints) tints.forEach((c, i) => m.setColorAt(i, c));
-  m.instanceMatrix.needsUpdate = true;
-  return m;
-}
-
-const o3 = new THREE.Object3D();
-function facing(x, y, z, tx, tz) {
-  o3.position.set(x, y, z);
-  o3.lookAt(tx, y, tz);
-  o3.updateMatrix();
-  return o3.matrix.clone();
-}
 
 /* ------------------------------------------------------------- object kits */
 
@@ -306,87 +196,9 @@ function headKit(detail) {
   k.add(new THREE.IcosahedronGeometry(0.125, detail), 0xffffff, M(0, 1.23, -0.04));
   return k.geometry();
 }
-// Seated musicians in concert black, one pose per instrument, facing +z.
-// Each pose is two meshes: clothes plus instrument (fixed colours), and skin (head, hair and
-// hands), which is tinted per person.
+// Concert black for the conductor.
 const BLACK = 0x18171a;
 const SHIRT = 0xe9e4da;
-const WOOD = 0x4f2510;
-const WOOD_DARK = 0x4a2612;
-const BRASS = 0xd6a842;
-const BOW = 0x6b4a2e;
-function poseKits(kind) {
-  const suit = new Kit();
-  const skin = new Kit();
-  const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  suit.box(0.42, 0.56, 0.24, BLACK, 0, 0.8, -0.05, -0.08);
-  suit.box(0.13, 0.22, 0.02, SHIRT, 0, 0.97, 0.075, -0.08);
-  suit.box(0.38, 0.15, 0.44, BLACK, 0, 0.58, 0.16);
-  suit.box(0.34, 0.5, 0.14, BLACK, 0, 0.27, 0.4);
-  suit.box(0.36, 0.07, 0.24, 0x0c0b0c, 0, 0.035, 0.47);
-  skin.add(new THREE.IcosahedronGeometry(0.115, 1), 0xffffff, M(0, 1.25, -0.04));
-  skin.add(new THREE.IcosahedronGeometry(0.122, 1), 0x2a1d16, M(0, 1.29, -0.07, 0, 0, 0, 1, 0.62, 1));
-  skin.box(0.09, 0.08, 0.09, 0xffffff, 0, 1.11, -0.03); // neck
-  const arm = (shoulder, elbow, hand) => {
-    suit.bar(shoulder, elbow, 0.1, BLACK);
-    suit.bar(elbow, hand, 0.085, BLACK);
-    skin.box(0.075, 0.075, 0.09, 0xffffff, hand.x, hand.y, hand.z);
-  };
-  const L = V(-0.21, 1.02, -0.05);
-  const R = V(0.21, 1.02, -0.05);
-  if (kind === 'violin') {
-    suit.add(new THREE.BoxGeometry(0.2, 0.045, 0.36), WOOD, M(-0.19, 1.09, 0.17, 0.12, 0.75, 0));
-    suit.bar(V(-0.3, 1.08, 0.3), V(-0.4, 1.06, 0.42), 0.03, WOOD_DARK);
-    arm(L, V(-0.36, 0.88, 0.16), V(-0.39, 1.04, 0.42));
-    arm(R, V(0.33, 0.9, 0.12), V(0.16, 1.02, 0.27));
-    suit.bar(V(0.18, 1.03, 0.28), V(-0.42, 1.13, 0.04), 0.012, BOW);
-  } else if (kind === 'cello') {
-    suit.box(0.4, 0.62, 0.17, WOOD, 0, 0.63, 0.5);
-    suit.bar(V(0, 0.93, 0.47), V(0, 1.42, 0.41), 0.04, WOOD_DARK);
-    suit.bar(V(0, 0.31, 0.52), V(0, 0.0, 0.58), 0.015, 0x888888);
-    arm(L, V(-0.32, 0.95, 0.2), V(-0.05, 1.17, 0.42));
-    arm(R, V(0.33, 0.78, 0.2), V(0.22, 0.68, 0.6));
-    suit.bar(V(0.22, 0.68, 0.6), V(-0.38, 0.63, 0.62), 0.012, BOW);
-  } else if (kind === 'wind') {
-    suit.bar(V(0, 1.16, 0.1), V(0, 0.72, 0.43), 0.035, 0x141214);
-    suit.add(new THREE.CylinderGeometry(0.05, 0.025, 0.08, 8), 0x141214, M(0, 0.7, 0.45, -0.65, 0, 0));
-    arm(L, V(-0.25, 0.82, 0.12), V(-0.03, 0.99, 0.24));
-    arm(R, V(0.25, 0.8, 0.15), V(0.03, 0.87, 0.33));
-  } else if (kind === 'brass') {
-    suit.bar(V(0, 1.17, 0.1), V(0, 1.12, 0.52), 0.045, BRASS);
-    suit.add(new THREE.CylinderGeometry(0.095, 0.02, 0.2, 12, 1, true), BRASS, M(0, 1.11, 0.62, Math.PI / 2, 0, 0));
-    suit.box(0.06, 0.09, 0.12, BRASS, 0, 1.08, 0.3);
-    arm(L, V(-0.23, 0.92, 0.2), V(-0.04, 1.1, 0.36));
-    arm(R, V(0.23, 0.92, 0.2), V(0.04, 1.14, 0.3));
-  } else {
-    // pianist: hands forward on the keys
-    arm(L, V(-0.26, 0.86, 0.22), V(-0.18, 0.8, 0.46));
-    arm(R, V(0.26, 0.86, 0.22), V(0.18, 0.8, 0.46));
-  }
-  return { suit: suit.geometry(), skin: skin.geometry() };
-}
-
-// A standing singer in black holding an open score at chest height, facing +z.
-function singerKits() {
-  const suit = new Kit();
-  const skin = new Kit();
-  const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  for (const sx of [-0.1, 0.1]) suit.box(0.14, 0.86, 0.16, BLACK, sx, 0.43, 0);
-  suit.box(0.42, 0.62, 0.24, BLACK, 0, 1.17, 0);
-  suit.box(0.13, 0.2, 0.02, SHIRT, 0, 1.36, 0.125);
-  for (const sx of [-1, 1]) {
-    suit.bar(V(sx * 0.22, 1.42, 0), V(sx * 0.25, 1.12, 0.08), 0.1, BLACK);
-    suit.bar(V(sx * 0.25, 1.12, 0.08), V(sx * 0.13, 1.22, 0.3), 0.085, BLACK);
-    skin.box(0.07, 0.07, 0.08, 0xffffff, sx * 0.12, 1.23, 0.32);
-    // the open score: a cover and a white page on each side, opened like a shallow V
-    suit.add(new THREE.BoxGeometry(0.2, 0.005, 0.28), 0x111014, M(sx * 0.1, 1.255, 0.36, -0.95, 0, sx * -0.25));
-    suit.add(new THREE.BoxGeometry(0.19, 0.004, 0.27), SHIRT, M(sx * 0.1, 1.262, 0.362, -0.95, 0, sx * -0.25));
-  }
-  skin.box(0.1, 0.1, 0.1, 0xffffff, 0, 1.53, 0);
-  skin.add(new THREE.IcosahedronGeometry(0.115, 1), 0xffffff, M(0, 1.66, 0.01));
-  skin.add(new THREE.IcosahedronGeometry(0.122, 1), 0x2a1d16, M(0, 1.7, -0.02, 0, 0, 0, 1, 0.62, 1));
-  return { suit: suit.geometry(), skin: skin.geometry() };
-}
 
 // The conductor: a standing body, plus each arm as its own piece so it can move.
 // Built facing +z; the arms reach forward from the shoulders.
@@ -692,56 +504,21 @@ export async function buildHall(scene, step) {
 
   /* ---------- Chairs, stands, podium, instruments ---------- */
   await step('Setting chairs and stands');
-  const chairMx = [];
-  const standMx = [];
-  const poseMx = { violin: [], cello: [], wind: [], brass: [] };
-  const proxies = { about: new Kit(), experience: new Kit(), projects: new Kit(), skills: new Kit(), education: new Kit() };
-  const centroid = { experience: [], projects: [], skills: [] };
   const C = CONDUCTOR;
   const onArc = (r, phi) => [C.x + r * Math.sin(phi), C.z - r * Math.cos(phi)];
-  const ARCS = [
-    // radius, riser level, spans in degrees, strings share a stand between two players
-    { r: 2.4, lv: 0, spans: [[-74, -16], [16, 74]], pair: true },
-    { r: 3.55, lv: 0, spans: [[-62, -11], [11, 76]], pair: true }, // the piano takes the front left
-    { r: 4.55, lv: 0, spans: [[-66, -8], [8, 77]], pair: true },
-    { r: 5.9, lv: 1, spans: [[-72, 72]], pair: false },
-    { r: 7.7, lv: 2, spans: [[-66, 66]], pair: false },
-    { r: 9.55, lv: 3, spans: [[-46, 10]], pair: false },
-  ];
-  for (const arc of ARCS) {
-    const y = levelY(arc.lv);
-    const section = arc.lv === 0 ? 'experience' : arc.lv === 1 ? 'projects' : 'skills';
-    for (const [d0, d1] of arc.spans) {
-      const p0 = THREE.MathUtils.degToRad(d0);
-      const p1 = THREE.MathUtils.degToRad(d1);
-      const n = Math.max(1, Math.round((arc.r * (p1 - p0)) / 0.84));
-      const phis = Array.from({ length: n }, (_, k) => p0 + ((k + 0.5) * (p1 - p0)) / n);
-      for (const phi of phis) {
-        const [x, z] = onArc(arc.r, phi);
-        const mx = facing(x, y, z, C.x, C.z);
-        chairMx.push(mx);
-        const kind = arc.lv === 0 ? (x < 0 || arc.r < 3 ? 'violin' : 'cello') : arc.lv === 1 ? 'wind' : 'brass';
-        poseMx[kind].push(mx.clone().multiply(new THREE.Matrix4().makeTranslation(0, -0.02, 0)));
-        proxies[section].box(0.9, 1.6, 1.0, 0xffffff, x, y + 0.8, z);
-        // Markers sit over one side of each section so they never stack in the middle of the stage.
-        if ((section === 'experience' && x < -1.5) || section === 'projects') centroid[section].push(new THREE.Vector3(x, y, z));
-      }
-      const standPhis = arc.pair
-        ? phis.reduce((acc, p, k) => (k % 2 === 0 ? [...acc, k + 1 < n ? (p + phis[k + 1]) / 2 : p] : acc), [])
-        : phis;
-      for (const phi of standPhis) {
-        const [x, z] = onArc(arc.r - 0.66, phi);
-        const [cx2, cz2] = onArc(arc.r, phi);
-        standMx.push(facing(x, y, z, cx2, cz2));
-      }
-    }
-  }
-  const chairs = instances(chairKit(), lambert(), chairMx);
-  const stands = instances(standKit(), lambert(), standMx);
+  const PIANO_AT = new THREE.Vector3(-5.45, STAGE_TOP, -7.55);
+  const PIANO_TURN = -Math.PI / 2 + 0.18;
+  const benchSeat = new THREE.Matrix4()
+    .compose(PIANO_AT, new THREE.Quaternion().setFromEuler(new THREE.Euler(0, PIANO_TURN, 0)), new THREE.Vector3(1, 1, 1))
+    .multiply(M(0.74, 0.04, 0.75, 0, Math.PI, 0));
+  const orchestra = buildOrchestra({ C, levelY, onArc, rand, stageTop: STAGE_TOP, piano: benchSeat });
+  scene.add(orchestra.mesh);
+  const chairs = instances(chairKit(), lambert(), orchestra.chairMx);
+  const stands = instances(standKit(), lambert(), orchestra.standMx);
   chairs.castShadow = stands.castShadow = true;
   scene.add(chairs, stands);
-  fx.chairCount = chairMx.length;
-
+  fx.chairCount = orchestra.chairMx.length;
+  fx.orchestraTriangles = orchestra.triangles;
   // Props on stage that cast shadows: podium, harp, timpani
   const props = new Kit();
   props.box(1.1, 0.24, 1.1, COL.walnut, C.x, STAGE_TOP + 0.12, C.z);
@@ -761,18 +538,6 @@ export async function buildHall(scene, step) {
     props.bar(p(0.08, 0.15), p(0.95, 1.6), 0.16, COL.mapleDeep);
     props.bar(p(0, 1.85), p(0.5, 1.95), 0.07, COL.brass);
     props.bar(p(0.5, 1.95), p(0.95, 1.6), 0.07, COL.brass);
-  }
-  // Timpani, back right on the top riser
-  for (const deg of [18, 26, 34, 42]) {
-    const [tx, tz] = onArc(9.55, THREE.MathUtils.degToRad(deg));
-    const y = levelY(3);
-    const r = deg % 16 === 2 ? 0.36 : 0.4;
-    props.add(new THREE.SphereGeometry(r, 10, 5, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), COL.copper, M(tx, y + 0.78, tz));
-    props.cyl(r + 0.01, r + 0.01, 0.03, 12, COL.drumHead, tx, y + 0.79, tz);
-    for (let i = 0; i < 3; i++) {
-      const a = (i * Math.PI * 2) / 3;
-      props.bar(new THREE.Vector3(tx, y + 0.5, tz), new THREE.Vector3(tx + Math.cos(a) * 0.3, y, tz + Math.sin(a) * 0.3), 0.03, COL.stand);
-    }
   }
   const propMesh = new THREE.Mesh(props.geometry(), lambert());
   propMesh.castShadow = propMesh.receiveShadow = true;
@@ -826,42 +591,14 @@ export async function buildHall(scene, step) {
       new THREE.MeshPhongMaterial({ vertexColors: true, specular: 0x6a6a6a, shininess: 90, flatShading: true }),
     );
     piano.castShadow = true;
-    piano.position.set(-5.45, STAGE_TOP, -7.55);
-    piano.rotation.y = -Math.PI / 2 + 0.18;
+    piano.position.copy(PIANO_AT);
+    piano.rotation.y = PIANO_TURN;
     scene.add(piano);
   }
 
-  /* ---------- People: the orchestra rehearses, the audience fills as sections are explored ---------- */
+  /* ---------- People: the conductor beats time, the audience fills as sections are explored ---------- */
   const personMat = lambert();
   const pick = (list) => new THREE.Color(list[Math.floor(rand() * list.length)]);
-  const players = []; // { meshes, base, section, style, phase, amp }
-  const SECTION_OF = { violin: 'experience', cello: 'experience', wind: 'projects', brass: 'skills', pianist: 'piano', singer: 'education' };
-  const musicians = (kind, matrices) => {
-    if (!matrices.length) return;
-    const { suit, skin } = kind === 'singer' ? singerKits() : poseKits(kind);
-    const a = instances(suit, personMat, matrices);
-    const b = instances(skin, personMat, matrices, matrices.map(() => pick(SKIN)));
-    a.castShadow = b.castShadow = true;
-    scene.add(a, b);
-    players.push({ meshes: [a, b], base: matrices, section: SECTION_OF[kind], kind, phase: matrices.map(() => rand() * 6.28), amp: 1 });
-  };
-  for (const [kind, list] of Object.entries(poseMx)) musicians(kind, list);
-  const benchSeat = new THREE.Matrix4()
-    .compose(new THREE.Vector3(-5.45, STAGE_TOP, -7.55), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -Math.PI / 2 + 0.18, 0)), new THREE.Vector3(1, 1, 1))
-    .multiply(M(0.74, 0.04, 0.75, 0, Math.PI, 0));
-  musicians('pianist', [benchSeat]);
-
-  // The choir stands in the front four rows of the terrace, holding open scores.
-  const singerMx = [];
-  for (let j = 0; j < 4; j++) {
-    const z = -17.45 - 0.85 * j + 0.12;
-    const y = STAGE_TOP + 0.5 + 0.42 * j;
-    for (let x = -9.0; x <= 9.01; x += 0.72) {
-      if (rand() < 0.22) continue;
-      singerMx.push(facing(x + (rand() - 0.5) * 0.12, y, z, x, z + 6));
-    }
-  }
-  musicians('singer', singerMx);
 
   // The conductor on the podium, facing the orchestra.
   const maestro = new THREE.Group();
@@ -871,8 +608,9 @@ export async function buildHall(scene, step) {
   const body = new THREE.Mesh(ck.body, personMat);
   const rightArm = new THREE.Group();
   const leftArm = new THREE.Group();
-  rightArm.position.set(0.24, 1.47, 0.02);
-  leftArm.position.set(-0.24, 1.47, 0.02);
+  // Built facing +z, where a figure's right hand is on -x.
+  rightArm.position.set(-0.24, 1.47, 0.02);
+  leftArm.position.set(0.24, 1.47, 0.02);
   rightArm.add(new THREE.Mesh(ck.right, personMat));
   leftArm.add(new THREE.Mesh(ck.left, personMat));
   maestro.add(body, rightArm, leftArm);
@@ -881,37 +619,18 @@ export async function buildHall(scene, step) {
   });
   scene.add(maestro);
 
-  // Players move a little while their section is playing; the conductor beats time.
+  // The players move on the GPU (see orchestra.js); the conductor beats time here.
   // A 4/4 pattern: down, left, right, up.
   const SIDE = [0, -0.38, 0.42, 0.05];
-  const _r = new THREE.Matrix4();
-  const _e2 = new THREE.Euler();
-  const _m = new THREE.Matrix4();
   fx.animate = (t, beats, active, dt) => {
-    for (const p of players) {
-      const on = active == null || active === 'about' || active === p.section ? 1 : 0;
-      p.amp += (on - p.amp) * Math.min(1, dt * 2.5);
-      if (p.amp < 0.002 && on === 0 && p.still) continue;
-      p.still = p.amp < 0.002;
-      const sway = p.kind === 'singer' ? 0.05 : p.kind === 'brass' ? 0.025 : 0.055;
-      const speed = p.kind === 'singer' ? 0.32 : 0.5;
-      for (let i = 0; i < p.base.length; i++) {
-        const ph = p.phase[i];
-        _e2.set(0.02 * p.amp * Math.sin(t * 1.9 + ph), sway * p.amp * Math.sin(t * speed * 6.283 + ph), 0);
-        _r.makeRotationFromEuler(_e2);
-        _m.multiplyMatrices(p.base[i], _r);
-        p.meshes[0].setMatrixAt(i, _m);
-        p.meshes[1].setMatrixAt(i, _m);
-      }
-      p.meshes[0].instanceMatrix.needsUpdate = p.meshes[1].instanceMatrix.needsUpdate = true;
-    }
+    orchestra.animate(t, beats, active, dt);
     const b = beats ?? 0;
     const frac = b - Math.floor(b);
     const beat = ((Math.floor(b) % 4) + 4) % 4;
     const ease = 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, frac * 1.4));
     const side = SIDE[beat] + (SIDE[(beat + 1) % 4] - SIDE[beat]) * ease;
-    rightArm.rotation.set(0.05 + 0.32 * Math.cos(frac * 6.283), side, 0);
-    leftArm.rotation.set(0.15 + 0.08 * Math.cos(frac * 6.283), -0.15 - side * 0.3, 0);
+    rightArm.rotation.set(0.05 + 0.32 * Math.cos(frac * 6.283), -side, 0);
+    leftArm.rotation.set(0.15 + 0.08 * Math.cos(frac * 6.283), 0.15 - side * 0.3, 0);
   };
   fx.animate(0, 0, null, 1);
 
@@ -931,21 +650,19 @@ export async function buildHall(scene, step) {
   fx.setAudience(0);
 
   /* ---------- Sections: what can be clicked, where its marker sits, where the camera goes ---------- */
+  const proxies = { about: new Kit(), ...orchestra.proxies, education: new Kit() };
   proxies.about.box(1.4, 2.4, 1.6, 0xffffff, C.x, STAGE_TOP + 1.2, C.z);
   proxies.education.box(19, 2.6, 3.6, 0xffffff, 0, STAGE_TOP + 2.0, -18.8);
-  for (const deg of [18, 26, 34, 42]) {
-    const [tx, tz] = onArc(9.55, THREE.MathUtils.degToRad(deg));
-    proxies.skills.box(0.9, 1.2, 0.9, 0xffffff, tx, levelY(3) + 0.6, tz);
-    centroid.skills.push(new THREE.Vector3(tx, levelY(3), tz));
-  }
   const mid = (list) => list.reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / list.length);
   const proxyMat = new THREE.MeshBasicMaterial();
   const at = (v, dy) => v.clone().setY(v.y + dy);
+  const marks = orchestra.marks;
   const sectionAnchors = {
     about: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
-    experience: at(mid(centroid.experience), 1.9),
-    projects: at(mid(centroid.projects), 2.6),
-    skills: at(mid(centroid.skills), 2.0),
+    experience: at(mid(marks.experience), 1.9),
+    projects: at(mid(marks.projects), 2.3),
+    skills: at(mid(marks.skills), 2.2),
+    certifications: at(mid(marks.certifications), 2.2),
     education: new THREE.Vector3(0, STAGE_TOP + 3.9, -18.9),
   };
   fx.sections = {};

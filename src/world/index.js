@@ -12,7 +12,8 @@ const SECTION_VIEWS = {
   about: { pos: [2.2, 3.3, -1.2], target: [-0.3, 2.0, -8.2] },
   experience: { pos: [1.2, 4.3, -2.8], target: [-0.6, 1.4, -8.8] },
   projects: { pos: [-1.2, 5.0, -3.6], target: [2.6, 1.7, -12.2] },
-  skills: { pos: [-0.2, 5.4, -5.2], target: [6.2, 2.0, -13.6] },
+  skills: { pos: [-5.2, 5.4, -6.4], target: [0.6, 2.2, -15.6] },
+  certifications: { pos: [1.8, 4.6, -7.6], target: [8.2, 2.0, -15.6] },
   education: { pos: [-2.4, 4.4, -9.6], target: [3.4, 2.6, -19.0] },
 };
 const BASE_FOV = 46;

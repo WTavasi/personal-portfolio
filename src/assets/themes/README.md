@@ -1,13 +1,14 @@
 # The hall's music
 
-The hall plays one piece split into five stems, one per section of the orchestra. Between sections all five play quietly together. Opening a section fades the others out so only that section is heard; About (the conductor) brings the whole orchestra up.
+The hall plays one piece split into six stems, one per section of the orchestra. Between sections all six play quietly together. Opening a section fades the others out so only that section is heard; About (the conductor) brings the whole orchestra up.
 
 | File | Section | Heard alone when |
 |---|---|---|
 | `piano.mp3` | Piano | Only in the full orchestra |
 | `strings.mp3` | Strings | Experience is open |
 | `woodwinds.mp3` | Woodwinds | Projects is open |
-| `brass.mp3` | Brass and timpani | Skills is open |
+| `brass.mp3` | Brass | Skills is open |
+| `percussion.mp3` | Timpani, triangle, glockenspiel, bass drum | Certifications is open |
 | `choir.mp3` | Choir | Education is open |
 
 The files here now are generated placeholders: an 8-bar phrase in D major at 80 BPM, 24 seconds long.

@@ -9,12 +9,13 @@
 import { audioOut } from './audio.js';
 
 export const BPM = 80;
-export const STEMS = ['piano', 'strings', 'woodwinds', 'brass', 'choir'];
+export const STEMS = ['piano', 'strings', 'woodwinds', 'brass', 'percussion', 'choir'];
 const FOCUS = {
   about: STEMS,
   experience: ['strings'],
   projects: ['woodwinds'],
   skills: ['brass'],
+  certifications: ['percussion'],
   education: ['choir'],
 };
 const IDLE_LEVEL = 0.45;

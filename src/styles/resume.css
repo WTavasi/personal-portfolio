@@ -12,9 +12,71 @@
   background: var(--bg);
   border-bottom: 1px solid var(--line);
 }
+.p-bar a.btn {
+  text-decoration: none;
+}
 .p-bar .btn {
   width: auto;
   min-height: 44px;
+  font-size: var(--t-md);
+}
+.p-actions {
+  display: flex;
+  gap: var(--s-2);
+}
+.mail-form {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.mail-form[hidden] {
+  display: none;
+}
+.mail-form label {
+  font-weight: 600;
+}
+.mail-row {
+  display: flex;
+  gap: var(--s-2);
+  max-width: 560px;
+}
+.mail-row input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-inner);
+  font: inherit;
+}
+.mail-row input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.mail-row input[aria-invalid='true'] {
+  border-color: #e0806b;
+}
+.mail-row .btn {
+  width: auto;
+  min-height: 44px;
+  font-size: var(--t-md);
+}
+.mail-note {
+  color: var(--text-2);
+  font-size: var(--t-xs);
+  max-width: 60ch;
+}
+@media (max-width: 560px) {
+  .p-bar {
+    flex-wrap: wrap;
+  }
+  .mail-row {
+    flex-direction: column;
+  }
 }
 .doc {
   width: min(720px, 100% - 2 * var(--s-5));
@@ -126,7 +188,8 @@
     background: #fff;
     color: #111;
   }
-  .p-bar {
+  .p-bar,
+  .mail-form {
     display: none;
   }
   .doc {
