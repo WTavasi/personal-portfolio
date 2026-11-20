@@ -1,20 +1,57 @@
 // A full house applauding: many people clapping at their own pace, cheers, a few whistles and
-// the roar of the room. Synthesised, not recorded, and rendered once in the background
-// (offline rendering needs no user gesture), so playing it later costs nothing.
+// the roar of the room. Synthesised, not recorded, and rendered in the background (offline
+// rendering needs no user gesture), so playing it later costs nothing.
+//
+// Two recordings are made: the ovation (a swell, a long hold and a die-away), and a steady
+// applause that loops without a seam, which carries on after the ovation for as long as the
+// visitor stays in the hall.
 
-const SECONDS = 8.5;
 const RATE = 44100;
-let rendered = null; // Promise of an AudioBuffer
+const OVATION = 8.5;
+const LOOP = 9;
+const SEAM = 1.2; // seconds crossfaded where the loop joins itself
+let ovation = null; // Promise of an AudioBuffer
+let loop = null;
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
-// How loud the whole crowd is at time t: a quick swell, a long hold, a slow die-away.
-const crowdLevel = (t) => Math.min(1, t / 0.7) * (t < 5.6 ? 1 : Math.max(0, 1 - (t - 5.6) / 2.6));
+// The ovation: a quick swell, a long hold, a slow die-away.
+const ovationLevel = (t) => Math.min(1, t / 0.7) * (t < 5.6 ? 1 : Math.max(0, 1 - (t - 5.6) / 2.6));
 
 export function prepareApplause() {
-  if (rendered) return rendered;
+  ovation ??= renderCrowd({ seconds: OVATION, crowdLevel: ovationLevel, cheers: 22, whistles: 4, from: 0.3, to: 5.2 });
+  return ovation;
+}
+
+// Steady applause with the odd cheer. Rendered a little long, then the extra tail is crossfaded
+// over the start so the end runs straight into the beginning.
+export function prepareApplauseLoop() {
+  loop ??= renderCrowd({ seconds: LOOP + SEAM, crowdLevel: () => 1, cheers: 5, whistles: 1, from: 0.4, to: LOOP - 1 }).then(
+    (b) => {
+      if (!b) return null;
+      const n = Math.round(LOOP * RATE);
+      const seam = Math.round(SEAM * RATE);
+      const out = new AudioBuffer({ numberOfChannels: b.numberOfChannels, length: n, sampleRate: RATE });
+      for (let c = 0; c < b.numberOfChannels; c++) {
+        const src = b.getChannelData(c);
+        const dst = out.getChannelData(c);
+        dst.set(src.subarray(0, n));
+        for (let i = 0; i < seam; i++) {
+          const w = i / seam; // equal-power crossfade from the tail into the head
+          dst[i] = src[i] * Math.sin((w * Math.PI) / 2) + src[n + i] * Math.cos((w * Math.PI) / 2);
+        }
+      }
+      return out;
+    },
+  );
+  return loop;
+}
+
+// Render a crowd: `seconds` long, `crowdLevel(t)` its loudness over time (0 to 1), with `cheers`
+// voices and `whistles` scattered between `from` and `to` seconds.
+function renderCrowd({ seconds: SECONDS, crowdLevel, cheers, whistles, from, to }) {
   const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-  if (!Offline) return (rendered = Promise.resolve(null));
+  if (!Offline) return Promise.resolve(null);
   const ctx = new Offline(2, Math.round(SECONDS * RATE), RATE);
 
   // The room: a short noise-tail reverb shared by everything.
@@ -104,8 +141,8 @@ export function prepareApplause() {
       [1150, 0.6],
     ],
   ];
-  for (let v = 0; v < 22; v++) {
-    const start = rnd(0.3, 5.2);
+  for (let v = 0; v < cheers; v++) {
+    const start = rnd(from, to);
     const dur = rnd(0.55, 1.2);
     const low = Math.random() < 0.5;
     const f0 = low ? rnd(120, 180) : rnd(230, 340);
@@ -145,8 +182,8 @@ export function prepareApplause() {
   }
 
   // Whistles: a bright rising pitch with a fast warble.
-  for (let w = 0; w < 4; w++) {
-    const start = rnd(0.6, 4.6);
+  for (let w = 0; w < whistles; w++) {
+    const start = rnd(from + 0.3, to - 0.6);
     const dur = rnd(0.6, 1.0);
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -164,6 +201,5 @@ export function prepareApplause() {
     osc.stop(start + dur + 0.05);
   }
 
-  rendered = ctx.startRendering().catch(() => null);
-  return rendered;
+  return ctx.startRendering().catch(() => null);
 }

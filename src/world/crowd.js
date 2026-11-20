@@ -273,7 +273,7 @@ export function buildCrowd(scene, audienceMx, rand, { stageTop, stageFrontZ }) {
 
   let started = null; // time the celebration began
   let settled = true;
-  const HOLD = 6.2; // seconds of full applause
+  const HOLD = 6.2; // seconds of the full ovation
 
   if (new URLSearchParams(location.search).has('stats')) window.__clap = () => uniforms.uClap.value;
   return {
@@ -295,8 +295,10 @@ export function buildCrowd(scene, audienceMx, rand, { stageTop, stageFrontZ }) {
       uniforms.uTime.value = t;
       if (started === null) return;
       const e = t - started;
-      const target = e < HOLD ? 1 : 0;
-      uniforms.uClap.value += (target - uniforms.uClap.value) * Math.min(1, dt * (target ? 5 : 1.6));
+      // Everyone claps through the ovation; afterwards they keep applauding, a little less high,
+      // for as long as the visitor stays (the steady applause can be heard over the music).
+      const target = e < HOLD ? 1 : 0.8;
+      uniforms.uClap.value += (target - uniforms.uClap.value) * Math.min(1, dt * (target === 1 ? 5 : 1.6));
       if (settled) return;
       let flying = 0;
       flights.forEach((f, i) => {
