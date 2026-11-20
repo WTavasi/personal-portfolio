@@ -91,12 +91,17 @@ export async function playTuning() {
     if (tuningVoice?.src === src) tuningVoice = null;
   };
   src.start(t, TUNING.offset);
-  tuningVoice = { src, gain };
+  tuningVoice = { src, gain, startedAt: t };
   return length - TUNING.fadeOut;
 }
 
 // True while the tuning recording is playing or about to.
 export const tuningActive = () => tuningWanted && !!tuningVoice;
+
+// How many seconds of the tuning the visitor has actually heard. The audio clock stands still
+// while the browser holds sound back, so this stays at 0 until sound is really playing.
+export const tuningHeard = () =>
+  tuningVoice && ctx && ctx.state === 'running' ? Math.max(0, ctx.currentTime - tuningVoice.startedAt) : 0;
 
 // Fade the recording out, for example when leaving the menu or turning sound off.
 export function stopTuning(seconds = 0.6) {

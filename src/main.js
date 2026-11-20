@@ -11,7 +11,7 @@ import './styles/resume.css';
 import { bootScreen } from './screens/boot.js';
 import { hallScreen } from './screens/hall.js';
 import { resumeScreen } from './screens/resume.js';
-import { themes } from './lib/themes.js';
+import { themes, BPM } from './lib/themes.js';
 import { stopTuning } from './lib/audio.js';
 
 // Hash routes keep this a static site. A recruiter can open <site>/#/resume and skip everything.
@@ -31,7 +31,7 @@ const world = {
     if (this.api) return Promise.resolve();
     this.loading ??= import('./world/index.js').then(async ({ createWorld }) => {
       this.api = await createWorld({ canvas, onStep });
-      this.api.setBeatSource(() => themes.beats());
+      this.api.setBeatSource(() => themes.beats(), BPM);
       this.api.start();
     });
     return this.loading;
@@ -69,7 +69,7 @@ function route() {
   if (key === 'hall' && !world.api && !world.fallback) key = 'boot';
   if (key === 'boot' && (world.api || world.fallback)) key = 'hall';
   if (key === 'resume') {
-    themes.stop(0.8);
+    themes.pause(0.8);
     stopTuning(0.8);
   }
 

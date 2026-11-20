@@ -25,17 +25,17 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 |---|---|---|
 | The conductor on the podium | About | Headline, summary, availability, contact |
 | Strings | Experience | Webmasters KE, Delta Creative Solutions |
-| Woodwinds | Projects | All ten projects with stack, year and GitHub links |
+| Woodwinds | Projects | Projects with public code, strongest first, with stack, year and GitHub links |
 | Brass (horns, trumpets, trombones, tuba) | Skills | The eight skill groups |
 | Percussion (timpani, xylophone, glockenspiel, triangle, bass drum) | Certifications | Certifications and training, honors |
 | The choir, holding open scores | Education | Degree and coursework |
 
 - Indicators: a brass ring and label floats over each section and breathes slowly; hovering a section lights it with a follow spot and turns the cursor into a pointer; a hint line at the bottom explains what to do until the first section is opened.
 - The section buttons at the bottom carry only the section names. They are the keyboard and screen-reader route (the markers are a pointer affordance only). Esc closes a panel and returns focus to where it came from.
-- Opening a section glides the camera to it, opens the panel on the right, and the music narrows to that section alone. The panel title carries a subtitle naming the section of the orchestra ("Projects, with the woodwinds") and ends with a fun fact about it. Both appear only in the zoomed-in panel.
-- Players sway gently while their section is playing and go still when another section is soloed. String players bow, the timpanist and mallet players strike, roughly once a beat. The conductor beats a 4/4 pattern in time with the music. All motion stops with reduced motion.
+- Opening a section glides the camera to it, opens the panel on the right, and features that section in the music: it comes up to full and the rest drop well underneath, changing on the beat. The panel title carries a subtitle naming the section of the orchestra ("Projects, with the woodwinds") and ends with a fun fact about it. Both appear only in the zoomed-in panel.
+- Players sway gently while their section is playing, and move less when another section is featured. String players bow, the timpanist and mallet players strike, roughly once a beat. The conductor beats a 4/4 pattern (down, left, right, up) with each ictus on the beat, corrected for audio output latency; the downbeat is the biggest stroke and the rebound after beat 4 the highest. On entering, the baton is raised, one preparatory beat is given and the orchestra comes in on the downbeat. All motion stops with reduced motion.
 - Each section explored seats more of the audience. With all six explored the house applauds: everyone raises their hands and claps at their own pace, bouquets are thrown from the front rows and stay on the stage, and a crowd of clapping, cheers and whistles plays over the music, which carries on. With reduced motion the flowers are simply there and nobody moves.
-- Buttons: the hall's top right holds only Sound and View résumé. The résumé page holds Back to the hall, Print, Mail and Download. Print and Download use the one-page PDF in `src/assets/resume/`; Mail opens the visitor's mail app with a ready-written message linking to the PDF (a `mailto:` link cannot attach files).
+- Buttons: the hall's top right holds only Sound and View résumé. The résumé page holds Back to the hall, Print and Mail. Print uses the page's own print styles; Mail opens the visitor's mail app with a ready-written message linking to the web résumé. There is no PDF on the site on purpose: a downloadable résumé would publish contact details such as a phone number to anyone.
 
 ## The hall (from Wyclef's reference photos)
 - Warm wood: honey maple wall panelling and stage planks, darker wood on gallery fronts and stage edge.
@@ -93,9 +93,9 @@ PASS 18.88:1 (need 7) print: ink on paper
 - If WebGL is unavailable the site says so and the menu and résumé still work (tested).
 
 ## Sound
-- The orchestra tuning recording (`src/assets/audio/orchestra-tuning.mp3`) plays once, while the hall builds on the boot screen; entering the hall fades it out and starts the theme.
-- The theme is six stems (piano, strings, woodwinds, brass, percussion, choir) that start on the same sample and loop together. Between sections all play quietly; a section brings its stem up and fades the rest; About brings everything up.
-- The current stems are generated placeholders (8 bars, D major, 80 BPM). Wyclef replaces them with his own stems under the same names; see `src/assets/themes/README.md`. `BPM` in `src/lib/themes.js` keeps the conductor in time.
+- The orchestra tuning recording (`src/assets/audio/orchestra-tuning.mp3`) plays once, while the hall builds on the boot screen. Entering the hall: if the tuning was heard, it dies away, the hall goes quiet, the conductor gives a preparatory beat and the theme comes in on the downbeat. If the browser held sound back until the Enter click, the tuning is skipped rather than played over the theme.
+- The theme is six stems (piano, strings, woodwinds, brass, percussion, choir) that start on the same sample and loop together. Between sections all play at a moderate level; a section is featured (full level, the rest about 15 dB under); About brings everything up. Changes land on the next beat, or the next bar line when close. Stems are loudness-matched (placeholders only) and everything passes one limiter. The résumé pauses the music and coming back resumes it.
+- The current stems are generated placeholders (8 bars, D major, 80 BPM). Wyclef replaces them with his own piece under the same names; see `src/assets/themes/README.md`. `BPM` in `src/lib/themes.js` keeps the conductor in time.
 - Stems download and decode while the hall builds. One master volume covers everything. Sound pauses when the tab is hidden. The résumé page plays nothing and downloads no audio.
 - The applause is synthesised in the browser (clappers, cheering voices, whistles, the room's roar and a little reverb), rendered once in the background a few seconds after the hall opens, so it needs no audio file.
 - The tuning recording is credited on the résumé page. Its licence must be confirmed.

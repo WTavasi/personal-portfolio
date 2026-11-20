@@ -1,5 +1,4 @@
 import { person, contact, experience, projects, skills, education, certifications, honors, interests, credits } from '../content.js';
-import { pdfLink, resumePdf } from '../lib/pdf.js';
 
 const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -13,17 +12,16 @@ function mailtoFor(to) {
   const lines = [
     'Hello,',
     '',
-    `Here is the résumé of ${person.name}, a software engineer working across cloud, backend, mobile and distributed systems, based in ${person.location}.`,
+    `Here is the résumé of ${person.name}, a cloud, DevOps and mobile engineer based in ${person.location}.`,
     person.availability,
     '',
-    resumePdf ? `Résumé (PDF): ${new URL(resumePdf, window.location.href).href}` : null,
     `Résumé (web): ${site}#/resume`,
     `Interactive portfolio: ${site}`,
     '',
     `Contact: ${[contact.email, contact.linkedin].filter(Boolean).join(' | ')}`,
   ].filter((l) => l !== null);
   const q = (v) => encodeURIComponent(v);
-  return `mailto:${q(to)}?subject=${q(`Résumé: ${person.name}, software engineer`)}&body=${q(lines.join('\n'))}`;
+  return `mailto:${q(to)}?subject=${q(`Résumé: ${person.name}, cloud, DevOps and mobile engineer`)}&body=${q(lines.join('\n'))}`;
 }
 
 // The résumé is the recruiter view: plain HTML you can read, search, print and link to
@@ -44,7 +42,6 @@ export function resumeScreen({ go, world }) {
       <div class="p-actions">
         <button class="btn btn-secondary" data-act="print">Print</button>
         <button class="btn btn-secondary" data-act="mail" aria-expanded="false" aria-controls="mail-form">Mail</button>
-        ${pdfLink('btn btn-primary', 'Download')}
       </div>
     </nav>
 
@@ -149,9 +146,9 @@ export function resumeScreen({ go, world }) {
       mailBtn.setAttribute('aria-expanded', String(!form.hidden));
       if (!form.hidden) toInput.focus();
     }
-    // Print the one-page PDF when there is one (the browser's PDF viewer prints it as designed);
-    // otherwise print this page, which has its own print styles.
-    if (act === 'print') resumePdf ? window.open(resumePdf, '_blank', 'noopener') : window.print();
+    // There is deliberately no PDF on the site (it would publish contact details to anyone);
+    // printing uses this page's own print styles.
+    if (act === 'print') window.print();
   });
 
   const note = el.querySelector('[data-bind="mail-note"]');
@@ -163,7 +160,7 @@ export function resumeScreen({ go, world }) {
 
   // A mailto: link written in the browser. The visitor's own mail app sends it, so nothing
   // leaves this page and no address is kept. Mail apps cannot take attachments this way, so the
-  // message links to the PDF instead.
+  // message links to the web résumé instead.
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const to = toInput.value.trim();

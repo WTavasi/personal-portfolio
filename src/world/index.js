@@ -133,6 +133,7 @@ export async function createWorld({ canvas, onStep }) {
   const frameListeners = new Set();
   let active = null; // which section is playing on its own, or null for everyone
   let beatSource = null;
+  let fallbackBpm = 80;
   const fallbackStart = performance.now();
 
   function spotTarget() {
@@ -215,7 +216,7 @@ export async function createWorld({ canvas, onStep }) {
 
     if (!still && revealed) {
       // Without music the conductor keeps time on his own, at the same tempo.
-      const beats = beatSource?.() ?? ((now - fallbackStart) / 1000) * (80 / 60);
+      const beats = beatSource?.() ?? ((now - fallbackStart) / 1000) * (fallbackBpm / 60);
       fx.animate(t, beats, active, dt);
       const pos = fx.dust.geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
@@ -295,8 +296,9 @@ export async function createWorld({ canvas, onStep }) {
     setActive(id) {
       active = id;
     },
-    setBeatSource(fn) {
+    setBeatSource(fn, bpm = fallbackBpm) {
       beatSource = fn;
+      fallbackBpm = bpm;
     },
     setAudience(share) {
       fx.setAudience(share);
