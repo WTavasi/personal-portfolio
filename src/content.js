@@ -3,14 +3,14 @@
 // Kept in line with the master résumé (Wyclef_Tavasi_Resume_Master.docx).
 //
 // Contact details below are public. Empty values are not rendered.
-// The downloadable PDF is whatever PDF sits in src/assets/resume/ (see src/lib/pdf.js).
+// There is no downloadable PDF on purpose: the web résumé at /#/resume is the shareable version.
 
 export const person = {
   name: 'Wyclef Tavasi',
-  headline: 'Software engineer: cloud, backend, mobile and distributed systems',
+  headline: 'Cloud, DevOps and mobile engineer',
   location: 'Houston, TX',
   description:
-    'Software engineer working across cloud, backend, mobile and distributed systems, with professional experience since January 2026. Builds web, mobile and backend systems in TypeScript, Python, Java, C#, C++, Kotlin and Swift, deploys with Docker and AWS, and has studied Kubernetes, networking (Cisco CCNA curriculum) and cloud security.',
+    'Cloud, DevOps and mobile engineer with professional experience since January 2026. Deploys with Docker and AWS (EC2, S3), works with Kubernetes, and builds the apps on top: Android in Kotlin, iOS in Swift, and Node.js and Python back ends. Designs for failure, from escalation chains that fall back to SMS to load balancers that route around dead servers.',
   availability: 'Authorized to work in the US without sponsorship. Available full-time from January 2027.',
 };
 
@@ -42,6 +42,8 @@ export const experience = [
   },
 ];
 
+// Only projects with public code are listed, strongest first. (The Kubernetes lab's repo link is
+// still to be added.)
 export const projects = [
   {
     name: 'MzaziCare emergency escalation (final-year capstone)',
@@ -65,23 +67,12 @@ export const projects = [
     ],
   },
   {
-    name: 'Flora Farms greenhouse monitoring system',
-    stack: 'ESP32, C, DHT22, MQ-5, InfluxDB, Grafana',
+    name: 'Kubernetes multi-service deployment (Widgetario)',
+    stack: 'Kubernetes, kubectl, Docker Desktop',
     year: '2026',
+    // TODO: add href once the repo is public
     bullets: [
-      'Group project to design a remote monitoring system for a Kenyan flower farm growing sunflowers: researched the ideal temperature, humidity, soil and sunlight ranges and chose the sensors to measure them, including LPG gas detection for the greenhouse heaters.',
-      'Drew schematics for three device architectures, then built physical and Wokwi-simulated prototypes with a Wi-Fi microcontroller, temperature and humidity sensor, gas sensor, display and relay, programmed in C.',
-      'Streamed sensor readings to a time-series database with a live Grafana dashboard, and presented the solution, results and recommendations to the farm owner.',
-    ],
-  },
-  {
-    name: 'Chama-App: group savings and loan management',
-    stack: 'Kotlin, Android, Firebase',
-    year: '2025',
-    bullets: [
-      'Six-person team project: an Android app that lets savings groups (chamas) track member contributions, loans and repayments, with different permissions for each role.',
-      'Designed the Firebase database, built the user authentication and login flows, and worked on the app’s chatbot.',
-      'Led repository management and organization for the team, including the rules and conventions the group followed.',
+      'Deployed a multi-component e-commerce application to a local Kubernetes cluster through a seven-part hands-on lab, documenting each part.',
     ],
   },
   {
@@ -92,6 +83,16 @@ export const projects = [
     bullets: [
       'Designed and built an iOS app for managing a financial portfolio, with Face ID biometric login so users unlock their finances securely and quickly.',
       'Drove the product design in Figma with wireframes and prototypes. It was presented in a human-computer interaction course as the example of good product design for finance apps.',
+    ],
+  },
+  {
+    name: '3D-Solar-Navigator (Project Stellar)',
+    stack: 'C++17, CMake, Git',
+    year: '2026',
+    href: 'https://github.com/WTavasi/3D-Solar-Navigator',
+    bullets: [
+      'Six-person team project to build a free-roaming 3D navigator of the Solar System in C++, implementing the graphics algorithms (lines, polygons, circles and ellipses, Bezier curves and splines) from scratch.',
+      'Owns the testing: independent tests for each algorithm before integration, including the Catmull-Rom spline test, through Git branches and pull requests.',
     ],
   },
   {
@@ -113,58 +114,27 @@ export const projects = [
       'Group machine learning project to predict overcrowding on Nairobi matatus. Prepared the team’s data in Excel and produced the data visualizations in Google Colab.',
     ],
   },
-  {
-    name: '3D-Solar-Navigator (Project Stellar)',
-    stack: 'C++17, CMake, Git',
-    year: '2026',
-    href: 'https://github.com/WTavasi/3D-Solar-Navigator',
-    bullets: [
-      'Six-person team project to build a free-roaming 3D navigator of the Solar System in C++, implementing the graphics algorithms (lines, polygons, circles and ellipses, Bezier curves and splines) from scratch.',
-      'Owns the testing: independent tests for each algorithm before integration, including the Catmull-Rom spline test, through Git branches and pull requests.',
-    ],
-  },
-  {
-    name: 'Land-Title Verification Registry',
-    stack: 'Information systems security design',
-    year: '2026',
-    bullets: [
-      'Six-milestone group project to design a registry that lets buyers verify property ownership, title authenticity, lease status and encumbrances before purchase.',
-      'Applied security design principles to protect the system’s assets at every stage, including scoping, risk framing, and access control and authentication design.',
-    ],
-  },
-  {
-    name: 'Kubernetes multi-service deployment (Widgetario)',
-    stack: 'Kubernetes, kubectl, Docker Desktop',
-    year: '2026',
-    bullets: [
-      'Deployed a multi-component e-commerce application to a local Kubernetes cluster through a seven-part hands-on lab, documenting each part.',
-    ],
-  },
 ];
 
+// Grouped by the work being sought: cloud and DevOps first, then mobile. Languages are split into
+// the ones used day to day and the ones used in projects and coursework.
 export const skills = [
-  ['Languages', 'Python, TypeScript, JavaScript, Java, C#, C, C++, Kotlin, Swift, Dart, SQL, PowerShell, HTML and CSS'],
-  [
-    'Front end and mobile',
-    'React, Flutter, Android (Kotlin), iOS (Swift, UIKit, SwiftUI), Face ID biometric authentication, Figma wireframing and prototyping',
-  ],
-  [
-    'Back end and APIs',
-    'REST APIs, NestJS, Node.js, Flask, Redis, authentication and login flows, escalation and alerting logic, third-party APIs (M-Pesa Daraja, Africa’s Talking SMS)',
-  ],
-  ['Databases', 'PostgreSQL, MySQL, MongoDB, Redis, Firebase Firestore'],
   [
     'Cloud and DevOps',
-    'AWS (EC2, S3, Lambda, RDS, CloudWatch), Docker, Kubernetes, Git, GitHub, CI/CD, Azure DevOps, monitoring and alerting',
+    'AWS (EC2, S3, Lambda, RDS, CloudWatch), Docker and Docker Compose, Kubernetes, CI/CD with GitHub Actions and Azure DevOps, Git, monitoring and alerting, on-call support',
   ],
-  ['Embedded and IoT', 'ESP32 and Arduino in C, DHT22 and MQ-5 sensors, relays, Wokwi simulation, InfluxDB, Grafana'],
+  ['Mobile', 'Android (Kotlin), iOS (Swift, UIKit, SwiftUI), Flutter, Face ID biometric authentication, Figma wireframing and prototyping'],
   [
-    'Systems and networking',
-    'Linux (Ubuntu, Red Hat, Kali), VirtualBox, VMware, server administration, routing and switching (CCNA curriculum), HTTP, load balancing',
+    'Back end and APIs',
+    'Node.js, NestJS, Flask, REST APIs, Redis, authentication and login flows, escalation and alerting logic, third-party APIs (M-Pesa Daraja, Africa’s Talking SMS)',
   ],
+  ['Databases', 'PostgreSQL, MySQL, MongoDB, Redis, Firebase Firestore'],
+  ['Main languages', 'Python, TypeScript and JavaScript, Swift, SQL'],
+  ['Also worked with', 'Kotlin, Java, C#, C, C++, Dart, PowerShell, HTML and CSS'],
+  ['Practices', 'Fault tolerance, unit testing and test automation, code reviews, debugging, Agile'],
   [
-    'Practices',
-    'Unit testing and test automation, code reviews, debugging, on-call support, fault tolerance, Agile and waterfall, A/B testing, user research',
+    'Additional: systems and networking',
+    'Linux (Ubuntu, Red Hat, Kali), server administration, VirtualBox and VMware, routing and switching (Cisco CCNA coursework), HTTP, load balancing; ESP32 and Arduino in C',
   ],
 ];
 
@@ -190,10 +160,10 @@ export const education = [
 ];
 
 export const certifications = [
+  'AWS Academy Graduate: Cloud Foundations and Cloud Security Foundations, Amazon Web Services, 2026',
   'Cisco CCNA: Introduction to Networks (ITN), Cisco Networking Academy, 2025',
   'Cisco CCNA: Switching, Routing, and Wireless Essentials (SRWE), Cisco Networking Academy, 2025',
   'Cisco CCNA: Enterprise Networking, Security, and Automation (ENSA), Cisco Networking Academy, 2025',
-  'AWS Academy Graduate: Cloud Foundations and Cloud Security Foundations, Amazon Web Services, 2026',
   'Apple Swift and CompTIA IT Essentials',
 ];
 

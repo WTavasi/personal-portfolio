@@ -922,8 +922,11 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
     uniforms.uTime.value = t;
     uniforms.uBeat.value = beats ?? 0;
     const k = Math.min(1, dt * 2.5);
+    // Waiting for the downbeat, everyone is still. When a section is featured, the others keep
+    // playing underneath, so they keep moving, just less.
+    const waiting = beats != null && beats < 0;
     ORDER.forEach((id, i) => {
-      const on = active == null || active === 'about' || active === id ? 1 : 0;
+      const on = waiting ? 0 : active == null || active === 'about' || active === id ? 1 : 0.35;
       amp[i] += (on - amp[i]) * k;
     });
   }

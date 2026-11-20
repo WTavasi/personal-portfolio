@@ -1,7 +1,7 @@
 import { person } from '../content.js';
 import { getState, setState, subscribe } from '../lib/state.js';
-import { ensureAudio, preloadTuning, playTuning, stopTuning, tuningActive, resumeOnGesture, playClick } from '../lib/audio.js';
-import { themes, preloadThemes } from '../lib/themes.js';
+import { ensureAudio, preloadTuning, playTuning, stopTuning, tuningActive, tuningHeard, resumeOnGesture, playClick } from '../lib/audio.js';
+import { themes, preloadThemes, BPM } from '../lib/themes.js';
 
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -167,9 +167,18 @@ export function bootScreen({ go, world }) {
     if (entering || ready.hidden) return;
     entering = true;
     ensureAudio();
-    // The tuning fades as the lights come up and the hall theme begins.
-    stopTuning(1.6);
-    themes.play();
+    // Like a real concert: the tuning dies away, the hall goes quiet, the conductor raises the
+    // baton and gives one beat of preparation, and the orchestra comes in on the downbeat.
+    // If the browser held the tuning back until now, it is skipped rather than crashing in on
+    // top of the music.
+    const prep = 60 / BPM + 0.15;
+    if (tuningHeard() > 1.5) {
+      stopTuning(1.4);
+      themes.play(null, { countIn: 1.4 + 0.5 + prep });
+    } else {
+      stopTuning(0.03);
+      themes.play(null, { countIn: prep });
+    }
     if (world.api) world.api.reveal();
     el.classList.add('is-leaving');
     await sleep(instant ? 0 : 480);

@@ -592,18 +592,44 @@ export async function buildHall(scene, step) {
   scene.add(maestro);
 
   // The players move on the GPU (see orchestra.js); the conductor beats time here.
-  // A 4/4 pattern: down, left, right, up.
-  const SIDE = [0, -0.38, 0.42, 0.05];
+  //
+  // A 4/4 pattern as seen from the orchestra: 1 straight down, 2 across to the left, 3 out to the
+  // right, 4 up. Each beat lands at the bottom of a stroke (the ictus) exactly on the beat, and
+  // the hand rebounds between beats. Beat 1 is the biggest stroke, and the rebound after beat 4
+  // is the highest, because it is the preparation for the next downbeat.
+  // While the music is counting in (beats < 0) the baton is held up, then the conductor gives
+  // one beat of preparation, a small lift and a fall, into the orchestra's first downbeat.
+  const SIDE = [0, -0.38, 0.42, 0.05]; // where each ictus is, across the body
+  const DEPTH = [0.4, 0.26, 0.29, 0.22]; // how low each ictus is (arm rotation, + is down)
+  const REBOUND = [0.1, 0.07, 0.1, 0.3]; // how high the hand rises after each beat
+  const NEUTRAL = 0.05;
+  const RAISED = -0.22; // baton up, ready
+  const smooth = (a, b, x) => {
+    const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
+    return k * k * (3 - 2 * k);
+  };
   fx.animate = (t, beats, active, dt) => {
     orchestra.animate(t, beats, active, dt);
     crowd.animate(t, dt);
     const b = beats ?? 0;
-    const frac = b - Math.floor(b);
-    const beat = ((Math.floor(b) % 4) + 4) % 4;
-    const ease = 0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, frac * 1.4));
-    const side = SIDE[beat] + (SIDE[(beat + 1) % 4] - SIDE[beat]) * ease;
-    rightArm.rotation.set(0.05 + 0.32 * Math.cos(frac * 6.283), -side, 0);
-    leftArm.rotation.set(0.15 + 0.08 * Math.cos(frac * 6.283), 0.15 - side * 0.3, 0);
+    let lift; // arm rotation about x: higher values put the hand lower
+    let side;
+    if (b < 0) {
+      const f = Math.max(0, 1 + b); // 0 until the preparatory beat, then 0 to 1 through it
+      lift = f < 0.5 ? RAISED - 0.08 * Math.sin(Math.PI * (f / 0.5)) : RAISED + (NEUTRAL + DEPTH[0] - RAISED) * ((f - 0.5) / 0.5) ** 2;
+      side = 0;
+      leftArm.rotation.set(-0.1, 0.12, 0);
+    } else {
+      const frac = b - Math.floor(b);
+      const beat = Math.floor(b) % 4;
+      const next = (beat + 1) % 4;
+      const up = Math.sin(Math.PI * frac); // 0 at each ictus, 1 at the top of the rebound
+      const depth = DEPTH[beat] + (DEPTH[next] - DEPTH[beat]) * frac;
+      lift = NEUTRAL + depth * (1 - up) - REBOUND[beat] * up;
+      side = SIDE[beat] + (SIDE[next] - SIDE[beat]) * smooth(0.15, 0.9, frac);
+      leftArm.rotation.set(0.15 + 0.06 * (1 - up), 0.15 - side * 0.3, 0);
+    }
+    rightArm.rotation.set(lift, -side, 0);
   };
 
   // The audience fills in a fixed, scattered order so the hall never fills row by row.
