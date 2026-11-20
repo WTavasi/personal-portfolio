@@ -15,7 +15,10 @@
 // cleanly; set BPM below to your piece's tempo so the conductor keeps time with it, and set
 // MATCH_LOUDNESS to false so your own balance between the sections is kept.
 import { audioOut } from './audio.js';
-import { prepareApplause } from './applause.js';
+import { prepareApplause, prepareApplauseLoop } from './applause.js';
+
+// Get both applause recordings ready in the background.
+export const prepareApplauseAll = () => Promise.all([prepareApplause(), prepareApplauseLoop()]);
 export { prepareApplause };
 
 export const BPM = 80;
@@ -65,6 +68,13 @@ let set = null; // what is playing: { t0, length, sources, gains, stopping, time
 let starting = null; // Promise while the first play() is waiting for the stems
 let focus = null;
 let resumeAt = 0; // position in the loop, in seconds, to pick up from after a pause
+
+// Applause. Once the house is full the audience never really stops: after the ovation they keep
+// applauding steadily, a little under the music, for as long as the visitor stays in the hall.
+const OVATION_GAIN = 2.6; // the ovation sits just under the full orchestra
+const SUSTAIN_GAIN = 1.6; // the steady applause afterwards, further under the music
+let applauding = false; // true from the full house on
+let crowd = null; // the steady applause now playing: { src, gain }
 
 function rmsOf(buffer) {
   let sum = 0;
@@ -202,13 +212,43 @@ function start(stems, countIn) {
   set = next;
 }
 
+// Start the steady applause loop, fading in from `at` over `fade` seconds.
+async function startCrowd(at, fade) {
+  const buffer = await prepareApplauseLoop();
+  if (!buffer || crowd || !applauding || !set || set.stopping) return;
+  const src = ctx.createBufferSource();
+  src.buffer = buffer;
+  src.loop = true;
+  const gain = ctx.createGain();
+  const t = Math.max(at, ctx.currentTime);
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(SUSTAIN_GAIN, t + fade);
+  src.connect(gain).connect(bus);
+  src.start(t);
+  crowd = { src, gain };
+}
+
+function stopCrowd(fade) {
+  if (!crowd) return;
+  const { src, gain } = crowd;
+  crowd = null;
+  const now = ctx.currentTime;
+  hold(gain.gain, now);
+  gain.gain.linearRampToValueAtTime(0, now + fade);
+  src.stop(now + fade + 0.05);
+}
+
 export const themes = {
   // Start the theme (or carry on with it) and set which section is in focus. `countIn` is how
   // long to wait before the downbeat, so the conductor can raise the baton and give the upbeat.
   async play(section = null, { countIn = 0.1 } = {}) {
     focus = section;
     if (set) {
-      if (set.stopping) revive();
+      if (set.stopping) {
+        revive();
+        if (applauding) startCrowd(ctx.currentTime, 0.9);
+      }
       return applyLevels();
     }
     if (starting) {
@@ -219,6 +259,7 @@ export const themes = {
     if (ctx.state === 'suspended' && !document.hidden) ctx.resume();
     starting = preloadThemes().then((stems) => {
       if (!set && Object.keys(stems).length) start(stems, countIn);
+      if (applauding) startCrowd(ctx.currentTime + 0.2, 0.9); // back from the résumé
     });
     await starting;
     starting = null;
@@ -229,6 +270,7 @@ export const themes = {
     if (!set || !ctx || set.stopping) return;
     const now = ctx.currentTime;
     set.stopping = true;
+    stopCrowd(fade);
     for (const g of Object.values(set.gains)) {
       hold(g.gain, now);
       g.gain.linearRampToValueAtTime(0, now + fade);
@@ -255,17 +297,21 @@ export const themes = {
     return ((ctx.currentTime - latency - set.t0) * BPM) / 60;
   },
 
-  // A round of applause with cheers, once every section has been explored. It plays over the
-  // music, which carries on underneath.
+  // The full house: an ovation with cheers over the music, which carries on underneath. As the
+  // ovation dies away the audience settles into steady applause that keeps going.
   async applause() {
     if (!output()) return;
+    applauding = true;
     const buffer = await prepareApplause();
-    if (!buffer) return;
+    if (!buffer || !set || set.stopping) return;
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     const g = ctx.createGain();
-    g.gain.value = 2.6; // the crowd sits just under the full orchestra
+    g.gain.value = OVATION_GAIN;
     src.connect(g).connect(bus);
-    src.start(ctx.currentTime + 0.05);
+    const t = ctx.currentTime + 0.05;
+    src.start(t);
+    // The steady applause comes in under the ovation's long hold and is fully up as it ends.
+    startCrowd(t + 4.8, 3);
   },
 };
