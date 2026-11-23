@@ -26,8 +26,8 @@ export const experience = [
     org: 'Webmasters KE (MzaziCare)',
     when: 'April to December 2026',
     bullets: [
-      'Developed the emergency panic-button feature of MzaziCare, an Africa-focused home care platform for the elderly, as part of the organization’s emergency module.',
-      'Built the user authentication and login flows, and designed around the failures of unstable third-party African APIs.',
+      'Built the emergency panic-button feature and the authentication and login flows for MzaziCare, an Africa-focused elder home-care platform, designing around unreliable third-party African APIs.',
+      'Backed the work with 1,417 automated tests and 12 system tests; real-time alert updates reached the elder’s care circle within 16 ms while users outside the circle received nothing.',
     ],
   },
   {
@@ -35,9 +35,54 @@ export const experience = [
     org: 'Delta Creative Solutions',
     when: 'January to March 2026',
     bullets: [
-      'Developed, tested and reviewed code for system modules alongside the software development team.',
-      'Deployed application solutions in Docker containers, worked in the company’s AWS environment (EC2, S3) and took on-call turns.',
-      'Helped the team go from two-week reporting delays to delivering work at least three days ahead of deadline.',
+      'Deployed application services in Docker on AWS (EC2, S3), took on-call turns, and developed, tested and reviewed code for system modules with the development team.',
+      'Helped the team go from two-week reporting delays to delivering at least three days ahead of deadline.',
+    ],
+  },
+];
+
+// Music, leadership and community roles: the same measurable wording on the site and the résumé
+// (what, at what scale, for how long, the result). Agreed in the design document, section 11.
+export const leadership = [
+  {
+    role: 'Principal clarinet',
+    org: 'Kenya Conservatoire of Music Orchestra and Prelude Orchestra',
+    when: 'January 2023 to present',
+    bullets: [
+      'Principal clarinet of both orchestras at the same time for nearly four years: lead a section of 4 clarinettists, run sectionals and write custom section arrangements, across over 15 concerts and a repertoire of more than a dozen major works, from Beethoven and Brahms to film scores.',
+    ],
+  },
+  {
+    role: 'Clarinet and music mentor',
+    org: 'Harmony Kenya Foundation',
+    when: 'December 2022 to present',
+    bullets: [
+      'Mentor 13 students a week in clarinet and music across around 7 primary and high schools in Nairobi, with some going on to join orchestras across the country, including the Kenya Conservatoire of Music Symphony Orchestra (KCMSO), and passing their KCSE (Kenya Certificate of Secondary Education) music practical and theory tests.',
+    ],
+  },
+  {
+    role: 'Band leader and conductor',
+    org: 'Nairobi School',
+    when: '2021 to 2022',
+    bullets: [
+      'Led and conducted the almost 50-member school band for a year: rehearsals five days a week (hymns four days, marching drill one), festival and event preparation, and improvements to the music department; took the band to national level, won 9 trophies and 6 certificates, and conducted it at the State House winners’ gala before the President and Deputy President, a rare opportunity for a student conductor.',
+    ],
+  },
+  {
+    role: 'Choir member and choral singer',
+    org: 'Nairobi School choir; Kenya Conservatoire Choir',
+    when: '2019 to 2021; May to July 2026',
+    bullets: [
+      'Sang in the Nairobi School choir from 2019 to 2021 and with 2 choirs outside school, including a performance of Mozart’s Lacrimosa with the Kenya Conservatoire Choir in July 2026 after rehearsing from May.',
+    ],
+  },
+  {
+    role: 'Volunteer teaching assistant',
+    org: 'Ngei Primary School',
+    when: 'January to April 2025',
+    community: true,
+    bullets: [
+      'Taught 2 computer classes and supported teachers across 9 classes for four months: learning materials and visual aids, drama-festival rehearsals, admissions, library cataloguing, exam invigilation and marking; helped teachers finish work several weeks ahead of schedule.',
     ],
   },
 ];
@@ -47,6 +92,16 @@ export const experience = [
 export const projects = [
   {
     name: 'MzaziCare emergency escalation (final-year capstone)',
+    slug: 'mzazicare',
+    oneLine: 'An emergency alert that reaches someone who can help, even when the network does not.',
+    role: 'Designed and built the alerting subsystem',
+    // The signal flow drawn at the top of the case study, left to right like an audio chain.
+    flow: ['Panic button', 'Severity score (six weighted factors)', 'Caregiver', 'Family member', 'Emergency responder'],
+    flowNote: 'Each tier has a timeout; an unacknowledged alert moves to the next. If a push notification cannot be delivered, the alert falls back to SMS.',
+    results: [
+      '1,417 automated tests and 12 system tests.',
+      'Real-time alert updates reach the elder’s care circle within 16 ms; users outside the circle receive nothing.',
+    ],
     stack: 'Node.js, PostgreSQL, Redis, Docker',
     year: '2026',
     href: 'https://github.com/WTavasi/elder-emergency-escalation',
@@ -58,6 +113,10 @@ export const projects = [
   },
   {
     name: 'Distributed load balancer with consistent hashing',
+    slug: 'load-balancer',
+    oneLine: 'A load balancer that keeps routing when servers come and go.',
+    flow: ['Request', 'Hash ring (512 slots, 9 virtual nodes per server)', 'Server container'],
+    flowNote: 'A background heartbeat checks every server; a server that stops answering is taken off the ring and its share of requests moves to its neighbours.',
     stack: 'Python, Flask, Docker',
     year: '2026',
     href: 'https://github.com/WTavasi/consistent-hashing-load-balancer',
@@ -68,6 +127,8 @@ export const projects = [
   },
   {
     name: 'Kubernetes multi-service deployment (Widgetario)',
+    slug: 'kubernetes-widgetario',
+    oneLine: 'A multi-service shop deployed to Kubernetes, one documented step at a time.',
     stack: 'Kubernetes, kubectl, Docker Desktop',
     year: '2026',
     // TODO: add href once the repo is public
@@ -77,6 +138,9 @@ export const projects = [
   },
   {
     name: 'FinaTrack: iOS financial portfolio manager',
+    slug: 'finatrack',
+    oneLine: 'A finance app that opens with your face, designed before it was built.',
+    role: 'Product design and iOS build',
     stack: 'Swift, UIKit, Xcode, Figma',
     year: '2025',
     href: 'https://github.com/WTavasi/FinaTrack',
@@ -87,6 +151,9 @@ export const projects = [
   },
   {
     name: '3D-Solar-Navigator (Project Stellar)',
+    slug: 'solar-navigator',
+    oneLine: 'A free-roaming Solar System in C++, with every graphics algorithm written from scratch.',
+    role: 'Testing lead in a six-person team',
     stack: 'C++17, CMake, Git',
     year: '2026',
     href: 'https://github.com/WTavasi/3D-Solar-Navigator',
@@ -97,6 +164,9 @@ export const projects = [
   },
   {
     name: 'FleaMart: e-commerce for school businesses',
+    slug: 'fleamart',
+    oneLine: 'A desktop shop for student businesses and their customers.',
+    role: 'Authentication and login, in a four-person team',
     stack: 'Java, NetBeans, MySQL, JDBC',
     year: '2025',
     href: 'https://github.com/WTavasi/FleaMart',
@@ -107,6 +177,9 @@ export const projects = [
   },
   {
     name: 'MataPredict: matatu overcrowding prediction',
+    slug: 'matapredict',
+    oneLine: 'Predicting when Nairobi’s matatus will be overcrowded.',
+    role: 'Data preparation and visualisation, in a group project',
     stack: 'Python, Google Colab, Excel',
     year: '2026',
     href: 'https://github.com/WTavasi/MataPredict',
@@ -116,26 +189,18 @@ export const projects = [
   },
 ];
 
-// Grouped by the work being sought: cloud and DevOps first, then mobile. Languages are split into
-// the ones used day to day and the ones used in projects and coursework.
+// Wyclef's own list (2026-11-23), cloud and DevOps first. Languages keep the split into the ones
+// used day to day and the ones used in projects and coursework.
 export const skills = [
+  ['Cloud and DevOps', 'AWS (EC2, S3, VPC, IAM, Lambda, RDS, CloudWatch, CloudTrail, KMS), Azure, Docker, Kubernetes, Git, GitHub, CI/CD fundamentals'],
   [
-    'Cloud and DevOps',
-    'AWS (EC2, S3, Lambda, RDS, CloudWatch), Docker and Docker Compose, Kubernetes, CI/CD with GitHub Actions and Azure DevOps, Git, monitoring and alerting, on-call support',
+    'Systems and networking',
+    'Linux system administration, user and group management, SSH, TCP/IP, Cisco routing, switching and wireless, network security and automation, load balancing, consistent hashing, cryptography and encryption fundamentals',
   ],
-  ['Mobile', 'Android (Kotlin), iOS (Swift, UIKit, SwiftUI), Flutter, Face ID biometric authentication, Figma wireframing and prototyping'],
-  [
-    'Back end and APIs',
-    'Node.js, NestJS, Flask, REST APIs, Redis, authentication and login flows, escalation and alerting logic, third-party APIs (M-Pesa Daraja, Africa’s Talking SMS)',
-  ],
-  ['Databases', 'PostgreSQL, MySQL, MongoDB, Redis, Firebase Firestore'],
-  ['Main languages', 'Python, TypeScript and JavaScript, Swift, SQL'],
-  ['Also worked with', 'Kotlin, Java, C#, C, C++, Dart, PowerShell, HTML and CSS'],
-  ['Practices', 'Fault tolerance, unit testing and test automation, code reviews, debugging, Agile'],
-  [
-    'Additional: systems and networking',
-    'Linux (Ubuntu, Red Hat, Kali), server administration, VirtualBox and VMware, routing and switching (Cisco CCNA coursework), HTTP, load balancing; ESP32 and Arduino in C',
-  ],
+  ['Main languages', 'Python, JavaScript, Swift, SQL'],
+  ['Also worked with', 'Bash, Java, Kotlin, C++, C, Dart, HTML and CSS'],
+  ['Frameworks and tools', 'NestJS, Node.js, Flask, React, Flutter, Firebase, BullMQ, Postman, REST APIs, Xcode, Android Studio'],
+  ['Databases', 'PostgreSQL, MySQL, Redis, Firebase Firestore and Realtime Database'],
 ];
 
 export const education = [
@@ -176,7 +241,50 @@ export const honors = [
   'Several top-student certificates in high school.',
 ];
 
-export const interests = 'Music: clarinet and several other instruments, orchestra and band leadership, conducting and arranging.';
+export const interests = 'Music: principal clarinet, choral singing, conducting and arranging; film and TV, games and reading.';
+
+// The Studio. Repertoire as Wyclef listed it, in two lists.
+export const music = {
+  conductingVideo: { href: 'https://youtu.be/2LJcng0SELA', label: 'Watch the Nairobi School band, conducted by Wyclef (YouTube)' },
+  chamber: 'Recitals in duos, a clarinet quartet and several solo performances.',
+  repertoire: {
+    classical: [
+      'Beethoven, Symphony No. 5 (fourth movement)',
+      'Brahms, Symphony No. 1',
+      'Brahms, Tragic Overture',
+      'Holst, First and Second Suites for military band',
+      'Holst, “Jupiter” from The Planets',
+      'Mozart, Eine kleine Nachtmusik (arranged for winds)',
+      'Mozart, Lacrimosa from the Requiem',
+      'Stravinsky, Berceuse and Finale from The Firebird',
+      'Tchaikovsky, “Waltz of the Flowers” from The Nutcracker',
+    ],
+    contemporary: ['Hamilton suite', 'Guardians of the Galaxy suite'],
+  },
+};
+
+// Box Office. No prices until decided; every service ends in a request for a quote.
+export const services = {
+  engineering: [
+    ['Websites and web apps', 'For small businesses, artists and organisations.'],
+    ['Cloud set-up and deployment', 'AWS, Docker and CI/CD, including moving a site off shared hosting.'],
+    ['Mobile apps', 'iOS and Android.'],
+    ['System design reviews', 'Will it scale, and what fails first?'],
+  ],
+  music: [
+    ['Arrangement', 'For choirs, bands and small orchestras.'],
+    ['Composition', 'For film, games and media.'],
+    ['Production and mixing', 'Of recordings.'],
+    ['Music for your product', 'Sound for an app or a site like this one.'],
+  ],
+  process: [
+    ['Brief', 'You tell me what you need and by when.'],
+    ['Plan', 'A written plan and a quote.'],
+    ['Build or record', 'With a check-in at each milestone.'],
+    ['Hand over', 'Code, files or recordings, with the notes to keep them going.'],
+  ],
+  international: 'Based in Houston (US Central Time) and working with clients worldwide. Quotes are in US dollars; meetings are arranged across time zones.',
+};
 
 // The v0.6 "fun facts". They no longer interrupt the panels (design rules: no filler, nothing
 // pushed in front of content). Kept for the hidden programme notes planned for stage S4; whether

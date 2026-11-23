@@ -1,7 +1,7 @@
 // The résumé's markup as a pure function of the site's content, with no browser APIs. The page
 // uses it at runtime, and the build uses the same function to write /resume/index.html, so the
 // résumé can be read, printed and indexed even before (or without) JavaScript.
-import { person, contact, experience, projects, skills, education, certifications, honors, interests, credits } from '../content.js';
+import { person, contact, experience, leadership, projects, skills, education, certifications, honors, interests, credits } from '../content.js';
 
 export const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -47,6 +47,20 @@ export function resumeMarkup() {
       <section aria-labelledby="h-exp">
         <h2 id="h-exp">Experience</h2>
         ${experience
+          .map(
+            (e) => `
+          <article class="entry">
+            <h3>${esc(e.role)}, ${esc(e.org)}</h3>
+            <p class="when">${esc(e.when)}</p>
+            ${list(e.bullets)}
+          </article>`,
+          )
+          .join('')}
+      </section>
+
+      <section aria-labelledby="h-lead">
+        <h2 id="h-lead">Leadership, music and community</h2>
+        ${leadership
           .map(
             (e) => `
           <article class="entry">
