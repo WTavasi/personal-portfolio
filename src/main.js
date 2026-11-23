@@ -13,10 +13,11 @@ import { hallScreen } from './screens/hall.js';
 import { resumeScreen } from './screens/resume.js';
 import { themes, BPM } from './lib/themes.js';
 import { stopTuning } from './lib/audio.js';
+import { startRouter, currentRoute, navigate } from './lib/router.js';
 
-// Hash routes keep this a static site. A recruiter can open <site>/#/resume and skip everything.
+// Every page has a real address (see lib/router.js). A recruiter can open <site>/resume and skip
+// everything. Home is the boot screen until the hall is built, then the hall itself.
 const screens = { boot: bootScreen, hall: hallScreen, resume: resumeScreen };
-const ALIASES = { program: 'resume', home: 'hall', concert: 'hall' }; // older links still work
 
 const canvas = document.getElementById('world');
 const root = document.getElementById('app');
@@ -53,20 +54,12 @@ const world = {
 
 let current = null;
 
-const go = (name) => {
-  if (location.hash === `#/${name}`) route();
-  else location.hash = `#/${name}`;
-};
+// Screens ask for 'hall' or 'resume'; both the boot screen and the hall live at the home address.
+const go = (name) => navigate(name === 'resume' ? 'resume' : 'home');
 
 function route() {
-  let key = location.hash.replace(/^#\/?/, '') || 'boot';
-  if (ALIASES[key]) {
-    key = ALIASES[key];
-    history.replaceState(null, '', `#/${key}`);
-  }
-  if (!(key in screens)) key = 'boot';
+  let key = currentRoute() === 'resume' ? 'resume' : 'boot';
   // The hall must be built before it can be shown.
-  if (key === 'hall' && !world.api && !world.fallback) key = 'boot';
   if (key === 'boot' && (world.api || world.fallback)) key = 'hall';
   if (key === 'resume') {
     themes.pause(0.8);
@@ -82,5 +75,4 @@ function route() {
   next.mount?.();
 }
 
-window.addEventListener('hashchange', route);
-route();
+startRouter(route);

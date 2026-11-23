@@ -1,4 +1,5 @@
 import { person, contact, experience, projects, skills, education, certifications, honors } from '../content.js';
+import { pathFor } from '../lib/router.js';
 import { getState, setState, subscribe } from '../lib/state.js';
 import { ensureAudio, stopTuning, tuningActive, playClick } from '../lib/audio.js';
 import { themes, prepareApplauseAll } from '../lib/themes.js';
@@ -143,7 +144,7 @@ export function hallScreen({ go, world }) {
       </div>
       <nav class="hall-nav" aria-label="Site">
         <button class="link-quiet" data-act="sound" aria-pressed="true"></button>
-        <a class="btn btn-secondary nav-btn" href="#/resume">View résumé</a>
+        <a class="btn btn-secondary nav-btn" href="${pathFor('resume')}">View résumé</a>
       </nav>
     </header>
 

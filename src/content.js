@@ -3,7 +3,7 @@
 // Kept in line with the master résumé (Wyclef_Tavasi_Resume_Master.docx).
 //
 // Contact details below are public. Empty values are not rendered.
-// There is no downloadable PDF on purpose: the web résumé at /#/resume is the shareable version.
+// There is no downloadable PDF on purpose: the web résumé at /resume is the shareable version.
 
 export const person = {
   name: 'Wyclef Tavasi',
