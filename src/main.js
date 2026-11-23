@@ -7,6 +7,7 @@ import './styles/base.css';
 import './styles/boot.css';
 import './styles/hall.css';
 import './styles/resume.css';
+import './styles/shell.css';
 
 import { bootScreen } from './screens/boot.js';
 import { hallScreen } from './screens/hall.js';
@@ -14,6 +15,7 @@ import { resumeScreen } from './screens/resume.js';
 import { themes, BPM } from './lib/themes.js';
 import { stopTuning } from './lib/audio.js';
 import { startRouter, currentRoute, navigate } from './lib/router.js';
+import { createShell } from './shell.js';
 
 // Every page has a real address (see lib/router.js). A recruiter can open <site>/resume and skip
 // everything. Home is the boot screen until the hall is built, then the hall itself.
@@ -54,6 +56,10 @@ const world = {
 
 let current = null;
 
+// The shared top bar sits outside the screens and outlives them.
+const shell = createShell({ onSound: (on) => current?.onSound?.(on) });
+document.body.insertBefore(shell.el, root);
+
 // Screens ask for 'hall' or 'resume'; both the boot screen and the hall live at the home address.
 const go = (name) => navigate(name === 'resume' ? 'resume' : 'home');
 
@@ -73,6 +79,7 @@ function route() {
   document.body.dataset.screen = key;
   document.body.dataset.surface = next.surface ?? 'hall';
   current = next;
+  shell.update(key === 'resume' ? 'resume' : 'home');
   next.mount?.();
 }
 

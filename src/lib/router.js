@@ -11,6 +11,13 @@ const PATHS = Object.fromEntries(Object.entries(ROUTES).map(([path, key]) => [ke
 // Hash links from v0.6 (#/resume, #/program, #/hall, ...) still work: they are rewritten once.
 const LEGACY = { resume: 'resume', program: 'resume', hall: 'home', home: 'home', concert: 'home', boot: 'home' };
 
+// The Tracklist menu: every page, numbered like an album, with its venue name and plain label.
+// Rooms join this list as they are built.
+export const TRACKS = [
+  { key: 'home', no: '00', venue: 'The Hall', label: 'Home' },
+  { key: 'resume', no: '∞', venue: 'Encore', label: 'Résumé' },
+];
+
 export const pathFor = (key) => BASE + (PATHS[key] ?? '');
 
 // The route key for the address in the bar, or null for an unknown path.

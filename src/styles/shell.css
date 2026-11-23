@@ -1,0 +1,158 @@
+/* The shared top bar. Over the hall it floats on the hall's own scrim; on paper pages it sits on
+   the page colour. Grouped by spacing only: no dividers. */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-5);
+  min-height: var(--topbar-h);
+  padding: var(--s-4) var(--s-6);
+  pointer-events: none;
+}
+.topbar > * {
+  pointer-events: auto;
+}
+body[data-surface='paper'] .topbar {
+  background: var(--bg);
+}
+.topbar-name {
+  color: var(--text);
+  font: 600 var(--t-xl) / 1.1 var(--font-display);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.topbar-name:hover {
+  color: var(--accent-text);
+}
+.topbar-role {
+  margin-top: var(--s-1);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+/* The résumé page states the role in its own heading. */
+body[data-screen='resume'] .topbar-role {
+  display: none;
+}
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.topbar-btn {
+  width: auto;
+  min-height: 44px;
+  padding: 0 var(--s-4);
+}
+.topbar-btn[aria-expanded='true'] {
+  background: var(--surface-2-hover);
+}
+a.topbar-btn {
+  text-decoration: none;
+}
+/* The boot screen has its own sound switch in the terminal; the résumé link is pointless on the résumé. */
+body[data-screen='boot'] .topbar-sound,
+body[data-screen='boot'] .tracklist-extra,
+body[data-screen='resume'] .topbar-resume {
+  display: none;
+}
+
+/* Quiet text button, used for secondary controls such as Sound. */
+.link-quiet {
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  background: none;
+  border: 0;
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-color: var(--line);
+}
+.link-quiet:hover {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
+}
+
+/* The Tracklist menu: a numbered list of the rooms, like an album's track list. */
+.tracklist {
+  position: relative;
+}
+.tracklist-panel {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  right: 0;
+  width: min(320px, calc(100vw - 2 * var(--s-4)));
+  padding: var(--pad-panel);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+.tracklist-panel[hidden] {
+  display: none;
+}
+.tracks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.track {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr auto;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-height: 48px;
+  padding: var(--s-3);
+  border-radius: var(--r-inner);
+  color: var(--text);
+  text-decoration: none;
+}
+.track:hover {
+  background: var(--surface-2);
+}
+.track:active {
+  transform: translateY(1px);
+}
+.track-no {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.track-name {
+  font-weight: 600;
+}
+.track-label {
+  color: var(--text-2);
+  font-size: var(--t-sm);
+}
+.track[aria-current='page'] .track-name,
+.track[aria-current='page'] .track-no {
+  color: var(--accent-text);
+}
+.tracklist-extra {
+  display: none;
+  margin-top: var(--s-2);
+}
+
+/* Phones: name and Tracklist only; sound and résumé move into the menu. */
+@media (max-width: 640px) {
+  .topbar {
+    padding: var(--s-3) var(--s-4);
+  }
+  .topbar-name {
+    font-size: var(--t-lg);
+  }
+  .topbar-role {
+    display: none;
+  }
+  .topbar-sound,
+  .topbar-resume {
+    display: none;
+  }
+  .tracklist-extra {
+    display: grid;
+  }
+}

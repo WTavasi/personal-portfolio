@@ -6,18 +6,6 @@
   align-items: center;
   padding: var(--s-7) clamp(var(--s-4), 6vw, 6rem);
 }
-.boot-skip {
-  position: fixed;
-  top: var(--s-5);
-  right: var(--s-6);
-  z-index: 2;
-  padding: var(--s-2) var(--s-3);
-  color: var(--text);
-  font-weight: 500;
-}
-.boot-skip:hover {
-  color: var(--accent);
-}
 .term {
   position: relative;
   z-index: 1;
@@ -32,9 +20,6 @@
 }
 .boot.is-leaving .term {
   transform: translateY(24px) scale(0.97);
-  opacity: 0;
-}
-.boot.is-leaving .boot-skip {
   opacity: 0;
 }
 .term-bar {

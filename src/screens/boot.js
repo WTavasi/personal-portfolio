@@ -1,5 +1,4 @@
 import { person } from '../content.js';
-import { pathFor } from '../lib/router.js';
 import { getState, setState, subscribe } from '../lib/state.js';
 import { ensureAudio, preloadTuning, playTuning, stopTuning, tuningActive, tuningHeard, resumeOnGesture, playClick } from '../lib/audio.js';
 import { themes, preloadThemes, BPM } from '../lib/themes.js';
@@ -18,7 +17,7 @@ export function bootScreen({ go, world }) {
   el.className = 'screen boot';
   el.setAttribute('aria-label', 'Loading');
   el.innerHTML = `
-    <a class="boot-skip" href="${pathFor('resume')}">Skip to résumé</a>
+    <h1 class="sr-only">${person.name}: building the concert hall</h1>
     <div class="term">
       <div class="term-bar">
         <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>

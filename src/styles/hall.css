@@ -22,57 +22,6 @@
   height: 220px;
   background: linear-gradient(to top, rgb(var(--scrim) / 0.9), rgb(var(--scrim) / 0));
 }
-.hall-top {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 3;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: var(--s-5);
-  padding: var(--s-5) var(--s-6);
-  pointer-events: none;
-}
-.hall-top > * {
-  pointer-events: auto;
-}
-.wordmark h1 {
-  font: 600 var(--t-xl) / 1.1 var(--font-display);
-  letter-spacing: -0.01em;
-}
-.wordmark p {
-  margin-top: var(--s-1);
-  font-size: var(--t-sm);
-  color: var(--text-2);
-}
-.hall-nav {
-  display: flex;
-  align-items: center;
-  gap: var(--s-4);
-}
-.nav-btn {
-  width: auto;
-  min-height: 44px;
-  padding: 0 var(--s-4);
-  font-weight: 600;
-}
-.link-quiet {
-  padding: var(--s-2) var(--s-3);
-  background: none;
-  border: 0;
-  color: var(--text);
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 0.25em;
-  text-decoration-color: var(--line);
-}
-.link-quiet:hover {
-  color: var(--accent);
-  text-decoration-color: currentColor;
-}
-
 /* Markers: a ring that breathes slowly, and a label. Purely a pointer affordance; the
    section list below is the keyboard and screen reader route to the same places. */
 .markers {
@@ -344,14 +293,6 @@
   }
 }
 @media (max-width: 700px) {
-  .hall-top {
-    flex-direction: column;
-    padding: var(--s-4);
-  }
-  .hall-nav {
-    gap: var(--s-2);
-    margin-left: calc(var(--s-3) * -1);
-  }
   .dock {
     bottom: var(--s-3);
   }

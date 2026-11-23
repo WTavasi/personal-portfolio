@@ -1,7 +1,5 @@
 import { person, contact, experience, projects, skills, education, certifications, honors } from '../content.js';
-import { pathFor } from '../lib/router.js';
-import { getState, setState, subscribe } from '../lib/state.js';
-import { ensureAudio, stopTuning, tuningActive, playClick } from '../lib/audio.js';
+import { ensureAudio, stopTuning, tuningActive } from '../lib/audio.js';
 import { themes, prepareApplauseAll } from '../lib/themes.js';
 
 const esc = (s) =>
@@ -131,16 +129,7 @@ export function hallScreen({ go, world }) {
   el.innerHTML = `
     <div class="scrim scrim-top" aria-hidden="true"></div>
     <div class="scrim scrim-bottom" aria-hidden="true"></div>
-    <header class="hall-top">
-      <div class="wordmark">
-        <h1>${esc(person.name)}</h1>
-        <p>${esc(person.headline)}</p>
-      </div>
-      <nav class="hall-nav" aria-label="Site">
-        <button class="link-quiet" data-act="sound" aria-pressed="true"></button>
-        <a class="btn btn-secondary nav-btn" href="${pathFor('resume')}">View résumé</a>
-      </nav>
-    </header>
+    <h1 class="sr-only">${esc(person.name)}, ${esc(person.headline)}</h1>
 
     <div class="markers" aria-hidden="true">
       ${SECTIONS.map(
@@ -179,13 +168,6 @@ export function hallScreen({ go, world }) {
   let open = null;
   let hover = null;
   let lastOpener = null;
-
-  function renderSound() {
-    const s = getState().sound;
-    const b = $('[data-act="sound"]');
-    b.textContent = s ? 'Sound on' : 'Sound off';
-    b.setAttribute('aria-pressed', String(s));
-  }
 
   function renderProgress() {
     el.querySelectorAll('.sec').forEach((b) => b.classList.toggle('is-visited', visited.has(b.dataset.open)));
@@ -249,7 +231,7 @@ export function hallScreen({ go, world }) {
   /* --------------------------------------------- pointing at the 3D hall */
 
   let downAt = null;
-  const overUi = (target) => target.closest('button, a, input, .sheet, .sections, .hall-top');
+  const overUi = (target) => target.closest('button, a, input, .sheet, .sections');
 
   el.addEventListener('pointermove', (e) => {
     if (!api || e.pointerType === 'touch') return;
@@ -269,12 +251,6 @@ export function hallScreen({ go, world }) {
     if (opener) return openSection(opener.dataset.open, opener.classList.contains('sec') ? opener : null);
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (act === 'close') return closeSection();
-    if (act === 'sound') {
-      ensureAudio();
-      setState({ sound: !getState().sound });
-      if (getState().sound && !themes.playing && !tuningActive()) themes.play(open);
-      return playClick();
-    }
     if (overUi(e.target) || !api) return;
     // A click on the hall itself (not a drag): open what is under it, or close the panel.
     if (downAt && Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;
@@ -302,15 +278,12 @@ export function hallScreen({ go, world }) {
     }
   }
 
-  let unsub = () => {};
   let unframe = () => {};
   return {
     el,
     title: `${person.name} | ${person.headline}`,
     mount() {
-      renderSound();
       renderProgress();
-      unsub = subscribe(renderSound);
       window.addEventListener('keydown', onKey);
       world.show?.();
       if (api) {
@@ -326,8 +299,11 @@ export function hallScreen({ go, world }) {
       if (!themes.playing && !tuningActive()) themes.play(open);
       $('.sec')?.setAttribute('data-first', '');
     },
+    // The top bar's sound control: turning sound back on picks the music up again.
+    onSound(on) {
+      if (on && !themes.playing && !tuningActive()) themes.play(open);
+    },
     destroy() {
-      unsub();
       unframe();
       window.removeEventListener('keydown', onKey);
       api?.setHover(null);
