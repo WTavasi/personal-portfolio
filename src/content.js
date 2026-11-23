@@ -177,3 +177,15 @@ export const honors = [
 ];
 
 export const interests = 'Music: clarinet and several other instruments, orchestra and band leadership, conducting and arranging.';
+
+// The v0.6 "fun facts". They no longer interrupt the panels (design rules: no filler, nothing
+// pushed in front of content). Kept for the hidden programme notes planned for stage S4; whether
+// to use these or write new ones is an open question in the design document.
+export const programmeNotes = {
+  about: 'Conducting with a baton only became usual in the early 1800s. Before that, orchestras were usually led from the keyboard or by the first violinist.',
+  experience: 'A violin bow is strung with roughly 150 to 200 hairs from a horse’s tail. Rosin makes them grip the string so it vibrates.',
+  projects: 'The whole orchestra tunes to an A played by the oboe, because its clear, steady tone carries across the stage.',
+  skills: 'Uncoiled, the tubing of a French horn in F is about 3.7 metres (12 feet) long.',
+  certifications: 'The glockenspiel sounds two octaves higher than it is written, so its part stays on the staff instead of floating above it.',
+  education: 'Beethoven’s Ninth Symphony (1824) was one of the first major symphonies to bring a choir into the music.',
+};

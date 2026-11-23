@@ -9,7 +9,7 @@ const esc = (s) =>
 const ext = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}</a>`;
 const list = (items) => `<ul>${items.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`;
 
-// Each part of the stage stands for one part of the résumé. The subtitle and the fun fact only
+// Each part of the stage stands for one part of the résumé. The subtitle only
 // appear in the panel, once the camera has moved in on that section.
 const SECTIONS = [
   {
@@ -17,42 +17,36 @@ const SECTIONS = [
     label: 'About',
     title: 'About',
     with: 'from the podium',
-    fact: 'Conducting with a baton only became usual in the early 1800s. Before that, orchestras were usually led from the keyboard or by the first violinist.',
   },
   {
     id: 'experience',
     label: 'Experience',
     title: 'Experience',
     with: 'with the strings',
-    fact: 'A violin bow is strung with roughly 150 to 200 hairs from a horse’s tail. Rosin makes them grip the string so it vibrates.',
   },
   {
     id: 'projects',
     label: 'Projects',
     title: 'Projects',
     with: 'with the woodwinds',
-    fact: 'The whole orchestra tunes to an A played by the oboe, because its clear, steady tone carries across the stage.',
   },
   {
     id: 'skills',
     label: 'Skills',
     title: 'Skills',
     with: 'with the brass',
-    fact: 'Uncoiled, the tubing of a French horn in F is about 3.7 metres (12 feet) long.',
   },
   {
     id: 'certifications',
     label: 'Certifications',
     title: 'Certifications and honors',
     with: 'with the percussion',
-    fact: 'The glockenspiel sounds two octaves higher than it is written, so its part stays on the staff instead of floating above it.',
   },
   {
     id: 'education',
     label: 'Education',
     title: 'Education',
     with: 'with the choir',
-    fact: 'Beethoven’s Ninth Symphony (1824) was one of the first major symphonies to bring a choir into the music.',
   },
 ];
 const byId = Object.fromEntries(SECTIONS.map((s) => [s.id, s]));
@@ -215,8 +209,7 @@ export function hallScreen({ go, world }) {
     api?.setActive(id);
     $('#sheet-h').textContent = s.title;
     $('[data-bind="with"]').textContent = s.with;
-    $('.sheet-body').innerHTML = `${sectionBody(id)}
-      <aside class="fact"><p class="fact-h">Fun fact</p><p>${esc(s.fact)}</p></aside>`;
+    $('.sheet-body').innerHTML = sectionBody(id);
     $('.sheet-body').scrollTop = 0;
     sheet.hidden = false;
     el.classList.add('has-sheet');
