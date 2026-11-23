@@ -1,0 +1,207 @@
+/* Room pages: score paper, one reading column (the résumé's .doc), grouped by spacing only. */
+.room {
+  padding-top: var(--topbar-h);
+  background: var(--bg);
+}
+.room-head h1 {
+  font: 600 var(--t-2xl) / 1.05 var(--font-display);
+  letter-spacing: -0.01em;
+}
+.room-head h1:focus {
+  outline: none;
+}
+.room-venue {
+  margin-top: var(--s-2);
+  color: var(--text-3);
+}
+.room-venue .track-no {
+  font-variant-numeric: tabular-nums;
+}
+.room-doc .doc-lead {
+  margin-top: var(--s-5);
+}
+.room-doc .doc-avail {
+  margin-top: var(--s-6);
+  font-size: var(--t-lg);
+}
+
+/* The Booth: the list of case studies. */
+.cases {
+  margin: var(--s-7) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.case + .case {
+  margin-top: var(--s-6);
+}
+.room-doc .case h2 {
+  margin: 0 0 var(--s-1);
+  font: 600 var(--t-lg) / 1.25 var(--font-display);
+}
+.case h2 a {
+  color: var(--text);
+  text-decoration-color: var(--line);
+}
+.case h2 a:hover {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
+}
+
+/* A case study: credits, then the signal flow, drawn left to right like an audio chain. */
+.credits {
+  margin-top: var(--s-6);
+}
+.flow {
+  margin: var(--s-7) 0 0;
+}
+.flow-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--s-2) var(--s-6);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.flow-steps li {
+  position: relative;
+  display: grid;
+  align-items: center;
+  max-width: 14rem;
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface);
+  border-radius: var(--r-inner);
+  font-weight: 600;
+}
+.flow-steps li + li::before {
+  content: '→';
+  position: absolute;
+  left: calc(var(--s-6) / -2);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--text-3);
+  font-weight: 400;
+}
+.flow figcaption {
+  margin-top: var(--s-3);
+  color: var(--text-2);
+}
+@media (max-width: 560px) {
+  .flow-steps {
+    flex-direction: column;
+    gap: var(--s-5);
+  }
+  .flow-steps li {
+    max-width: none;
+  }
+  .flow-steps li + li::before {
+    content: '↓';
+    left: var(--s-4);
+    top: calc(var(--s-5) / -2);
+    transform: translateY(-50%);
+  }
+}
+
+/* Box Office. */
+.steps {
+  margin: 0;
+  padding-left: 1.4em;
+}
+.steps li + li {
+  margin-top: var(--s-2);
+}
+.room-btn {
+  width: auto;
+  min-height: 48px;
+  font-size: var(--t-md);
+  text-decoration: none;
+}
+.quote .room-btn {
+  margin-top: var(--s-4);
+  display: inline-flex;
+}
+.quote .mail-note {
+  margin-top: var(--s-2);
+}
+
+/* The Notice Board. */
+.pin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-6);
+}
+.pin-filter {
+  width: auto;
+  min-height: 44px;
+  font-size: var(--t-sm);
+}
+.pin-filter[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.pins {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+  gap: var(--s-4);
+  margin: var(--s-6) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pin {
+  display: grid;
+  align-content: start;
+  gap: var(--s-2);
+  padding: var(--s-5);
+  background: var(--surface);
+  border-radius: var(--r-panel);
+}
+.pin[hidden] {
+  display: none;
+}
+.room-doc .pin h2 {
+  margin: 0;
+  font: 600 var(--t-lg) / 1.25 var(--font-display);
+}
+.pin-feature {
+  grid-column: 1 / -1;
+}
+.room-doc .pin-feature h2 {
+  font-size: var(--t-xl);
+}
+.pin-meta {
+  color: var(--text-2);
+}
+.pin-date {
+  color: var(--text-3);
+  font-size: var(--t-sm);
+}
+
+/* Every room ends the same way: back to the hall, or on to the next track. */
+.room-next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-8);
+}
+.room-next .btn-primary {
+  font-size: var(--t-md);
+  min-height: 48px;
+}
+
+/* The résumé's list spacing (.doc ul, .doc li + li) is for reading lists, not for these layouts. */
+.room-doc .pins,
+.room-doc .flow-steps,
+.room-doc .cases {
+  padding-left: 0;
+}
+.room-doc .pins > li + li,
+.room-doc .flow-steps > li + li {
+  margin-top: 0;
+}
+
+/* Service names are the offer, so they read at full strength. */
+.room-doc .offers dt {
+  color: var(--text);
+  font-weight: 600;
+}

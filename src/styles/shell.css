@@ -34,8 +34,8 @@ body[data-surface='paper'] .topbar {
   font-size: var(--t-sm);
   color: var(--text-2);
 }
-/* The résumé page states the role in its own heading. */
-body[data-screen='resume'] .topbar-role {
+/* The role line belongs to the first screen; every other page states what it is in its heading. */
+body:not([data-screen='boot']):not([data-screen='hall']) .topbar-role {
   display: none;
 }
 .topbar-nav {
@@ -154,5 +154,40 @@ body[data-screen='resume'] .topbar-resume {
   }
   .tracklist-extra {
     display: grid;
+  }
+}
+
+/* Tab bar: phones only, on paper pages (the hall keeps its own section bar until stage S3). */
+.tabbar {
+  display: none;
+}
+@media (max-width: 640px) {
+  body[data-surface='paper'] .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: var(--s-1) var(--s-2) calc(var(--s-1) + env(safe-area-inset-bottom));
+    background: var(--surface);
+  }
+  body[data-surface='paper'] #app {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+  .tab {
+    display: grid;
+    place-items: center;
+    min-height: 48px;
+    border-radius: var(--r-inner);
+    color: var(--text-2);
+    font-size: var(--t-sm);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .tab[aria-current='page'] {
+    color: var(--accent-text);
+    background: var(--surface-2);
   }
 }

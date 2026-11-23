@@ -1,8 +1,12 @@
 // The top bar shared by every screen: the name (home), the Tracklist menu, the sound control and
 // the résumé. It lives outside the screens, so it stays put while pages change underneath it.
-// On narrow screens the sound and résumé controls move into the Tracklist menu.
+// On narrow screens the sound and résumé controls move into the Tracklist menu, and a tab bar
+// along the bottom gives one-tap access to the rooms.
 import { person } from './content.js';
 import { TRACKS, pathFor } from './lib/router.js';
+
+// The tab bar on phones: the five rooms (Home is the name, the résumé is in the Tracklist).
+const TABS = TRACKS.filter((t) => !['home', 'resume'].includes(t.key));
 import { getState, setState, subscribe } from './lib/state.js';
 import { ensureAudio, playClick } from './lib/audio.js';
 import { esc } from './screens/resume-markup.js';
@@ -33,6 +37,11 @@ export function createShell({ onSound }) {
       </div>
     </nav>
   `;
+
+  const tabbar = document.createElement('nav');
+  tabbar.className = 'tabbar';
+  tabbar.setAttribute('aria-label', 'Rooms');
+  tabbar.innerHTML = TABS.map((t) => `<a class="tab" href="${pathFor(t.key)}" data-track="${t.key}">${esc(t.label)}</a>`).join('');
 
   const button = el.querySelector('[data-act="tracklist"]');
   const panel = el.querySelector('.tracklist-panel');
@@ -83,9 +92,10 @@ export function createShell({ onSound }) {
 
   return {
     el,
+    tabbar,
     // Called on every page change: mark the current track and close the menu.
     update(route) {
-      el.querySelectorAll('.track').forEach((a) => {
+      [...el.querySelectorAll('.track'), ...tabbar.querySelectorAll('.tab')].forEach((a) => {
         if (a.dataset.track === route) a.setAttribute('aria-current', 'page');
         else a.removeAttribute('aria-current');
       });

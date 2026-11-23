@@ -1,31 +1,50 @@
-// Real paths (/, /resume) instead of hash routes (#/resume), so every page has an address that
-// can be shared, bookmarked and indexed. Works under any base path: the site is served from / on
-// AWS and from /personal-portfolio/ on GitHub Pages (Vite's BASE_URL, set at build time).
+// Real paths (/, /resume, /work/mzazicare) instead of hash routes (#/resume), so every page has an
+// address that can be shared, bookmarked and indexed. Works under any base path: the site is
+// served from / on AWS and from /personal-portfolio/ on GitHub Pages (Vite's BASE_URL, set at
+// build time; the prerender step in vite.config.js reads BASE_PATH instead).
+import { projects } from '../content.js';
 
-const BASE = import.meta.env.BASE_URL; // always ends with '/'
+const BASE = import.meta.env?.BASE_URL ?? process.env.BASE_PATH ?? '/'; // always ends with '/'
 
-// Path (relative to the base) -> route key. Rooms join this list as they are built.
-const ROUTES = { '': 'home', resume: 'resume' };
+// Path (relative to the base) -> route key.
+const ROUTES = {
+  '': 'home',
+  work: 'work',
+  music: 'music',
+  services: 'services',
+  about: 'about',
+  wall: 'wall',
+  resume: 'resume',
+  privacy: 'privacy',
+};
 const PATHS = Object.fromEntries(Object.entries(ROUTES).map(([path, key]) => [key, path]));
+const SLUGS = new Set(projects.map((p) => p.slug));
 
 // Hash links from v0.6 (#/resume, #/program, #/hall, ...) still work: they are rewritten once.
 const LEGACY = { resume: 'resume', program: 'resume', hall: 'home', home: 'home', concert: 'home', boot: 'home' };
 
-// The Tracklist menu: every page, numbered like an album, with its venue name and plain label.
-// Rooms join this list as they are built.
+// The Tracklist menu and tab bar: every room, numbered like an album, with its venue name and
+// plain label (design document, section 5). "Next track" follows this order.
 export const TRACKS = [
   { key: 'home', no: '00', venue: 'The Hall', label: 'Home' },
+  { key: 'work', no: '01', venue: 'The Booth', label: 'Work' },
+  { key: 'music', no: '02', venue: 'The Studio', label: 'Music' },
+  { key: 'services', no: '03', venue: 'Box Office', label: 'Services' },
+  { key: 'about', no: '04', venue: 'Green Room', label: 'About' },
+  { key: 'wall', no: '05', venue: 'The Notice Board', label: 'Wall' },
   { key: 'resume', no: '∞', venue: 'Encore', label: 'Résumé' },
 ];
 
-export const pathFor = (key) => BASE + (PATHS[key] ?? '');
+export const pathFor = (key, param) => (key === 'project' ? `${BASE}work/${param}` : BASE + (PATHS[key] ?? ''));
 
-// The route key for the address in the bar, or null for an unknown path.
+// The route for the address in the bar, as { key, param }, or null for an unknown path.
 export function currentRoute() {
   let path = location.pathname;
   path = path.startsWith(BASE) ? path.slice(BASE.length) : path.replace(/^\//, '');
   path = path.replace(/(^|\/)index\.html$/, '').replace(/\/+$/, '');
-  return ROUTES[path] ?? null;
+  if (path in ROUTES) return { key: ROUTES[path] };
+  const m = path.match(/^work\/([\w-]+)$/);
+  return m && SLUGS.has(m[1]) ? { key: 'project', param: m[1] } : null;
 }
 
 let onChange = () => {};
