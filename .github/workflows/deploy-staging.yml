@@ -1,0 +1,47 @@
+# Builds the site and publishes it to the AWS staging environment on every push to the redesign
+# branch. It signs in to AWS with a short-lived role (OIDC), so no AWS keys are stored in GitHub.
+# Until infra/site has been applied and the repository variables below are set, the job is skipped.
+name: Deploy to AWS staging
+
+on:
+  push:
+    branches: [feature/portfolio-redesign]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write # lets the job ask GitHub for the token AWS trusts
+
+concurrency:
+  group: aws-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.AWS_DEPLOY_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    env:
+      BUCKET: ${{ vars.STAGING_BUCKET }}
+      DISTRIBUTION_ID: ${{ vars.STAGING_DISTRIBUTION_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+        env:
+          BASE_PATH: /
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Upload the site
+        # Hashed assets never change, so browsers may keep them for a year. Pages are revalidated
+        # on every visit so a deploy shows up at once.
+        run: |
+          aws s3 sync dist/assets "s3://$BUCKET/assets" --delete --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync dist "s3://$BUCKET" --delete --exclude "assets/*" --cache-control "no-cache"
+      - name: Refresh CloudFront
+        run: aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION_ID" --paths "/*"

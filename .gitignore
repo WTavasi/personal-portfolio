@@ -4,3 +4,12 @@ dist
 
 # Original source files kept on this computer only. Audio the site uses lives in src/assets/audio.
 /audio/
+
+# Terraform: local working files, state and personal settings never go into git
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+infra/**/terraform.tfvars
+infra/**/backend.hcl
