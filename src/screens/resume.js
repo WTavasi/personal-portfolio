@@ -70,6 +70,7 @@ export function resumeScreen({ go, world }) {
   return {
     el,
     title: `${person.name} | Résumé`,
+    surface: 'paper',
     mount() {
       world.hide?.();
       window.scrollTo(0, 0);

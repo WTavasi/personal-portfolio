@@ -23,7 +23,7 @@ function prerender() {
       const { person } = await import('./src/content.js');
       const page = shell
         .replace(/<title>[^<]*<\/title>/, `<title>${person.name} | Résumé</title>`)
-        .replace('<body>', '<body data-screen="resume">')
+        .replace('<body>', '<body data-screen="resume" data-surface="paper">')
         .replace('id="world"', 'id="world" hidden')
         .replace('<div id="app"></div>', `<div id="app"><div class="screen resume">${resumeMarkup()}</div></div>`);
       if (page === shell || !page.includes('class="screen resume"')) throw new Error('prerender: index.html did not match');

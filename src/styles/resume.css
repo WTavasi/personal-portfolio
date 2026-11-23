@@ -10,7 +10,6 @@
   gap: var(--s-3);
   padding: var(--s-3) var(--s-5);
   background: var(--bg);
-  border-bottom: 1px solid var(--line);
 }
 .p-bar a.btn {
   text-decoration: none;
@@ -58,7 +57,7 @@
   outline-offset: 1px;
 }
 .mail-row input[aria-invalid='true'] {
-  border-color: #e0806b;
+  border-color: var(--danger);
 }
 .mail-row .btn {
   width: auto;

@@ -1,17 +1,32 @@
 /* Design system tokens. Every screen reads from these; nothing hard-codes a colour or a gap.
-   Contrast for each text/background pair is checked by scripts and recorded in docs/DESIGN.md. */
+   Contrast for every text and control pair is checked by `npm run check:contrast`
+   (scripts/contrast.mjs), which reads this file; the build fails if a pair drops below its target.
+
+   Surfaces (design document, section 10):
+   - hall:  the warm, dark room the 3D hall lives in, and everything over it (default).
+   - paper: score paper, for anything you read (the résumé now, the rooms later). Light by default,
+            dark when the visitor's system asks for it.
+   A screen picks its surface with <body data-surface="paper">; the tokens below do the rest. */
+
 :root {
   /* Colour: warm near-black, one accent (brass). Crimson lives in the 3D hall only. */
   --bg: #0b0709;
   --surface: #171011;
   --surface-2: #241a1b;
+  --surface-2-hover: #33262a;
   --text: #f5eee2;
   --text-2: #cdbfa9;
   --text-3: #a99a84;
-  --accent: #e3b552;
+  --accent: #e3b552; /* fills: primary buttons, selection, markers */
+  --accent-hover: #f1c96b;
   --on-accent: #1b1306;
-  --line: #85746a;
-  --focus: var(--accent);
+  --accent-text: #e3b552; /* the accent as text: links, current item */
+  --line: #85746a; /* borders of fields and controls */
+  --focus: #e3b552;
+  --danger: #f0a58f;
+  --scrim: 11 7 9; /* rgb channels, for rgb(var(--scrim) / alpha) over the 3D */
+  --term-bg: #120c0e;
+  --term-dot: #4a3d3a;
 
   /* Spacing: 4px base. Group related things with the small steps, separate groups with the large ones. */
   --s-1: 4px;
@@ -24,8 +39,8 @@
   --s-8: 64px;
   --s-9: 96px;
 
-  /* Type scale (rem at 16px root) */
-  --t-xs: 0.8125rem; /* 13 */
+  /* Type scale (rem at 16px root). Body text never goes below --t-md (17px). */
+  --t-xs: 0.8125rem; /* 13: only for small print such as notes under a form */
   --t-sm: 0.9375rem; /* 15 */
   --t-md: 1.0625rem; /* 17 */
   --t-lg: 1.375rem; /* 22 */
@@ -33,6 +48,8 @@
   --t-2xl: 3rem; /* 48 */
   --t-display: clamp(3.25rem, 7vw, 5.5rem);
 
+  /* Fraunces for titles, Figtree for everything you read or press, Space Mono only for changing
+     numbers, readouts and code (design rules, section 10A). */
   --font-ui: 'Figtree Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-display: 'Fraunces Variable', Georgia, serif;
   --font-mono: 'Space Mono', ui-monospace, Menlo, Consolas, monospace;
@@ -42,6 +59,51 @@
   --pad-panel: var(--s-2);
   --r-inner: calc(var(--r-panel) - var(--pad-panel)); /* 4px */
 
+  /* The shared top bar's height; screens leave this much room above their content. */
+  --topbar-h: 72px;
+
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --dur: 160ms;
+
+  color-scheme: dark;
+}
+
+/* Score paper, light. */
+body[data-surface='paper'] {
+  --bg: #f3ecdf;
+  --surface: #fbf7ef;
+  --surface-2: #e7dccb;
+  --surface-2-hover: #dccfbb;
+  --text: #17120f;
+  --text-2: #4f443b;
+  --text-3: #66594d;
+  --accent: #e3b552;
+  --accent-hover: #edc56a;
+  --on-accent: #1b1306;
+  --accent-text: #7a5a12; /* brass itself is too light to read on cream */
+  --line: #8c7b6c;
+  --focus: #7a5a12;
+  --danger: #a3263a;
+  color-scheme: light;
+}
+
+/* Score paper, dark: for visitors whose system is set to dark. */
+@media (prefers-color-scheme: dark) {
+  body[data-surface='paper'] {
+    --bg: #16110e;
+    --surface: #211a16;
+    --surface-2: #2e2520;
+    --surface-2-hover: #3b302a;
+    --text: #f3ecdf;
+    --text-2: #d2c4b0;
+    --text-3: #ada08d;
+    --accent: #e3b552;
+    --accent-hover: #f1c96b;
+    --on-accent: #1b1306;
+    --accent-text: #e3b552;
+    --line: #8a796c;
+    --focus: #e3b552;
+    --danger: #f0a58f;
+    color-scheme: dark;
+  }
 }

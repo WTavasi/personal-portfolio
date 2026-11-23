@@ -71,6 +71,7 @@ function route() {
   root.replaceChildren(next.el);
   document.title = next.title;
   document.body.dataset.screen = key;
+  document.body.dataset.surface = next.surface ?? 'hall';
   current = next;
   next.mount?.();
 }

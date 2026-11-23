@@ -15,12 +15,12 @@
 .scrim-top {
   top: 0;
   height: 180px;
-  background: linear-gradient(to bottom, rgb(11 7 9 / 0.88), rgb(11 7 9 / 0));
+  background: linear-gradient(to bottom, rgb(var(--scrim) / 0.88), rgb(var(--scrim) / 0));
 }
 .scrim-bottom {
   bottom: 0;
   height: 220px;
-  background: linear-gradient(to top, rgb(11 7 9 / 0.9), rgb(11 7 9 / 0));
+  background: linear-gradient(to top, rgb(var(--scrim) / 0.9), rgb(var(--scrim) / 0));
 }
 .hall-top {
   position: fixed;
@@ -110,7 +110,7 @@
   height: 28px;
   border: 2px solid var(--accent);
   border-radius: 50%;
-  background: rgb(11 7 9 / 0.55);
+  background: rgb(var(--scrim) / 0.55);
 }
 .marker-ring::before {
   content: '';
@@ -139,7 +139,7 @@
 }
 .marker-label {
   padding: 3px var(--s-2);
-  background: rgb(11 7 9 / 0.78);
+  background: rgb(var(--scrim) / 0.78);
   border-radius: var(--r-inner);
   font-size: var(--t-sm);
   font-weight: 700;
@@ -175,7 +175,7 @@
 }
 .hall-hint {
   padding: var(--s-2) var(--s-4);
-  background: rgb(11 7 9 / 0.78);
+  background: rgb(var(--scrim) / 0.78);
   border-radius: var(--r-inner);
   font-weight: 600;
   text-align: center;
@@ -205,7 +205,7 @@
   text-align: left;
 }
 .sec:hover {
-  background: #33262a;
+  background: var(--surface-2-hover);
 }
 .sec:active {
   transform: translateY(1px);
