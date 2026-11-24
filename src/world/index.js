@@ -316,6 +316,11 @@ export async function createWorld({ canvas, onStep }) {
       pinned = v.length ? v : null;
       dirty = true;
     };
+    // Make the orchestra play to a steady beat without music, to check the players' movement.
+    window.__hallPlay = (on = true) => {
+      const t0 = performance.now();
+      beatSource = on ? () => ((performance.now() - t0) / 1000) * (fallbackBpm / 60) : null;
+    };
   }
 
   return {
