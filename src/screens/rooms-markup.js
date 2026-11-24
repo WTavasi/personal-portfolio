@@ -136,7 +136,7 @@ function boxOffice() {
 export const deskNote = (c) => `
   <li class="desk-note">
     <p class="desk-note-text">${esc(c.text)}</p>
-    <p class="desk-note-by">${esc(c.name || 'Someone')}${c.waiting ? ' · <span class="desk-note-wait">Waiting for Wyclef</span>' : ''}</p>
+    <p class="desk-note-by">${esc(c.name || 'Someone')}</p>
   </li>`;
 
 function noticeBoard() {
@@ -174,7 +174,7 @@ function noticeBoard() {
         <textarea id="desk-text" maxlength="${LIMITS.text}" rows="4" placeholder="${esc(DEFAULT_NOTE)}"></textarea>
         <label for="desk-name">Sign it <span class="desk-optional">(optional: a name or initials)</span></label>
         <input id="desk-name" maxlength="${LIMITS.name}" autocomplete="nickname" />
-        <p class="desk-privacy">For now your note is saved in this browser only. Once the guestbook is live, notes go to Wyclef to approve, then everyone sees them. Only what you write here is kept.</p>
+        <p class="desk-privacy">For now your note stays in this browser. Only what you write here is kept.</p>
         <div class="desk-actions">
           <button class="btn btn-primary" type="submit">Leave it on the desk</button>
           <button class="btn btn-secondary" type="button" data-act="here">Just say “${esc(DEFAULT_NOTE)}”</button>

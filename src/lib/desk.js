@@ -1,9 +1,8 @@
 // Visitors' notes on the desk (design document, section 13).
 //
-// For now, until the guestbook's server is set up (stage S5), a note is kept in this browser only:
-// the visitor sees it on the desk, marked "Waiting for Wyclef", and nobody else does. Once the
-// server is live, add() will send the note to be emailed to Wyclef for approval, and list() will
-// also return everyone's approved notes. Nothing here identifies the visitor: a note has only the
+// For now, until the guestbook has a server, a note is kept in this browser only: the visitor sees
+// it on the desk, and nobody else does. Once there is a server, add() will send the note there and
+// list() will also return everyone else's notes. Nothing here identifies the visitor: a note has only the
 // name they choose to sign with.
 //
 // A visitor can move only their own notes, and only during the visit they wrote them in (a random
@@ -58,11 +57,11 @@ function save(list) {
 
 export const desk = {
   // Every note on the desk, bottom to top: Wyclef's, then the visitor's own (in the order last
-  // moved). Each has { id, name, text, u, v, turn, order, own, movable, waiting }.
+  // moved). Each has { id, name, text, u, v, turn, order, own, movable }.
   list() {
     const visit = visitCode();
-    const fixed = deskFile.cards.map((c, i) => ({ id: `wyclef-${i}`, ...c, order: i, own: false, movable: false, waiting: false }));
-    const own = mine().map((c) => ({ ...c, own: true, movable: c.visit === visit, waiting: true }));
+    const fixed = deskFile.cards.map((c, i) => ({ id: `wyclef-${i}`, ...c, order: i, own: false, movable: false }));
+    const own = mine().map((c) => ({ ...c, own: true, movable: c.visit === visit }));
     return [...fixed, ...own.sort((a, b) => a.order - b.order)];
   },
 
@@ -85,7 +84,7 @@ export const desk = {
       visit: visitCode(),
     };
     save([...list, card]);
-    return { ...card, own: true, movable: true, waiting: true };
+    return { ...card, own: true, movable: true };
   },
 
   // Move one of the visitor's own notes (this visit's only) and put it on top of the stack.

@@ -109,7 +109,6 @@ export function boardScreen({ world }) {
         aria-label="A note from ${esc(who(c))}${c.movable ? '. Yours: move it with the arrow keys' : ''}">
         <span class="desk-card-text" aria-hidden="true">${esc(c.text)}</span>
         <span class="desk-card-name" aria-hidden="true">${esc(who(c))}</span>
-        ${c.waiting ? '<span class="desk-card-stamp" aria-hidden="true">Waiting for Wyclef</span>' : ''}
       </button>`;
     return wrap;
   }
@@ -280,7 +279,7 @@ export function boardScreen({ world }) {
         <p class="desk-count" aria-live="polite"><span data-bind="left">${LIMITS.text}</span> characters left</p>
         <label for="desk-name">Sign it <span class="desk-optional">(optional: a name or initials)</span></label>
         <input id="desk-name" maxlength="${LIMITS.name}" autocomplete="nickname" />
-        <p class="desk-privacy">For now your note is saved in this browser only. Once the guestbook is live, notes go to Wyclef to approve, then everyone sees them. Only what you write here is kept.</p>
+        <p class="desk-privacy">For now your note stays in this browser. Only what you write here is kept.</p>
         <div class="note-card-actions">
           <button class="btn btn-primary" type="submit">Leave it on the desk</button>
           <button class="btn btn-secondary" type="button" data-act="close">Cancel</button>
