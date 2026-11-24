@@ -253,7 +253,6 @@ export function boardScreen({ world }) {
       <p class="note-card-cat">A note on the desk</p>
       <h2 id="note-card-title" class="note-card-text">${esc(d.text)}</h2>
       <p class="note-card-by">${esc(who(d))}</p>
-      ${d.waiting ? '<p class="note-card-date">Waiting for Wyclef. For now this note is saved in this browser only; once the guestbook is live, notes go to Wyclef to approve and then everyone sees them.</p>' : ''}
       <div class="note-card-actions">
         ${
           stack.length > 1
