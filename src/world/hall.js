@@ -3,6 +3,7 @@ import { linear, M, Kit, slab, sector, lambert, instances, facing } from './kit.
 import { buildOrchestra } from './orchestra.js';
 import { buildCrowd } from './crowd.js';
 import { BOARD, boardLayout } from '../lib/board.js';
+import { BOOTH, buildBooth } from './booth.js';
 
 // The concert hall, built from primitives in code: no model files, no licences to check, and a
 // small download. Units are metres. The stage is toward -z, the audience toward +z, and the
@@ -326,14 +327,9 @@ export async function buildHall(scene, step) {
   // panelling either side of the stage, and the notice board beside the door. The stage itself
   // is The Studio, and the conductor's score is the résumé.
   const ROOM_Z = -10.4;
-  // The Booth: a lit control-room window above the left upper gallery, with screens inside.
-  hall.box(0.12, 1.75, 3.6, COL.mahogany, -(WALL_X - 0.07), 9.9, -12.5);
-  steady.box(0.04, 1.4, 3.2, 0x6f97ad, -(WALL_X - 0.15), 9.9, -12.5);
-  for (const [y, z, w] of [[9.75, -13.5, 0.55], [9.75, -12.8, 0.5], [9.8, -11.9, 0.6], [10.25, -11.3, 0.4]]) {
-    steady.box(0.03, 0.32, w, 0xd8efff, -(WALL_X - 0.19), y, z);
-  }
-  hall.box(0.05, 1.4, 0.07, COL.dark, -(WALL_X - 0.2), 9.9, -12.5); // mullion
-  glowBig.push([-(WALL_X - 0.5), 9.9, -12.5, 0x9fc8e0]);
+  // The Booth: the control room above the left upper gallery, with two engineers at the desk.
+  const booth = buildBooth(scene);
+  glowSmall.push(...booth.glows);
 
   // Box Office: a ticket window with a counter and a brass plate, left of the stage.
   hall.box(0.12, 1.55, 2.0, COL.mahogany, -11.24, 1.6, ROOM_Z);
@@ -716,7 +712,7 @@ export async function buildHall(scene, step) {
     return k;
   };
   const proxies = {
-    work: box(0.7, 1.9, 3.7, -(WALL_X - 0.3), 9.9, -12.5),
+    work: box(BOOTH.glassX - BOOTH.backX + 0.2, BOOTH.roofY - BOOTH.floorY + 0.2, BOOTH.width + 0.2, (BOOTH.glassX + BOOTH.backX) / 2, (BOOTH.floorY + BOOTH.roofY) / 2, BOOTH.z),
     music: box(18, 3.2, 11.5, 0, STAGE_TOP + 1.6, -12.75),
     services: box(0.9, 1.9, 2.3, -11.0, 1.6, ROOM_Z),
     about: box(0.9, 2.6, 1.7, 11.0, 1.3, ROOM_Z),
@@ -726,7 +722,7 @@ export async function buildHall(scene, step) {
   const proxyMat = new THREE.MeshBasicMaterial();
   const at = (v, dy) => v.clone().setY(v.y + dy);
   const roomAnchors = {
-    work: new THREE.Vector3(-(WALL_X - 0.6), 11.2, -12.5),
+    work: new THREE.Vector3(BOOTH.glassX + 0.2, BOOTH.roofY + 0.45, BOOTH.z),
     music: new THREE.Vector3(0, STAGE_TOP + 3.6, -12.5),
     services: new THREE.Vector3(-10.9, 2.95, ROOM_Z),
     about: new THREE.Vector3(10.9, 2.95, ROOM_Z),
@@ -738,7 +734,7 @@ export async function buildHall(scene, step) {
   // height to look from. The camera is placed in front of it from these (see world/index.js).
   // The Studio and Encore are views of the stage, so they are set as a position and a target.
   fx.views = {
-    work: { at: [-(WALL_X - 0.15), 9.9, -12.5], face: [1, 0, 0], size: [5.2, 2.9], eye: 9.9 },
+    work: { at: [BOOTH.glassX, 9.95, BOOTH.z], face: [1, 0, 0], size: [BOOTH.width + 0.5, 2.15], eye: 10.15 },
     services: { at: [-11.16, 1.95, ROOM_Z], face: [1, 0, 0], size: [3.4, 2.4], eye: STAGE_TOP + 1.55 },
     about: { at: [11.2, 1.5, ROOM_Z], face: [-1, 0, 0], size: [3.0, 3.1], eye: STAGE_TOP + 1.55 },
     wall: { at: [BOARD.x - 0.07, BOARD.y, BOARD_Z], face: [-1, 0, 0], size: [BOARD.w + 0.3, BOARD.h + 0.35], eye: BOARD.y + 0.1 },
