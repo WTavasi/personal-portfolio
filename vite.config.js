@@ -7,8 +7,8 @@ import { resolve } from 'node:path';
 const base = process.env.BASE_PATH || '/';
 process.env.BASE_PATH = base; // the prerender step's router reads it
 
-// After the build, write every page that can be rendered without the 3D hall (the résumé and all
-// the rooms) as its own HTML file,
+// After the build, write every page that can be rendered without the 3D hall (the first screen,
+// the résumé and all the rooms) as its own HTML file,
 // so it can be read (and indexed) before or without JavaScript, and add a 404 page that loads the
 // app for any other address.
 function prerender() {
@@ -42,6 +42,14 @@ function prerender() {
         await write(path, { title: roomTitle(key, param), screen: key, html: roomMarkup(key, param) });
       }
       await writeFile(resolve(outDir, '404.html'), shell);
+
+      // The home page: the first screen and the still of the hall, so the first paint needs no JS.
+      const { homeMarkup, stillMarkup } = await import('./src/screens/home-markup.js');
+      const home = shell
+        .replace('<body>', '<body data-screen="home" data-surface="hall">')
+        .replace('<div id="app"></div>', `${stillMarkup()}<div id="app"><section class="screen home" aria-label="Home">${homeMarkup()}</section></div>`);
+      if (home === shell) throw new Error('prerender: index.html did not match');
+      await writeFile(resolve(outDir, 'index.html'), home);
     },
   };
 }

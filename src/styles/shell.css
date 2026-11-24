@@ -34,8 +34,8 @@ body[data-surface='paper'] .topbar {
   font-size: var(--t-sm);
   color: var(--text-2);
 }
-/* The role line belongs to the first screen; every other page states what it is in its heading. */
-body:not([data-screen='boot']):not([data-screen='hall']) .topbar-role {
+/* The role line belongs to the hall; every other page states what it is in its heading. */
+body:not([data-screen='hall']) .topbar-role {
   display: none;
 }
 .topbar-nav {
@@ -54,9 +54,7 @@ body:not([data-screen='boot']):not([data-screen='hall']) .topbar-role {
 a.topbar-btn {
   text-decoration: none;
 }
-/* The boot screen has its own sound switch in the terminal; the résumé link is pointless on the résumé. */
-body[data-screen='boot'] .topbar-sound,
-body[data-screen='boot'] .tracklist-extra,
+/* The résumé link is pointless on the résumé. */
 body[data-screen='resume'] .topbar-resume {
   display: none;
 }

@@ -1,6 +1,6 @@
 import { person } from '../content.js';
 import { TRACKS, pathFor, navigate } from '../lib/router.js';
-import { tuningActive } from '../lib/audio.js';
+import { tuningActive, entrance } from '../lib/audio.js';
 import { themes, prepareApplauseAll } from '../lib/themes.js';
 import { visits } from '../lib/visits.js';
 import { esc } from './resume-markup.js';
@@ -103,12 +103,14 @@ export function hallScreen({ world }) {
         api.setActive(null);
         unframe = api.onFrame(placeMarkers);
         api.start();
-        if (!api.revealed) api.reveal();
+        // The still image on the first screen stays until the lights are up, then fades away.
+        if (!api.revealed) api.reveal().then(() => world.onRevealed?.());
+        else world.onRevealed?.();
       }
       // The applause is rendered in the background, ready for when the house is full.
       setTimeout(prepareApplauseAll, 3000);
       // Coming back from a room, the whole orchestra returns at the hall's level.
-      if (!tuningActive()) themes.play(null);
+      if (!tuningActive() && !entrance.pending) themes.play(null);
     },
     // The top bar's sound control: turning sound back on picks the music up again.
     onSound(on) {

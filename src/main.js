@@ -4,13 +4,14 @@ import '@fontsource/space-mono/400.css';
 import '@fontsource/space-mono/700.css';
 import './styles/tokens.css';
 import './styles/base.css';
-import './styles/boot.css';
+import './styles/home.css';
 import './styles/hall.css';
 import './styles/resume.css';
 import './styles/shell.css';
 import './styles/rooms.css';
 
-import { bootScreen } from './screens/boot.js';
+import { homeScreen } from './screens/home.js';
+import { stillMarkup } from './screens/home-markup.js';
 import { hallScreen } from './screens/hall.js';
 import { resumeScreen } from './screens/resume.js';
 import { roomScreen } from './screens/room.js';
@@ -22,30 +23,32 @@ import { visits } from './lib/visits.js';
 import { pathFor } from './lib/router.js';
 
 // Every page has a real address (see lib/router.js). A recruiter can open <site>/resume and skip
-// everything. Home is the boot screen until the hall is built, then the hall itself.
-const screens = { boot: bootScreen, hall: hallScreen, resume: resumeScreen };
+// everything. Home is the first screen until the visitor turns on the hall, then the hall itself.
+const screens = { home: homeScreen, hall: hallScreen, resume: resumeScreen };
 
 const canvas = document.getElementById('world');
 const root = document.getElementById('app');
 
-// The 3D hall is created once (during the boot) and reused. It is loaded lazily so a direct
-// link to the résumé never downloads the 3D code.
+// The 3D hall is built once, when the visitor turns it on, and reused. Its code is fetched while
+// the first screen is idle, so a direct link to a room never downloads it unless asked.
 const world = {
   api: null,
   fallback: false,
+  on: false, // true once the visitor has turned on the hall
+  module: null,
   loading: null,
+  onRevealed: () => dropStill(),
+  prefetch() {
+    this.module ??= import('./world/index.js');
+    return this.module;
+  },
   load(onStep) {
     if (this.api) return Promise.resolve();
-    this.loading ??= import('./world/index.js').then(async ({ createWorld }) => {
+    this.loading ??= this.prefetch().then(async ({ createWorld }) => {
       this.api = await createWorld({ canvas, onStep });
       this.api.setBeatSource(() => themes.beats(), BPM);
-      this.api.start();
     });
     return this.loading;
-  },
-  showBlueprint() {
-    canvas.hidden = false;
-    canvas.classList.add('is-ready');
   },
   show() {
     canvas.classList.toggle('is-ready', !this.fallback);
@@ -60,18 +63,36 @@ const world = {
 
 let current = null;
 
+// The still image of the hall behind the first screen (written into index.html by the build, or
+// added here). It stays while the real hall builds and lights up, then fades away.
+let still = document.querySelector('.hall-still');
+function showStill() {
+  if (!still) {
+    canvas.insertAdjacentHTML('afterend', stillMarkup());
+    still = document.querySelector('.hall-still');
+  }
+  still.classList.remove('is-gone');
+}
+function dropStill() {
+  if (!still) return;
+  const s = still;
+  still = null;
+  s.classList.add('is-gone');
+  setTimeout(() => s.remove(), 900);
+}
+
 // The shared top bar sits outside the screens and outlives them.
 const shell = createShell({ onSound: (on) => current?.onSound?.(on) });
 document.body.insertBefore(shell.el, root);
 document.body.append(shell.tabbar);
 
-// Screens ask for 'hall' or 'resume'; both the boot screen and the hall live at the home address.
+// Screens ask for 'hall' or 'resume'; the first screen and the hall share the home address.
 const go = (name) => navigate(name === 'resume' ? 'resume' : 'home');
 
 // Once the hall is lit, rooms open over it instead of replacing it: the camera moves to the room's
 // place, the hall dims, and the page opens on the right. Without the hall (a direct link, no
 // WebGL) a room is an ordinary page.
-const hallIsOn = () => !!world.api?.revealed && !world.fallback;
+const hallIsOn = () => world.on && !!world.api?.revealed && !world.fallback;
 
 // Clicking the dimmed hall around an open room goes back to the hall, as does Esc.
 const backdrop = document.createElement('a');
@@ -86,13 +107,16 @@ window.addEventListener('keydown', (e) => {
 function route() {
   const where = currentRoute() ?? { key: 'home' };
   const room = where.key === 'project' ? 'work' : where.key;
-  let key = where.key === 'home' ? 'boot' : where.key;
-  // The hall must be built before it can be shown.
-  if (key === 'boot' && (world.api || world.fallback)) key = 'hall';
-  const over = key !== 'boot' && key !== 'hall' && hallIsOn();
+  let key = where.key;
+  // Home is the hall once the visitor has turned it on.
+  if (key === 'home' && world.on && world.api) key = 'hall';
+  const over = key !== 'home' && key !== 'hall' && hallIsOn();
+
+  if (key === 'home') showStill();
+  else if (key !== 'hall' && !over) dropStill();
 
   // Without the hall behind it, a page is silent; over the hall, the music carries on.
-  if (key !== 'boot' && key !== 'hall' && !over) {
+  if (key !== 'home' && key !== 'hall' && !over) {
     themes.pause(0.8);
     stopTuning(0.8);
   }

@@ -23,17 +23,6 @@ export function ensureAudio() {
   return ctx;
 }
 
-// Browsers keep audio paused until the visitor interacts with the page. Sound that was set up
-// before then (the tuning on the boot screen) starts on the first click, tap or key press.
-const GESTURES = ['pointerdown', 'keydown', 'touchend'];
-export function resumeOnGesture() {
-  const wake = () => {
-    GESTURES.forEach((g) => window.removeEventListener(g, wake, true));
-    ensureAudio();
-  };
-  GESTURES.forEach((g) => window.addEventListener(g, wake, true));
-}
-
 // The shared output, created on first use.
 export function audioOut() {
   return ensureAudio() ? master : null;
@@ -48,6 +37,10 @@ let tuningData = null; // Promise of the raw file, fetched while the hall loads
 let tuningBuffer = null; // decoded audio, ready to play
 let tuningVoice = null; // what is playing now, so it can be faded out
 let tuningWanted = false;
+
+// True while the first screen's entrance (tuning, hush, downbeat) is running, so nothing else
+// starts the theme early.
+export const entrance = { pending: false };
 
 // Start downloading the recording. Called during loading; the résumé page never calls it.
 export function preloadTuning() {
