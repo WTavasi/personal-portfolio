@@ -1,6 +1,6 @@
 /* The text pages as manuscript pages of the Classical and Romantic era: aged parchment with a
-   faint grain and darkened edges, a double red margin rule, headings in Bodoni Moda (the type of
-   that era), a red initial opening each page, small capitals for dates and labels, and red list
+   faint grain and darkened edges, a double red margin rule, headings in Source Serif 4's display
+   cut, a red initial opening each page, small capitals for dates and labels, and red list
    marks. The body stays Source Serif 4 at a reading size, so it reads as easily as before.
    Applies to every room page and to About me, on their own and opened over the hall. */
 
@@ -85,15 +85,15 @@
   display: none;
 }
 
-/* Headings in Bodoni Moda. */
+/* Headings: Source Serif 4 at its display sizes, set a touch tighter. */
 :is(.room-head, .doc-head) h1,
 .resume-name {
-  font-family: var(--font-period);
+  font-family: var(--font-display);
   font-weight: 600;
-  letter-spacing: 0;
+  letter-spacing: -0.015em;
 }
 :is(.room-doc, .resume .doc) h2 {
-  font-family: var(--font-period);
+  font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -110,7 +110,7 @@
   padding: 0.04em 0.12em 0;
   border: 1px solid var(--rubric);
   color: var(--rubric);
-  font-family: var(--font-period);
+  font-family: var(--font-display);
   font-size: 3.1em;
   font-weight: 700;
   line-height: 0.86;

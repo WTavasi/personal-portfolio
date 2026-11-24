@@ -7,7 +7,10 @@
   font: 600 var(--t-2xl) / 1.05 var(--font-display);
   letter-spacing: -0.01em;
 }
-.room-head h1:focus {
+/* A page's heading takes focus when the page opens (for keyboard and screen reader users);
+   that is not a place to press, so it shows no ring. */
+:is(.room-head, .doc-head) h1:focus,
+#resume:focus {
   outline: none;
 }
 .room-doc .doc-lead {

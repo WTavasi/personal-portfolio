@@ -51,14 +51,12 @@
   --t-2xl: 3rem; /* 48 */
   --t-display: clamp(3.25rem, 7vw, 5.5rem);
 
-  /* Source Serif 4 for everything you read or press, titles included (its optical sizes keep
-     small text open and large titles fine). Bodoni Moda, the type of the Classical and Romantic
-     era, only for the headings and initials of the manuscript pages. Space Mono only for
-     changing numbers and the terminal. */
+  /* One type family, Adobe's Source: Source Serif 4 for everything you read or press, headings
+     included (its optical sizes keep small text open and give large titles finer, more elegant
+     shapes), and its monospace sibling Source Code Pro only for the terminal, labels and readouts. */
   --font-ui: 'Source Serif 4 Variable', 'Iowan Old Style', Georgia, serif;
   --font-display: 'Source Serif 4 Variable', 'Iowan Old Style', Georgia, serif;
-  --font-period: 'Bodoni Moda Variable', 'Didot', 'Bodoni 72', Georgia, serif;
-  --font-mono: 'Space Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-mono: 'Source Code Pro Variable', ui-monospace, Menlo, Consolas, monospace;
 
   /* Radii: an inner element's radius = outer radius minus the padding between them. */
   --r-panel: 12px;

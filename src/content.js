@@ -231,7 +231,7 @@ export const certifications = [
 export const credits = [
   'Orchestra tuning recording: “Orchestra Tuning Sound Effect” by Effects Grinder.',
   'Audience chatter: “People Talking in Background, Version 1” by Finnolia Sound Effects.',
-  'Type: Source Serif 4 (Adobe), Bodoni Moda (Owen Earl) and Space Mono (Colophon), under the SIL Open Font License.',
+  'Type: Source Serif 4 and Source Code Pro (Adobe), under the SIL Open Font License.',
 ];
 
 export const honors = [

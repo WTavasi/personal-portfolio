@@ -1,8 +1,6 @@
 import '@fontsource-variable/source-serif-4/opsz.css';
 import '@fontsource-variable/source-serif-4/opsz-italic.css';
-import '@fontsource-variable/bodoni-moda/opsz.css';
-import '@fontsource/space-mono/400.css';
-import '@fontsource/space-mono/700.css';
+import '@fontsource-variable/source-code-pro/wght.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/home.css';

@@ -24,6 +24,7 @@ body[data-surface='paper'] .topbar {
   color: var(--text);
   font: 600 var(--t-xl) / 1.1 var(--font-display);
   letter-spacing: -0.01em;
+  white-space: nowrap;
   text-decoration: none;
 }
 .topbar-name:hover {
@@ -47,6 +48,7 @@ body:not([data-screen='hall']) .topbar-role {
   width: auto;
   min-height: 44px;
   padding: 0 var(--s-4);
+  white-space: nowrap;
 }
 .topbar-btn[aria-expanded='true'] {
   background: var(--surface-2-hover);
@@ -263,7 +265,7 @@ a.topbar-btn {
     padding: var(--s-3) var(--s-4);
   }
   .topbar-name {
-    font-size: var(--t-lg);
+    font-size: 1.25rem;
   }
   .topbar-role {
     display: none;
@@ -277,6 +279,7 @@ a.topbar-btn {
   }
   .topbar-btn {
     padding: 0 var(--s-3);
+    font-size: var(--t-sm);
   }
   .tracklist-extra {
     display: grid;
@@ -338,5 +341,21 @@ a.topbar-btn {
   .tab[aria-current='page'] {
     color: var(--accent-text);
     background: var(--surface-2);
+  }
+}
+
+/* The smallest phones (320px): a little tighter still, so all three fit on one line. */
+@media (max-width: 359px) {
+  .topbar {
+    padding-inline: var(--s-3);
+  }
+  .topbar-name {
+    font-size: 1.0625rem;
+  }
+  .topbar-nav {
+    gap: var(--s-1);
+  }
+  .topbar-btn {
+    padding: 0 var(--s-2);
   }
 }
