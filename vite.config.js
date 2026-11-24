@@ -47,7 +47,10 @@ function prerender() {
       const { homeMarkup, stillMarkup } = await import('./src/screens/home-markup.js');
       const home = shell
         .replace('<body>', '<body data-screen="home" data-surface="hall">')
-        .replace('<div id="app"></div>', `${stillMarkup()}<div id="app"><section class="screen home" aria-label="Home">${homeMarkup()}</section></div>`);
+        .replace(
+          '<div id="app"></div>',
+          `${stillMarkup().replace('<img ', '<img data-prerendered ')}<div id="app"><section class="screen home" aria-label="Home" data-prerendered>${homeMarkup()}</section></div>`,
+        );
       if (home === shell) throw new Error('prerender: index.html did not match');
       await writeFile(resolve(outDir, 'index.html'), home);
     },

@@ -39,6 +39,8 @@ const world = {
   module: null,
   loading: null,
   onRevealed: () => dropStill(),
+  showStill: () => showStill(),
+  dropStill: () => dropStill(),
   prefetch() {
     this.module ??= import('./world/index.js');
     return this.module;
@@ -64,14 +66,16 @@ const world = {
 
 let current = null;
 
-// The still image of the hall behind the first screen (written into index.html by the build, or
-// added here). It stays while the real hall builds and lights up, then fades away.
+// The still image of the hall behind the plain first screen (written into index.html by the
+// build, or added here). It stays while the real hall builds and lights up, then fades away. The
+// terminal has the wireframe hall behind it instead, so it drops the still at once.
 let still = document.querySelector('.hall-still');
 function showStill() {
   if (!still) {
     canvas.insertAdjacentHTML('afterend', stillMarkup());
     still = document.querySelector('.hall-still');
   }
+  still.removeAttribute('data-prerendered');
   still.classList.remove('is-gone');
 }
 function dropStill() {
@@ -113,8 +117,7 @@ function route() {
   if (key === 'home' && world.on && world.api) key = 'hall';
   const over = key !== 'home' && key !== 'hall' && hallIsOn();
 
-  if (key === 'home') showStill();
-  else if (key !== 'hall' && !over) dropStill();
+  if (key !== 'home' && key !== 'hall' && !over) dropStill();
 
   // Without the hall behind it, a page is silent, unless the visitor started the music from the
   // player and wants it to keep playing across pages: then it carries on, dipped to read over.

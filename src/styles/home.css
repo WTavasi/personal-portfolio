@@ -77,3 +77,135 @@
     font-size: var(--t-2xl);
   }
 }
+
+/* The prerendered first screen is for search engines and visitors without JavaScript. With
+   JavaScript the terminal replaces it, so it stays hidden while the app starts; if the app has
+   not started after four seconds (a script failed), it appears after all. */
+@media (scripting: enabled) {
+  [data-prerendered] {
+    animation: js-grace 0s 4s both;
+  }
+}
+@keyframes js-grace {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+
+/* The terminal that builds the page: a solid window on the left; the hall goes up as a
+   wireframe behind it on the right. Mono type lives only in the log. */
+.home-term {
+  background: linear-gradient(to right, rgb(var(--scrim) / 0.6) 0%, rgb(var(--scrim) / 0) 60%);
+}
+.term {
+  position: relative;
+  width: min(100%, 720px);
+  background: var(--term-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+  overflow: hidden;
+  transition:
+    transform 420ms var(--ease),
+    opacity 420ms var(--ease);
+}
+.home-term.is-leaving .term {
+  transform: translateY(24px) scale(0.97);
+  opacity: 0;
+}
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  height: 36px;
+  padding: 0 var(--s-4);
+  background: var(--surface-2);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+.term-dots {
+  display: flex;
+  gap: 6px;
+}
+.term-dots i {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--term-dot);
+}
+.term-title {
+  flex: 1;
+  margin-right: 45px; /* balances the dots so the title sits in the true centre */
+  text-align: center;
+}
+.term-body {
+  display: grid;
+  gap: var(--s-5);
+  padding: var(--s-4) var(--s-5) var(--s-5);
+}
+.term-out {
+  margin: 0;
+  font: 400 var(--t-sm) / 1.55 var(--font-mono);
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.term-out .prompt,
+.term-out .ok {
+  color: var(--accent);
+}
+.term-out .muted {
+  color: var(--text-3);
+}
+.term-out .doing {
+  color: var(--text-2);
+}
+.term-out .failed,
+.term-out .warn {
+  color: var(--danger);
+}
+.term-ready {
+  padding-top: var(--s-3);
+  animation: rise 240ms var(--ease) both;
+}
+.term-ready[hidden] {
+  display: none;
+}
+@keyframes rise {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+.term-ready .home-hero h1 {
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
+}
+.term-ready .home-actions {
+  margin-top: var(--s-2);
+}
+.term-ready .home-hall {
+  margin-top: var(--s-2);
+}
+@media (max-width: 640px) {
+  .home-term {
+    align-items: start;
+    padding: calc(var(--topbar-h) + var(--s-2)) var(--s-3) var(--s-5);
+    background: rgb(var(--scrim) / 0.5);
+  }
+  .term-body {
+    padding: var(--s-3) var(--s-4) var(--s-4);
+  }
+  .term-out {
+    font-size: var(--t-xs);
+  }
+  .term-ready .home-hero h1 {
+    font-size: var(--t-xl);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .term-ready {
+    animation: none;
+  }
+}
