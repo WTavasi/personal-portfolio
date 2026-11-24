@@ -28,7 +28,21 @@ export function audioOut() {
   return ensureAudio() ? master : null;
 }
 
-/* ---------- The orchestra tuning recording, played while the hall builds ---------- */
+/* ---------- The orchestra tuning, with the audience talking, while the hall builds ---------- */
+
+// The audience's chatter: any recording in src/assets/audio/ whose name contains "chatter",
+// "dialogue" or "murmur" (for example hall-chatter.mp3). It loops quietly under the tuning and
+// dies away with it, the way a hall hushes. Without a file, only the tuning plays.
+const CHATTER_FILES = import.meta.glob('../assets/audio/*{chatter,dialogue,murmur}*.{mp3,m4a,ogg,wav}', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+});
+const chatterUrl = Object.values(CHATTER_FILES)[0] ?? null;
+const CHATTER = { level: 0.16, fadeIn: 1.2 };
+let chatterData = null;
+let chatterBuffer = null;
+let chatterVoice = null;
 
 // The file starts with almost a second of silence and stops without a fade, so playback
 // skips the silence and fades out over the last two seconds.
@@ -38,16 +52,49 @@ let tuningBuffer = null; // decoded audio, ready to play
 let tuningVoice = null; // what is playing now, so it can be faded out
 let tuningWanted = false;
 
-// True while the first screen's entrance (tuning, hush, downbeat) is running, so nothing else
-// starts the theme early.
-export const entrance = { pending: false };
-
-// Start downloading the recording. Called during loading; the résumé page never calls it.
-export function preloadTuning() {
-  tuningData ??= fetch(tuningUrl)
+const fetchAudio = (url) =>
+  fetch(url)
     .then((r) => (r.ok ? r.arrayBuffer() : null))
     .catch(() => null);
+
+// Start downloading the recordings. Called while the first screen is idle; the résumé never does.
+export function preloadTuning() {
+  tuningData ??= fetchAudio(tuningUrl);
+  if (chatterUrl) chatterData ??= fetchAudio(chatterUrl);
   return tuningData;
+}
+
+// The chatter under the tuning: in over `fadeIn`, held, then out over the tuning's last seconds.
+async function playChatter(c, until, fadeOut) {
+  if (!chatterUrl || chatterVoice) return;
+  try {
+    if (!chatterBuffer) {
+      preloadTuning();
+      const data = await chatterData;
+      if (!data) return;
+      chatterBuffer = await c.decodeAudioData(data.slice(0));
+    }
+  } catch {
+    return;
+  }
+  if (!tuningWanted || !getState().sound || chatterVoice) return;
+  const t = c.currentTime;
+  const src = c.createBufferSource();
+  src.buffer = chatterBuffer;
+  src.loop = true;
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.linearRampToValueAtTime(CHATTER.level, t + CHATTER.fadeIn);
+  const end = Math.max(until, t + CHATTER.fadeIn + 0.1);
+  gain.gain.setValueAtTime(CHATTER.level, Math.max(t + CHATTER.fadeIn, end - fadeOut));
+  gain.gain.linearRampToValueAtTime(0, end);
+  src.connect(gain).connect(master);
+  src.start(t);
+  src.stop(end + 0.05);
+  src.onended = () => {
+    if (chatterVoice?.src === src) chatterVoice = null;
+  };
+  chatterVoice = { src, gain };
 }
 
 // Resolves with the number of seconds until the recording starts to fade (0 if it is not playing),
@@ -85,32 +132,32 @@ export async function playTuning() {
   };
   src.start(t, TUNING.offset);
   tuningVoice = { src, gain, startedAt: t };
+  playChatter(c, t + length, TUNING.fadeOut);
   return length - TUNING.fadeOut;
 }
 
 // True while the tuning recording is playing or about to.
 export const tuningActive = () => tuningWanted && !!tuningVoice;
 
-// How many seconds of the tuning the visitor has actually heard. The audio clock stands still
-// while the browser holds sound back, so this stays at 0 until sound is really playing.
-export const tuningHeard = () =>
-  tuningVoice && ctx && ctx.state === 'running' ? Math.max(0, ctx.currentTime - tuningVoice.startedAt) : 0;
-
 // Fade the recording out, for example when leaving the menu or turning sound off.
 export function stopTuning(seconds = 0.6) {
   tuningWanted = false;
-  if (!tuningVoice || !ctx) return;
-  const { src, gain } = tuningVoice;
-  tuningVoice = null;
-  const t = ctx.currentTime;
-  const g = gain.gain;
-  if (g.cancelAndHoldAtTime) g.cancelAndHoldAtTime(t);
-  else {
-    g.cancelScheduledValues(t);
-    g.setValueAtTime(g.value, t);
+  if (!ctx) return;
+  for (const voice of [tuningVoice, chatterVoice]) {
+    if (!voice) continue;
+    const { src, gain } = voice;
+    const t = ctx.currentTime;
+    const g = gain.gain;
+    if (g.cancelAndHoldAtTime) g.cancelAndHoldAtTime(t);
+    else {
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+    }
+    g.linearRampToValueAtTime(0, t + seconds);
+    src.stop(t + seconds + 0.05);
   }
-  g.linearRampToValueAtTime(0, t + seconds);
-  src.stop(t + seconds + 0.05);
+  tuningVoice = null;
+  chatterVoice = null;
 }
 
 // Fallback if the recording cannot load: a soft, oboe-like A4, the note orchestras tune to.

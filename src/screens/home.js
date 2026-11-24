@@ -1,17 +1,16 @@
 import { person } from '../content.js';
 import { navigate } from '../lib/router.js';
 import { getState, setState } from '../lib/state.js';
-import { ensureAudio, preloadTuning, playTuning, stopTuning, tuningHeard, entrance } from '../lib/audio.js';
-import { themes, preloadThemes, BPM } from '../lib/themes.js';
+import { ensureAudio, preloadTuning, playTuning, stopTuning } from '../lib/audio.js';
 import { homeMarkup } from './home-markup.js';
 
 const saveData = () => !!navigator.connection?.saveData;
 const later = (fn) => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 3000 }) : setTimeout(fn, 1500));
 
 // The first screen. Everything important is readable at once over a still image of the hall.
-// "Turn on the hall" is the one gesture that starts sound and the 3D: the orchestra tunes while the
-// hall is built, the lights come up, the still fades into the live hall and the theme comes in on
-// the downbeat. The 3D code and the audio download in the background while the page is idle (not
+// "Turn on the hall" is the one gesture that starts sound and the 3D: the audience talks and the
+// orchestra tunes while the hall is built, then the lights come up and the still fades into the
+// live hall. There is no music until the visitor chooses a piece. The 3D code and the audio download in the background while the page is idle (not
 // on data-saver connections), but the hall is only built when asked for.
 export function homeScreen({ world }) {
   const el = document.createElement('section');
@@ -35,8 +34,6 @@ export function homeScreen({ world }) {
     // Turning on the hall turns on sound: that is what the button promises.
     if (!getState().sound) setState({ sound: true });
     ensureAudio();
-    entrance.pending = true;
-    preloadThemes();
     playTuning();
 
     let steps = 0;
@@ -52,7 +49,6 @@ export function homeScreen({ world }) {
       world.fallback = true;
     }
     if (world.fallback) {
-      entrance.pending = false;
       stopTuning(0.6);
       if (!gone) unavailable();
       return;
@@ -60,18 +56,6 @@ export function homeScreen({ world }) {
 
     world.on = true;
     navigate('home'); // the same address, now showing the hall
-
-    // Like a real concert: if the tuning was heard, it dies away, the hall goes quiet, the conductor
-    // gives one beat of preparation and the orchestra comes in on the downbeat. Otherwise straight in.
-    const prep = 60 / BPM + 0.15;
-    if (tuningHeard() > 1.5) {
-      stopTuning(1.4);
-      themes.play(null, { countIn: 1.4 + 0.5 + prep });
-    } else {
-      stopTuning(0.03);
-      themes.play(null, { countIn: prep });
-    }
-    entrance.pending = false;
   }
 
   el.addEventListener('click', (e) => {
@@ -89,7 +73,6 @@ export function homeScreen({ world }) {
         if (gone) return;
         world.prefetch();
         preloadTuning();
-        preloadThemes();
       });
     },
     destroy() {

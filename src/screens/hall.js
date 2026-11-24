@@ -1,7 +1,5 @@
 import { person } from '../content.js';
 import { TRACKS, pathFor, navigate } from '../lib/router.js';
-import { tuningActive, entrance } from '../lib/audio.js';
-import { themes, prepareApplauseAll } from '../lib/themes.js';
 import { visits } from '../lib/visits.js';
 import { esc } from './resume-markup.js';
 
@@ -44,11 +42,7 @@ export function hallScreen({ world }) {
 
   function renderProgress() {
     el.querySelectorAll('[data-room]').forEach((a) => a.classList.toggle('is-visited', visits.has(a.dataset.room)));
-    $('[data-bind="hint"]').textContent = visits.full
-      ? 'Full house. Thank you for exploring.'
-      : visits.size
-        ? `${visits.size} of ${visits.total} rooms visited`
-        : 'Click a glowing marker, or any place in the hall, to open a room.';
+    $('[data-bind="hint"]').textContent = 'Click a glowing marker, or any place in the hall, to open a room.';
   }
 
   /* --------------------------------------------- pointing at the 3D hall */
@@ -97,7 +91,6 @@ export function hallScreen({ world }) {
       renderProgress();
       world.show?.();
       if (api) {
-        api.setAudience(visits.share());
         api.setView('overview');
         api.setSelected(null);
         api.setActive(null);
@@ -107,15 +100,7 @@ export function hallScreen({ world }) {
         if (!api.revealed) api.reveal().then(() => world.onRevealed?.());
         else world.onRevealed?.();
       }
-      // The applause is rendered in the background, ready for when the house is full.
-      setTimeout(prepareApplauseAll, 3000);
-      // Coming back from a room, the whole orchestra returns at the hall's level and tone.
-      themes.setTone('hall');
-      if (!tuningActive() && !entrance.pending) themes.play(null);
-    },
-    // The top bar's sound control: turning sound back on picks the music up again.
-    onSound(on) {
-      if (on && !themes.playing && !tuningActive()) themes.play(null);
+      api.setInset(0);
     },
     destroy() {
       unframe();

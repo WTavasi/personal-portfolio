@@ -137,23 +137,26 @@ function route() {
   current = next;
   shell.update(room);
 
-  // Seat the audience as rooms are visited; the sixth room fills the house.
-  const fullHouse = visits.record(room);
+  visits.record(room);
   if (over) {
     world.show();
+    fitBesidePage();
     world.api.setView(room);
     world.api.setSelected(room);
-    world.api.setAudience(visits.share());
-    if (fullHouse) {
-      world.api.celebrate();
-      themes.applause();
-    }
-    // The Studio brings the whole orchestra up; every other room keeps it at the hall's level,
-    // heard in that room's tone (the Booth through glass, the foyer rooms far away).
+    // Music the visitor chose plays on in the room's own tone (the Booth through glass, the foyer
+    // rooms far away).
     themes.setTone(room === 'resume' ? 'page' : room);
-    themes.play(room === 'music' ? 'about' : null);
   }
   next.mount?.();
 }
+
+// The hall frames a room in the part of the screen the page leaves visible. On phones the page
+// covers the screen, so there is nothing to fit.
+function fitBesidePage() {
+  const panel = document.body.classList.contains('over-hall') ? current?.el : null;
+  const left = panel && window.innerWidth > 640 ? panel.getBoundingClientRect().left : window.innerWidth;
+  world.api?.setInset(window.innerWidth - left);
+}
+window.addEventListener('resize', fitBesidePage);
 
 startRouter(route);

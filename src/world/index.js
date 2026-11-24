@@ -7,17 +7,8 @@ const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)')
 // other pose holds still apart from a faint sway. The camera eases between poses.
 const OVERVIEW = { R: 22.5, swing: 0.28, height: 7.6, target: new THREE.Vector3(0, 4.0, -10.5), period: 60 };
 const BUILD = { R: 30, swing: 0.55, height: 14, target: new THREE.Vector3(0, 3.2, -9), period: 90 };
-const SECTION_VIEWS = {
-  // One view per room. Each leaves its place left of centre, clear of the page that opens on the
-  // right. (A camera facing +x has +z on its right; one facing -x has -z on its right.)
-  music: { pos: [0, 5.6, 1.5], target: [2.2, 2.4, -13] },
-  resume: { pos: [2.2, 3.3, -1.2], target: [-0.3, 2.0, -8.2] },
-  work: { pos: [-4.5, 8.8, -11.6], target: [-12.9, 9.6, -15.8] },
-  services: { pos: [-4.5, 2.6, -9.6], target: [-11.2, 1.7, -12.2] },
-  about: { pos: [6.2, 3.0, -7.4], target: [12.2, 1.4, -7.6] },
-  wall: { pos: [8.4, 3.6, -10.6], target: [12.4, 1.7, -13.6] },
-};
 const BASE_FOV = 46;
+const TAN = Math.tan(THREE.MathUtils.degToRad(BASE_FOV / 2));
 
 // Rendering budget: 60 frames a second at most, and resolution capped for Intel laptops
 // with Retina screens. Text stays sharp because it is HTML, not part of the 3D scene.
@@ -63,10 +54,23 @@ export async function createWorld({ canvas, onStep }) {
   scene.overrideMaterial = blueprintMat;
   camera = new THREE.PerspectiveCamera(BASE_FOV, 1, 0.1, 90);
 
+  let inset = 0; // pixels on the right covered by an open page
+  let fx = null; // the hall, once built
+  // With a page open on the right, the centre of the picture moves to the middle of what is still
+  // visible, so the room sits centred beside the page instead of behind it.
+  const applyInset = () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    // The camera sees a picture `inset` pixels wider than the window and shows its right part.
+    camera.aspect = (w + inset) / h;
+    if (inset > 0) camera.setViewOffset(w + inset, h, inset, 0, w, h);
+    else camera.clearViewOffset();
+  };
+
   let dirty = true;
   const resize = () => {
     renderer.setSize(window.innerWidth, window.innerHeight, false);
-    camera.aspect = window.innerWidth / window.innerHeight;
+    applyInset();
     camera.updateProjectionMatrix();
     dirty = true;
   };
@@ -81,6 +85,21 @@ export async function createWorld({ canvas, onStep }) {
   let pose = 'build';
   let pinned = null; // debug only, set from the console with ?stats
 
+  // A room's view, worked out from the object rather than set by hand, so it is framed straight
+  // on and fills the part of the screen left visible at any window size: the camera stands in
+  // front of the object, far enough back for its whole size to fit, at the room's eye height.
+  const viewFor = (name) => {
+    const v = fx?.views?.[name];
+    if (!v || v.pos) return v;
+    const visible = window.innerWidth - inset;
+    const aspect = visible / window.innerHeight;
+    const [w, h] = v.size;
+    const d = Math.max(h / 2 / TAN, w / 2 / (TAN * aspect));
+    const [x, y, z] = v.at;
+    const [nx, , nz] = v.face;
+    return { pos: [x + nx * d, v.eye, z + nz * d], target: [x, y, z] };
+  };
+
   function orbit(o, t, outPos, outTarget) {
     const swing = still ? 0 : o.swing * Math.sin((2 * Math.PI * t) / o.period);
     outTarget.copy(o.target);
@@ -89,7 +108,7 @@ export async function createWorld({ canvas, onStep }) {
   function goal(t) {
     if (pose === 'build') return orbit(BUILD, t, goalPos, goalTarget);
     if (pose === 'overview') return orbit(OVERVIEW, t, goalPos, goalTarget);
-    const v = SECTION_VIEWS[pose];
+    const v = viewFor(pose);
     const sway = still ? 0 : 0.12 * Math.sin((2 * Math.PI * t) / 23);
     goalPos.set(v.pos[0] + sway, v.pos[1], v.pos[2]);
     goalTarget.set(...v.target);
@@ -110,7 +129,7 @@ export async function createWorld({ canvas, onStep }) {
   }
   placeCamera(0);
 
-  const fx = await buildHall(scene, step);
+  fx = await buildHall(scene, step);
   for (const o of fx.lit) o.visible = false;
 
   await step('Warming up the shaders');
@@ -135,7 +154,6 @@ export async function createWorld({ canvas, onStep }) {
   let active = null; // which section is playing on its own, or null for everyone
   let beatSource = null;
   let fallbackBpm = 80;
-  const fallbackStart = performance.now();
 
   function spotTarget() {
     const id = selected ?? hover;
@@ -216,8 +234,8 @@ export async function createWorld({ canvas, onStep }) {
     }
 
     if (!still && revealed) {
-      // Without music the conductor keeps time on his own, at the same tempo.
-      const beats = beatSource?.() ?? ((now - fallbackStart) / 1000) * (fallbackBpm / 60);
+      // Without music there is no beat: the orchestra is tuning and the conductor waits.
+      const beats = beatSource?.() ?? null;
       fx.animate(t, beats, active, dt);
       const pos = fx.dust.geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
@@ -285,14 +303,23 @@ export async function createWorld({ canvas, onStep }) {
     },
     // 'overview' or a section id
     setView(name) {
-      pose = name === 'overview' || SECTION_VIEWS[name] ? name : 'overview';
+      pose = name === 'overview' || fx.views[name] ? name : 'overview';
       dirty = true;
+    },
+    // Pixels on the right of the screen covered by an open page (0 for none).
+    setInset(px) {
+      const next = Math.max(0, Math.round(px));
+      if (next === inset) return;
+      inset = next;
+      resize();
     },
     setHover(id) {
       hover = id;
     },
     setSelected(id) {
       selected = id;
+      fx.setEncore(id === 'resume', still);
+      dirty = true;
     },
     setActive(id) {
       active = id;
@@ -300,10 +327,6 @@ export async function createWorld({ canvas, onStep }) {
     setBeatSource(fn, bpm = fallbackBpm) {
       beatSource = fn;
       fallbackBpm = bpm;
-    },
-    setAudience(share) {
-      fx.setAudience(share);
-      dirty = true;
     },
     // The full-house moment: the audience applauds and throws flowers onto the stage.
     celebrate() {

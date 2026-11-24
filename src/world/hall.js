@@ -611,7 +611,7 @@ export async function buildHall(scene, step) {
     scene.add(piano);
   }
 
-  /* ---------- People: the conductor beats time, the audience fills as sections are explored ---------- */
+  /* ---------- People: the conductor beats time while music plays; a set house in the stalls ---------- */
   const personMat = lambert();
 
   // The conductor on the podium, facing the orchestra.
@@ -650,10 +650,24 @@ export async function buildHall(scene, step) {
     const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
     return k * k * (3 - 2 * k);
   };
+  // At the encore (the résumé) the conductor turns round to face the audience.
+  let encore = false;
+  fx.setEncore = (on, instant) => {
+    encore = on;
+    if (instant) maestro.rotation.y = on ? 0 : Math.PI;
+  };
   fx.animate = (t, beats, active, dt) => {
     orchestra.animate(t, beats, active, dt);
     crowd.animate(t, dt);
-    const b = beats ?? 0;
+    const turn = encore ? 0 : Math.PI;
+    maestro.rotation.y += (turn - maestro.rotation.y) * Math.min(1, dt * 2.2);
+    // No music (the orchestra is tuning): the conductor waits, arms down, baton lowered.
+    if (beats == null) {
+      rightArm.rotation.set(0.55, 0, 0);
+      leftArm.rotation.set(0.5, 0, 0);
+      return;
+    }
+    const b = beats;
     let lift; // arm rotation about x: higher values put the hand lower
     let side;
     if (b < 0) {
@@ -674,16 +688,18 @@ export async function buildHall(scene, step) {
     rightArm.rotation.set(lift, -side, 0);
   };
 
-  // The audience fills in a fixed, scattered order so the hall never fills row by row.
+  // The audience: the same people in the same seats on every visit, scattered so the hall reads
+  // as a real house, with gaps, rather than filling row by row. About two thirds of the seats are
+  // taken; the empty ones are where visitors who leave a note on the board will sit (stage S3).
   for (let i = audienceMx.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [audienceMx[i], audienceMx[j]] = [audienceMx[j], audienceMx[i]];
   }
   const crowd = buildCrowd(scene, audienceMx, rand, { stageTop: STAGE_TOP, stageFrontZ });
-  fx.setAudience = (share) => crowd.setCount(Math.round(audienceMx.length * Math.max(0, Math.min(1, share))));
+  const HOUSE = 0.66;
+  crowd.setCount(Math.round(audienceMx.length * HOUSE));
   fx.celebrate = (instant, now) => crowd.celebrate(instant, now);
-  fx.animate(0, 0, null, 1);
-  fx.setAudience(0);
+  fx.animate(0, null, null, 1);
 
   /* ---------- Rooms: what can be clicked, where its marker sits, where the follow spot points ---------- */
   const box = (w, h, d, x, y, z) => {
@@ -709,6 +725,20 @@ export async function buildHall(scene, step) {
     wall: new THREE.Vector3(10.9, 2.85, BOARD_Z),
     resume: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
   };
+  // What each room's camera frames: the object's centre, the way it faces (out into the hall),
+  // the size to fit on screen (width, height, in metres, with some room around it) and the eye
+  // height to look from. The camera is placed in front of it from these (see world/index.js).
+  // The Studio and Encore are views of the stage, so they are set as a position and a target.
+  fx.views = {
+    work: { at: [-(WALL_X - 0.15), 9.9, -12.5], face: [1, 0, 0], size: [5.2, 2.9], eye: 9.9 },
+    services: { at: [-11.16, 1.95, ROOM_Z], face: [1, 0, 0], size: [3.4, 2.4], eye: STAGE_TOP + 1.55 },
+    about: { at: [11.2, 1.5, ROOM_Z], face: [-1, 0, 0], size: [3.0, 3.1], eye: STAGE_TOP + 1.55 },
+    wall: { at: [11.18, 1.95, BOARD_Z], face: [-1, 0, 0], size: [2.6, 1.95], eye: STAGE_TOP + 1.2 },
+    music: { pos: [0, 5.6, 1.5], target: [0, 2.6, -13] },
+    // From the front stalls, facing the podium: at the encore the conductor turns to the house.
+    resume: { pos: [C.x, STAGE_TOP + 1.1, C.z + 6.2], target: [C.x, STAGE_TOP + 1.35, C.z - 0.6] },
+  };
+
   fx.sections = {};
   for (const [id, kit] of Object.entries(proxies)) {
     const mesh = new THREE.Mesh(kit.geometry(), proxyMat);
