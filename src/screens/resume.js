@@ -1,5 +1,5 @@
 import { person, contact } from '../content.js';
-import { resumeMarkup } from './resume-markup.js';
+import { aboutMarkup } from './resume-markup.js';
 import { pathFor } from '../lib/router.js';
 
 function mailtoFor(to) {
@@ -8,7 +8,7 @@ function mailtoFor(to) {
   const lines = [
     'Hello,',
     '',
-    `Here is the résumé of ${person.name}, a cloud, DevOps and mobile engineer based in ${person.location}.`,
+    `Here is the résumé of ${person.name}, a cloud, DevOps and software engineer based in ${person.location}.`,
     person.availability,
     '',
     `Résumé (web): ${resumeUrl}`,
@@ -17,16 +17,17 @@ function mailtoFor(to) {
     `Contact: ${[contact.email, contact.linkedin].filter(Boolean).join(' | ')}`,
   ].filter((l) => l !== null);
   const q = (v) => encodeURIComponent(v);
-  return `mailto:${q(to)}?subject=${q(`Résumé: ${person.name}, cloud, DevOps and mobile engineer`)}&body=${q(lines.join('\n'))}`;
+  return `mailto:${q(to)}?subject=${q(`Résumé: ${person.name}, cloud, DevOps and software engineer`)}&body=${q(lines.join('\n'))}`;
 }
 
-// The résumé is the recruiter view: plain HTML you can read, search, print and link to
-// directly at /resume. It does not depend on the 3D hall or on playing anything.
-export function resumeScreen({ go, world, over = false }) {
+// About me, with the full résumé: plain HTML you can read, search, print and link to directly. It
+// does not depend on the 3D hall or on playing anything. Opened as /resume (the top bar's Résumé
+// button), it starts at the résumé part.
+export function aboutScreen({ world, over = false, jump = false }) {
   const el = document.createElement('div');
   el.className = 'screen resume';
 
-  el.innerHTML = resumeMarkup();
+  el.innerHTML = aboutMarkup();
 
   const form = el.querySelector('.mail-form');
   const mailBtn = el.querySelector('[data-act="mail"]');
@@ -34,7 +35,6 @@ export function resumeScreen({ go, world, over = false }) {
 
   el.addEventListener('click', (e) => {
     const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'home') go('hall');
     if (act === 'mail') {
       form.hidden = !form.hidden;
       mailBtn.setAttribute('aria-expanded', String(!form.hidden));
@@ -69,12 +69,16 @@ export function resumeScreen({ go, world, over = false }) {
 
   return {
     el,
-    title: `${person.name} | Résumé`,
+    title: jump ? `Résumé | ${person.name}` : `About me | ${person.name}`,
     surface: 'paper',
     mount() {
       if (!over) world.hide?.();
       window.scrollTo(0, 0);
-      el.querySelector('h1').setAttribute('tabindex', '-1');
+      if (jump) {
+        const part = el.querySelector('#resume');
+        part.scrollIntoView({ block: 'start' });
+        part.focus({ preventScroll: true });
+      }
     },
     destroy() {},
   };

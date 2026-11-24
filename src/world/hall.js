@@ -654,7 +654,7 @@ export async function buildHall(scene, step) {
     const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
     return k * k * (3 - 2 * k);
   };
-  // At the encore (the résumé) the conductor turns round to face the audience.
+  // In About me the conductor turns round to face the audience, as at an encore.
   let encore = false;
   fx.setEncore = (on, instant) => {
     encore = on;
@@ -714,33 +714,30 @@ export async function buildHall(scene, step) {
   const proxies = {
     work: box(BOOTH.glassX - BOOTH.backX + 0.2, BOOTH.roofY - BOOTH.floorY + 0.2, BOOTH.width + 0.2, (BOOTH.glassX + BOOTH.backX) / 2, (BOOTH.floorY + BOOTH.roofY) / 2, BOOTH.z),
     music: box(18, 3.2, 11.5, 0, STAGE_TOP + 1.6, -12.75),
-    services: box(0.9, 1.9, 2.3, -11.0, 1.6, ROOM_Z),
-    about: box(0.9, 2.6, 1.7, 11.0, 1.3, ROOM_Z),
+    services: box(0.9, 2.6, 1.7, 11.0, 1.3, ROOM_Z),
     wall: box(0.9, BOARD.h, BOARD.w, 11.0, BOARD.y, BOARD_Z),
-    resume: box(1.4, 2.4, 1.6, C.x, STAGE_TOP + 1.2, C.z),
+    about: box(1.4, 2.4, 1.6, C.x, STAGE_TOP + 1.2, C.z),
   };
   const proxyMat = new THREE.MeshBasicMaterial();
   const at = (v, dy) => v.clone().setY(v.y + dy);
   const roomAnchors = {
     work: new THREE.Vector3(BOOTH.glassX + 0.2, BOOTH.roofY + 0.45, BOOTH.z),
     music: new THREE.Vector3(0, STAGE_TOP + 3.6, -12.5),
-    services: new THREE.Vector3(-10.9, 2.95, ROOM_Z),
-    about: new THREE.Vector3(10.9, 2.95, ROOM_Z),
+    services: new THREE.Vector3(10.9, 2.95, ROOM_Z),
     wall: new THREE.Vector3(10.9, BOARD.y + BOARD.h / 2 + 0.4, BOARD_Z),
-    resume: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
+    about: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
   };
   // What each room's camera frames: the object's centre, the way it faces (out into the hall),
   // the size to fit on screen (width, height, in metres, with some room around it) and the eye
   // height to look from. The camera is placed in front of it from these (see world/index.js).
-  // The Studio and Encore are views of the stage, so they are set as a position and a target.
+  // Music and About me are views of the stage, so they are set as a position and a target.
   fx.views = {
     work: { at: [BOOTH.glassX, 9.95, BOOTH.z], face: [1, 0, 0], size: [BOOTH.width + 0.5, 2.15], eye: 10.15 },
-    services: { at: [-11.16, 1.95, ROOM_Z], face: [1, 0, 0], size: [3.4, 2.4], eye: STAGE_TOP + 1.55 },
-    about: { at: [11.2, 1.5, ROOM_Z], face: [-1, 0, 0], size: [3.0, 3.1], eye: STAGE_TOP + 1.55 },
+    services: { at: [11.2, 1.5, ROOM_Z], face: [-1, 0, 0], size: [3.0, 3.1], eye: STAGE_TOP + 1.55 },
     wall: { at: [BOARD.x - 0.07, BOARD.y, BOARD_Z], face: [-1, 0, 0], size: [BOARD.w + 0.3, BOARD.h + 0.35], eye: BOARD.y + 0.1 },
     music: { pos: [0, 5.6, 1.5], target: [0, 2.6, -13] },
-    // From the front stalls, facing the podium: at the encore the conductor turns to the house.
-    resume: { pos: [C.x, STAGE_TOP + 1.1, C.z + 6.2], target: [C.x, STAGE_TOP + 1.35, C.z - 0.6] },
+    // About me: from the front stalls, facing the podium; the conductor turns to the house.
+    about: { pos: [C.x, STAGE_TOP + 1.1, C.z + 6.2], target: [C.x, STAGE_TOP + 1.35, C.z - 0.6] },
   };
 
   fx.sections = {};

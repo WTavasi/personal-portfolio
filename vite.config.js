@@ -21,7 +21,7 @@ function prerender() {
     },
     async closeBundle() {
       const shell = await readFile(resolve(outDir, 'index.html'), 'utf8');
-      const { resumeMarkup } = await import('./src/screens/resume-markup.js');
+      const { aboutMarkup } = await import('./src/screens/resume-markup.js');
       const { roomMarkup, roomTitle, roomPages } = await import('./src/screens/rooms-markup.js');
       const { person } = await import('./src/content.js');
 
@@ -30,14 +30,16 @@ function prerender() {
           .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
           .replace('<body>', `<body data-screen="${screen}" data-surface="paper">`)
           .replace('id="world"', 'id="world" hidden')
-          .replace('<div id="app"></div>', `<div id="app"><div class="screen ${screen === 'resume' ? 'resume' : 'room'}">${html}</div></div>`);
+          .replace('<div id="app"></div>', `<div id="app"><div class="screen ${screen === 'resume' || screen === 'about' ? 'resume' : 'room'}">${html}</div></div>`);
         if (page === shell || !page.includes(`<div class="screen`)) throw new Error('prerender: index.html did not match');
         const dir = resolve(outDir, path.slice(base.length));
         await mkdir(dir, { recursive: true });
         await writeFile(resolve(dir, 'index.html'), page);
       };
 
-      await write(`${base}resume`, { title: `${person.name} | Résumé`, screen: 'resume', html: resumeMarkup() });
+      // About me holds the résumé; /resume is the same page (the app opens it at the résumé part).
+      await write(`${base}about`, { title: `About me | ${person.name}`, screen: 'about', html: aboutMarkup() });
+      await write(`${base}resume`, { title: `Résumé | ${person.name}`, screen: 'resume', html: aboutMarkup() });
       for (const { key, param, path } of roomPages()) {
         await write(path, { title: roomTitle(key, param), screen: key, html: roomMarkup(key, param) });
       }

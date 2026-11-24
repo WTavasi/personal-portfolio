@@ -5,9 +5,9 @@
 import { person } from './content.js';
 import { TRACKS, pathFor } from './lib/router.js';
 
-// The tab bar on phones: the four core rooms (Home is the name, the résumé and the notice board
-// are in the Tracklist).
-const TABS = TRACKS.filter((t) => !t.extra && !['home', 'resume'].includes(t.key));
+// The tab bar on phones: the four core rooms (Home is the name; the notice board, an extra, is in
+// the Tracklist).
+const TABS = TRACKS.filter((t) => !t.extra && t.key !== 'home');
 import { getState, setState, subscribe } from './lib/state.js';
 import { ensureAudio, playClick } from './lib/audio.js';
 import { themes, NOW_PLAYING } from './lib/themes.js';

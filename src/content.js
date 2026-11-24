@@ -7,10 +7,10 @@
 
 export const person = {
   name: 'Wyclef Tavasi',
-  headline: 'Cloud, DevOps and mobile engineer',
+  headline: 'Cloud, DevOps and software engineer',
   location: 'Houston, TX',
   description:
-    'Cloud, DevOps and mobile engineer with professional experience since January 2026. Deploys with Docker and AWS (EC2, S3), works with Kubernetes, and builds the apps on top: Android in Kotlin, iOS in Swift, and Node.js and Python back ends. Designs for failure, from escalation chains that fall back to SMS to load balancers that route around dead servers.',
+    'Cloud, DevOps and software engineer with professional experience since January 2026. Deploys with Docker and AWS (EC2, S3), works with Kubernetes, and builds the apps on top: Android in Kotlin, iOS in Swift, and Node.js and Python back ends. Designs for failure, from escalation chains that fall back to SMS to load balancers that route around dead servers.',
   availability: 'Authorized to work in the US without sponsorship. Available full-time from January 2027.',
 };
 

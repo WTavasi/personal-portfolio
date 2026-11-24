@@ -5,34 +5,25 @@
 import { person, contact, experience, leadership, projects, skills, education, certifications, honors, music, services } from '../content.js';
 import pinsFile from '../content/pins.json' with { type: 'json' };
 import { esc } from './resume-markup.js';
-import { TRACKS, pathFor } from '../lib/router.js';
+import { pathFor } from '../lib/router.js';
+import { roomNav, caseNav } from './room-nav.js';
 
 const ext = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}</a>`;
 const list = (items) => `<ul>${items.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`;
-const track = (key) => TRACKS.find((t) => t.key === key);
 const dateWords = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
+// The arrows between rooms, then the title and the lead.
 function head(key, title, lead = '') {
   return `
+    ${roomNav(key)}
     <header class="room-head">
       <h1 tabindex="-1">${esc(title)}</h1>
       ${lead ? `<p class="doc-lead">${esc(lead)}</p>` : ''}
     </header>`;
 }
 
-// "Back to the hall" and the next track, at the end of every room, then the footer. The chain runs
-// through the core rooms; the notice board, an extra, leads back into it at Work.
-function foot(key, { primaryNext = true } = {}) {
-  const order = TRACKS.filter((t) => !t.extra).map((t) => t.key);
-  const at = order.indexOf(key);
-  const next = track(at < 0 ? 'work' : order[(at + 1) % order.length]);
-  return `
-    <nav class="room-next" aria-label="Keep going">
-      <a class="btn btn-secondary room-btn" href="${pathFor('home')}">Back to the hall</a>
-      <a class="btn ${primaryNext ? 'btn-primary' : 'btn-secondary'} room-btn" href="${pathFor(next.key)}">Next track: ${esc(next.label)}</a>
-    </nav>
-    ${footer()}`;
-}
+// The end of every room: the footer (the arrows are at the top).
+const foot = () => footer();
 
 const footer = () => `
     <footer class="doc-foot">
@@ -71,6 +62,7 @@ function work() {
 function project(slug) {
   const i = projects.findIndex((p) => p.slug === slug);
   const p = projects[i];
+  const prev = projects[i - 1];
   const next = projects[i + 1];
   const credits = [
     p.role && ['Role', esc(p.role)],
@@ -79,6 +71,7 @@ function project(slug) {
     p.href && ['Code', ext(p.href, p.href.replace('https://', ''))],
   ].filter(Boolean);
   return `
+    ${caseNav(prev, next)}
     <header class="room-head">
       <h1 tabindex="-1">${esc(p.name)}</h1>
       <p class="doc-lead">${esc(p.oneLine)}</p>
@@ -94,14 +87,6 @@ function project(slug) {
     }
     <section aria-labelledby="h-built"><h2 id="h-built">What I built</h2>${list(p.bullets)}</section>
     ${p.results ? `<section aria-labelledby="h-results"><h2 id="h-results">Results</h2>${list(p.results)}</section>` : ''}
-    <nav class="room-next" aria-label="Keep going">
-      <a class="btn btn-secondary room-btn" href="${pathFor('work')}">All work</a>
-      ${
-        next
-          ? `<a class="btn btn-primary room-btn" href="${pathFor('project', next.slug)}">Next case study: ${esc(next.name)}</a>`
-          : `<a class="btn btn-primary room-btn" href="${pathFor('music')}">Next track: ${esc(track('music').label)}</a>`
-      }
-    </nav>
     ${footer()}`;
 }
 
@@ -154,25 +139,6 @@ function boxOffice() {
     ${foot('services', { primaryNext: false })}`;
 }
 
-/* ------------------------------------------------------------------ 04 Green Room */
-
-function greenRoom() {
-  const [edu] = education;
-  return `
-    ${head('about', 'About', person.description)}
-    <section aria-labelledby="h-eng-exp"><h2 id="h-eng-exp">Engineering</h2>${experience.map(entry).join('')}</section>
-    <section aria-labelledby="h-music-exp"><h2 id="h-music-exp">Music and leadership</h2>${leadership.filter((e) => !e.community).map(entry).join('')}</section>
-    <section aria-labelledby="h-community"><h2 id="h-community">Community</h2>${leadership.filter((e) => e.community).map(entry).join('')}</section>
-    <section aria-labelledby="h-skills"><h2 id="h-skills">Skills</h2>${definitions(skills.map(([k, v]) => [k, esc(v)]))}</section>
-    <section aria-labelledby="h-edu">
-      <h2 id="h-edu">Education and training</h2>
-      <article class="entry"><h3>${esc(edu.title)}</h3><p class="when">${esc(edu.when)}</p></article>
-      <h3 class="sub-h">Certifications and training</h3>${list(certifications)}
-      <h3 class="sub-h">Honours</h3>${list(honors)}
-    </section>
-    ${foot('about')}`;
-}
-
 /* ------------------------------------------------------------------ 05 The Notice Board */
 
 function noticeBoard() {
@@ -221,9 +187,7 @@ function privacy() {
       <p>Before any feature that stores data goes live, such as notes on the notice board, this page will say exactly what is kept, why and for how long. Questions: ${esc(contact.email)}.</p>
       <p class="when">Last updated 23 November 2026.</p>
     </section>
-    <nav class="room-next" aria-label="Keep going">
-      <a class="btn btn-secondary room-btn" href="${pathFor('home')}">Back to the hall</a>
-    </nav>`;
+    ${footer()}`;
 }
 
 /* ------------------------------------------------------------------ registry */
@@ -233,7 +197,6 @@ const ROOMS = {
   project: { title: (slug) => projects.find((p) => p.slug === slug)?.name ?? 'Work', markup: project },
   music: { title: () => 'Music', markup: studio },
   services: { title: () => 'Services', markup: boxOffice },
-  about: { title: () => 'About', markup: greenRoom },
   wall: { title: () => 'Notice board', markup: noticeBoard },
   privacy: { title: () => 'Privacy', markup: privacy },
 };

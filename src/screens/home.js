@@ -21,8 +21,8 @@ let started = null; // Promise of the running build, so only one ever runs
 //
 // With JavaScript, a terminal builds the page: every line is a real loading step, timed as it runs
 // (the typefaces, the pages, each part of the hall, the sound), while the hall goes up as a
-// wireframe behind the window. Then it offers the options: See my work, Work with me, or Turn on
-// the hall, which brings the lights up and starts the sound (the orchestra tuning, with the
+// wireframe behind the window, which keeps turning once built. Then it welcomes the visitor and
+// offers the options: See my work, Work with me, or Enter the hall, which brings the lights up and starts the sound (the orchestra tuning, with the
 // audience talking). Nothing makes a sound before that.
 //
 // On a data-saver connection, or without WebGL, it is the plain first screen over a still of the
@@ -167,8 +167,11 @@ export function homeScreen({ world }) {
   function showReady() {
     ready.hidden = false;
     box.hidden = false;
+    status.hidden = false;
     if (world.fallback) unavailable();
     buildStatus.textContent = 'Ready.';
+    // The wireframe hall keeps turning slowly behind the welcome.
+    world.api?.start();
     (world.fallback ? $('.home-btn') : button).focus({ preventScroll: true });
   }
 
@@ -237,6 +240,7 @@ export function homeScreen({ world }) {
       if (terminal) return void runTerminal();
       world.showStill();
       box.hidden = false;
+      status.hidden = false;
       if (world.fallback) unavailable();
       if (saveData()) return;
       later(() => {

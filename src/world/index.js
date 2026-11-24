@@ -8,7 +8,7 @@ const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)')
 // Camera poses: a position and a point to look at. The overview drifts in a slow arc; every
 // other pose holds still apart from a faint sway. The camera eases between poses.
 const OVERVIEW = { R: 22.5, swing: 0.28, height: 7.6, target: new THREE.Vector3(0, 4.0, -10.5), period: 60 };
-const BUILD = { R: 30, swing: 0.55, height: 14, target: new THREE.Vector3(0, 3.2, -9), period: 90 };
+const BUILD = { R: 30, swing: 0.55, height: 14, target: new THREE.Vector3(0, 3.2, -9), period: 48 };
 const BASE_FOV = 46;
 const TAN = Math.tan(THREE.MathUtils.degToRad(BASE_FOV / 2));
 
@@ -395,7 +395,7 @@ export async function createWorld({ canvas, onStep }) {
     },
     setSelected(id) {
       selected = id;
-      fx.setEncore(id === 'resume', still);
+      fx.setEncore(id === 'about', still);
       dirty = true;
     },
     setActive(id) {

@@ -14,20 +14,26 @@ import './styles/board.css';
 import { homeScreen } from './screens/home.js';
 import { stillMarkup } from './screens/home-markup.js';
 import { hallScreen } from './screens/hall.js';
-import { resumeScreen } from './screens/resume.js';
+import { aboutScreen } from './screens/resume.js';
 import { roomScreen } from './screens/room.js';
 import { boardScreen } from './screens/board.js';
 import { themes, BPM } from './lib/themes.js';
 import { stopTuning } from './lib/audio.js';
 import { getState } from './lib/state.js';
-import { startRouter, currentRoute, navigate } from './lib/router.js';
+import { startRouter, currentRoute, navigate, neighbours } from './lib/router.js';
 import { createShell } from './shell.js';
 import { visits } from './lib/visits.js';
 import { pathFor } from './lib/router.js';
 
 // Every page has a real address (see lib/router.js). A recruiter can open <site>/resume and skip
 // everything. Home is the first screen until the visitor turns on the hall, then the hall itself.
-const screens = { home: homeScreen, hall: hallScreen, resume: resumeScreen };
+// About me holds the résumé: /resume opens it at the résumé part.
+const screens = {
+  home: homeScreen,
+  hall: hallScreen,
+  about: (o) => aboutScreen(o),
+  resume: (o) => aboutScreen({ ...o, jump: true }),
+};
 
 const canvas = document.getElementById('world');
 const root = document.getElementById('app');
@@ -111,9 +117,22 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.classList.contains('over-hall') && !e.defaultPrevented) navigate('home');
 });
 
+// In a room, the keyboard's left and right arrows go to the previous and next room, like the
+// arrows at the top of the room (not while typing, and not on the notice board, an extra).
+window.addEventListener('keydown', (e) => {
+  if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if (e.target.closest?.('input, textarea, select, [contenteditable], [role="slider"]') || e.target.type === 'range') return;
+  const where = currentRoute();
+  const room = where && ({ project: 'work', resume: 'about' }[where.key] ?? where.key);
+  const n = room && where.key !== 'project' ? neighbours(room) : null;
+  if (!n) return;
+  e.preventDefault();
+  navigate(e.key === 'ArrowLeft' ? n.prev.key : n.next.key);
+});
+
 function route() {
   const where = currentRoute() ?? { key: 'home' };
-  const room = where.key === 'project' ? 'work' : where.key;
+  const room = { project: 'work', resume: 'about' }[where.key] ?? where.key;
   let key = where.key;
   // Home is the hall once the visitor has turned it on.
   if (key === 'home' && world.on && world.api) key = 'hall';
@@ -160,7 +179,7 @@ function route() {
     world.api.setSelected(room);
     // Music the visitor chose plays on in the room's own tone (the Booth through glass, the foyer
     // rooms far away).
-    themes.setTone(room === 'resume' ? 'page' : room);
+    themes.setTone(room === 'about' ? 'page' : room);
   }
   next.mount?.();
 }

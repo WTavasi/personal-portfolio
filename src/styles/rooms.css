@@ -171,15 +171,94 @@
 }
 
 /* Every room ends the same way: back to the hall, or on to the next track. */
-.room-next {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s-3);
-  margin-top: var(--s-8);
+/* The arrows between rooms, at the top of every room: previous, back to the hall, next. Each
+   says where it goes. They stay in reach while reading. */
+.room-nav {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--s-2);
+  margin: 0 0 var(--s-6);
+  padding: var(--s-2) 0;
+  background: var(--bg);
 }
-.room-next .btn-primary {
-  font-size: var(--t-md);
+.is-over-hall .room-nav {
+  top: calc(-1 * var(--s-6));
+  margin-top: calc(-1 * var(--s-3));
+}
+.nav-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+  max-width: 100%;
   min-height: 48px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-inner);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+.nav-arrow:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+.nav-arrow:active {
+  transform: translateY(1px);
+}
+.nav-arrow svg {
+  flex: none;
+}
+.nav-prev {
+  justify-self: start;
+}
+.nav-hall {
+  justify-self: center;
+}
+.nav-next {
+  justify-self: end;
+}
+.nav-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-hint {
+  color: var(--text-2);
+  font-weight: 400;
+}
+.nav-short {
+  display: none;
+}
+@media (max-width: 900px) {
+  .nav-prev .nav-hint,
+  .nav-next .nav-hint {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .room-nav {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .nav-arrow {
+    padding: 0 var(--s-2);
+    font-size: var(--t-sm);
+  }
+  .nav-long {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .nav-short {
+    display: inline;
+  }
 }
 
 /* The résumé's list spacing (.doc ul, .doc li + li) is for reading lists, not for these layouts. */

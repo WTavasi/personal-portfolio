@@ -1,6 +1,7 @@
-// The first screen (design document, section 6): who, what and the two ways forward, readable at
-// once over a still of the hall, before any 3D or audio has loaded. Pure, so the build can write
-// it into index.html (vite.config.js) and the first paint needs no JavaScript.
+// The first screen (design document, section 6): a welcome, what Wyclef does and the three ways
+// forward, Enter the hall the main one, in the middle. Readable at once, before any 3D or audio
+// has loaded. Pure, so the build can write it into index.html (vite.config.js) and the first
+// paint needs no JavaScript (without it, Enter the hall stays hidden: it needs the 3D).
 import { person } from '../content.js';
 import { pathFor } from '../lib/router.js';
 import { esc } from './resume-markup.js';
@@ -13,16 +14,13 @@ export const stillMarkup = () =>
 
 export const homeMarkup = () => `
   <div class="home-hero">
-    <h1><span class="sr-only">${esc(person.name)}: </span>${esc(person.headline)}.</h1>
-    <p class="home-sub">Principal clarinet, conductor and arranger. Based in ${esc(person.location)}.</p>
-    <p class="home-avail">${esc(person.availability)}</p>
+    <h1>Welcome to the portfolio of ${esc(person.name)}.</h1>
+    <p class="home-sub">${esc(person.headline)}</p>
     <div class="home-actions">
-      <a class="btn btn-primary home-btn" href="${pathFor('work')}">See my work</a>
+      <a class="btn btn-secondary home-btn" href="${pathFor('work')}">See my work</a>
+      <button class="btn btn-primary home-btn home-enter" type="button" data-act="turn-on" data-bind="hall" hidden>Enter the hall</button>
       <a class="btn btn-secondary home-btn" href="${pathFor('services')}">Work with me</a>
     </div>
-    <div class="home-hall" data-bind="hall" hidden>
-      <button class="btn btn-secondary home-btn" type="button" data-act="turn-on">Turn on the hall</button>
-      <p class="home-note" data-bind="hall-status" aria-live="polite">Opens the 3D concert hall, with sound.</p>
-    </div>
+    <p class="home-note" data-bind="hall-status" aria-live="polite" hidden>Opens the 3D concert hall, with sound.</p>
   </div>
 `;
