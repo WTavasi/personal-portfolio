@@ -7,6 +7,7 @@ import { esc } from './resume-markup.js';
 // Three ways in, all at once: click the place, click its glowing marker, or use the bar along the
 // bottom. Opening a room moves the camera to it and the room's page opens over the dimmed hall.
 const ROOMS = TRACKS.filter((t) => t.key !== 'home');
+const CORE = ROOMS.filter((t) => !t.extra);
 
 export function hallScreen({ world }) {
   const api = world.api;
@@ -20,7 +21,7 @@ export function hallScreen({ world }) {
 
     <div class="markers" aria-hidden="true">
       ${ROOMS.map(
-        (r) => `<a class="marker" href="${pathFor(r.key)}" data-room="${r.key}" tabindex="-1"><span class="marker-ring"></span><span class="marker-label">${esc(r.venue)}</span></a>`,
+        (r) => `<a class="marker${r.extra ? ' marker-extra' : ''}" href="${pathFor(r.key)}" data-room="${r.key}" tabindex="-1"><span class="marker-ring"></span><span class="marker-label">${esc(r.label)}</span></a>`,
       ).join('')}
     </div>
 
@@ -29,8 +30,8 @@ export function hallScreen({ world }) {
     <div class="dock">
       <p class="hall-hint" data-bind="hint"></p>
       <nav class="sections panel" aria-label="Rooms">
-        ${ROOMS.map(
-          (r) => `<a class="sec" href="${pathFor(r.key)}" data-room="${r.key}"><span class="sec-label">${esc(r.label)}</span><span class="sec-venue">${esc(r.venue)}</span></a>`,
+        ${CORE.map(
+          (r) => `<a class="sec" href="${pathFor(r.key)}" data-room="${r.key}"><span class="sec-label">${esc(r.label)}</span></a>`,
         ).join('')}
       </nav>
     </div>

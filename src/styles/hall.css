@@ -101,6 +101,20 @@
   animation: none;
   opacity: 0;
 }
+/* The notice board's marker is red: an extra, not one of the core rooms. */
+.marker-extra .marker-ring,
+.marker-extra .marker-ring::after {
+  border-color: var(--extra);
+}
+.marker-extra .marker-ring::before,
+.marker-extra.is-visited .marker-ring::before {
+  background: var(--extra);
+}
+.marker-extra:hover .marker-label,
+.marker-extra.is-hover .marker-label {
+  background: rgb(var(--scrim) / 0.78);
+  color: var(--extra);
+}
 .marker:hover .marker-label,
 .marker.is-hover .marker-label {
   background: var(--accent);
@@ -133,7 +147,7 @@
 }
 .sections {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   align-items: stretch;
   gap: var(--s-2);
   width: 100%;
@@ -164,11 +178,6 @@
 }
 .sec-label {
   font-weight: 700;
-  white-space: nowrap;
-}
-.sec-venue {
-  color: var(--text-2);
-  font-size: var(--t-xs);
   white-space: nowrap;
 }
 a.marker {

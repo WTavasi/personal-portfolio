@@ -10,13 +10,6 @@
 .room-head h1:focus {
   outline: none;
 }
-.room-venue {
-  margin-top: var(--s-2);
-  color: var(--text-3);
-}
-.room-venue .track-no {
-  font-variant-numeric: tabular-nums;
-}
 .room-doc .doc-lead {
   margin-top: var(--s-5);
 }

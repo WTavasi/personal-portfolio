@@ -125,6 +125,9 @@ body[data-screen='resume'] .topbar-resume {
   font-size: var(--t-sm);
   color: var(--text-2);
 }
+.tracklist-setting[hidden] {
+  display: none;
+}
 .tracklist-setting input {
   width: 18px;
   height: 18px;
@@ -172,7 +175,7 @@ body[data-screen='resume'] .topbar-resume {
 }
 .track {
   display: grid;
-  grid-template-columns: 2.25rem 1fr auto;
+  grid-template-columns: 2.25rem 1fr;
   align-items: baseline;
   gap: var(--s-3);
   min-height: 48px;
@@ -194,9 +197,17 @@ body[data-screen='resume'] .topbar-resume {
 .track-name {
   font-weight: 600;
 }
-.track-label {
-  color: var(--text-2);
-  font-size: var(--t-sm);
+/* The notice board: set apart below the tracks, with a red dot instead of a number. */
+.track-extra {
+  margin-top: var(--s-2);
+}
+.track-extra .track-no::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--extra);
 }
 .track[aria-current='page'] .track-name,
 .track[aria-current='page'] .track-no {
@@ -253,7 +264,7 @@ body[data-screen='resume'] .topbar-resume {
     bottom: 0;
     z-index: 10;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     padding: var(--s-1) var(--s-2) calc(var(--s-1) + env(safe-area-inset-bottom));
     background: var(--surface);
   }

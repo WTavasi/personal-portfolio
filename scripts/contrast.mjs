@@ -57,6 +57,8 @@ const PAIRS = [
   ['focus', 'bg', 3, 'focus ring'],
   ['focus', 'surface', 3, 'focus ring on a panel'],
   ['focus', 'surface-2', 3, 'focus ring on a secondary button'],
+  ['extra', 'bg', 4.5, 'notice board marker and label'],
+  ['extra', 'surface', 3, 'notice board dot in the Tracklist'],
 ];
 
 let failures = 0;

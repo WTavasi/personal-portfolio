@@ -21,6 +21,7 @@
   --accent-hover: #f1c96b;
   --on-accent: #1b1306;
   --accent-text: #e3b552; /* the accent as text: links, current item */
+  --extra: #ef5b50; /* the notice board's marker: red, apart from the core rooms */
   --line: #85746a; /* borders of fields and controls */
   --focus: #e3b552;
   --danger: #f0a58f;
@@ -82,6 +83,7 @@ body[data-surface='paper'],
   --accent-hover: #edc56a;
   --on-accent: #1b1306;
   --accent-text: #7a5a12; /* brass itself is too light to read on cream */
+  --extra: #b3261e;
   --line: #8c7b6c;
   --focus: #7a5a12;
   --danger: #a3263a;
@@ -103,6 +105,7 @@ body[data-surface='paper'],
     --accent-hover: #f1c96b;
     --on-accent: #1b1306;
     --accent-text: #e3b552;
+    --extra: #ef5b50;
     --line: #8a796c;
     --focus: #e3b552;
     --danger: #f0a58f;

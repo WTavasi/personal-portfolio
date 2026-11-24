@@ -1,7 +1,7 @@
 // Every room page's markup as a pure function of the site's content, with no browser APIs. The app
 // renders it at runtime, and the build writes each page as its own HTML file (vite.config.js), so
 // every room can be read, shared and indexed without JavaScript. Pages follow one template
-// (design document, section 11): plain title, venue line, lead, content, next track, footer.
+// (design document, section 11): plain title, lead, content, next track, footer.
 import { person, contact, experience, leadership, projects, skills, education, certifications, honors, music, services } from '../content.js';
 import pinsFile from '../content/pins.json' with { type: 'json' };
 import { esc } from './resume-markup.js';
@@ -13,23 +13,23 @@ const track = (key) => TRACKS.find((t) => t.key === key);
 const dateWords = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 function head(key, title, lead = '') {
-  const t = track(key);
   return `
     <header class="room-head">
       <h1 tabindex="-1">${esc(title)}</h1>
-      ${t ? `<p class="room-venue"><span class="track-no">${esc(t.no)}</span> ${esc(t.venue)}</p>` : ''}
       ${lead ? `<p class="doc-lead">${esc(lead)}</p>` : ''}
     </header>`;
 }
 
-// "Back to the hall" and the next track, at the end of every room, then the footer.
+// "Back to the hall" and the next track, at the end of every room, then the footer. The chain runs
+// through the core rooms; the notice board, an extra, leads back into it at Work.
 function foot(key, { primaryNext = true } = {}) {
-  const order = TRACKS.map((t) => t.key);
-  const next = track(order[(order.indexOf(key) + 1) % order.length]);
+  const order = TRACKS.filter((t) => !t.extra).map((t) => t.key);
+  const at = order.indexOf(key);
+  const next = track(at < 0 ? 'work' : order[(at + 1) % order.length]);
   return `
     <nav class="room-next" aria-label="Keep going">
       <a class="btn btn-secondary room-btn" href="${pathFor('home')}">Back to the hall</a>
-      <a class="btn ${primaryNext ? 'btn-primary' : 'btn-secondary'} room-btn" href="${pathFor(next.key)}">Next track: ${esc(next.venue)} · ${esc(next.label)}</a>
+      <a class="btn ${primaryNext ? 'btn-primary' : 'btn-secondary'} room-btn" href="${pathFor(next.key)}">Next track: ${esc(next.label)}</a>
     </nav>
     ${footer()}`;
 }
@@ -81,7 +81,6 @@ function project(slug) {
   return `
     <header class="room-head">
       <h1 tabindex="-1">${esc(p.name)}</h1>
-      <p class="room-venue"><span class="track-no">${esc(track('work').no)}</span> ${esc(track('work').venue)} · case study ${i + 1} of ${projects.length}</p>
       <p class="doc-lead">${esc(p.oneLine)}</p>
     </header>
     ${definitions(credits, 'skills credits')}
@@ -100,7 +99,7 @@ function project(slug) {
       ${
         next
           ? `<a class="btn btn-primary room-btn" href="${pathFor('project', next.slug)}">Next case study: ${esc(next.name)}</a>`
-          : `<a class="btn btn-primary room-btn" href="${pathFor('music')}">Next track: ${esc(track('music').venue)} · ${esc(track('music').label)}</a>`
+          : `<a class="btn btn-primary room-btn" href="${pathFor('music')}">Next track: ${esc(track('music').label)}</a>`
       }
     </nav>
     ${footer()}`;

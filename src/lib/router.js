@@ -23,16 +23,18 @@ const SLUGS = new Set(projects.map((p) => p.slug));
 // Hash links from v0.6 (#/resume, #/program, #/hall, ...) still work: they are rewritten once.
 const LEGACY = { resume: 'resume', program: 'resume', hall: 'home', home: 'home', concert: 'home', boot: 'home' };
 
-// The Tracklist menu and tab bar: every room, numbered like an album, with its venue name and
-// plain label (design document, section 5). "Next track" follows this order.
+// The Tracklist menu and tab bar: every room, numbered like an album, with its plain label (design
+// document, section 5). "Next track" follows this order. The notice board is an extra: miscellaneous, not core to the
+// portfolio, so it has no track number, sits apart in the Tracklist, has its own red marker in the
+// hall and is left out of the bars of rooms.
 export const TRACKS = [
-  { key: 'home', no: '00', venue: 'The Hall', label: 'Home' },
-  { key: 'work', no: '01', venue: 'The Booth', label: 'Work' },
-  { key: 'music', no: '02', venue: 'The Studio', label: 'Music' },
-  { key: 'services', no: '03', venue: 'Box Office', label: 'Services' },
-  { key: 'about', no: '04', venue: 'Green Room', label: 'About' },
-  { key: 'wall', no: '05', venue: 'The Notice Board', label: 'Wall' },
-  { key: 'resume', no: '∞', venue: 'Encore', label: 'Résumé' },
+  { key: 'home', no: '00', label: 'Home' },
+  { key: 'work', no: '01', label: 'Work' },
+  { key: 'music', no: '02', label: 'Music' },
+  { key: 'services', no: '03', label: 'Services' },
+  { key: 'about', no: '04', label: 'About' },
+  { key: 'resume', no: '∞', label: 'Résumé' },
+  { key: 'wall', no: '', label: 'Notice board', extra: true },
 ];
 
 export const pathFor = (key, param) => (key === 'project' ? `${BASE}work/${param}` : BASE + (PATHS[key] ?? ''));

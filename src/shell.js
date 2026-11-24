@@ -5,8 +5,9 @@
 import { person } from './content.js';
 import { TRACKS, pathFor } from './lib/router.js';
 
-// The tab bar on phones: the five rooms (Home is the name, the résumé is in the Tracklist).
-const TABS = TRACKS.filter((t) => !['home', 'resume'].includes(t.key));
+// The tab bar on phones: the four core rooms (Home is the name, the résumé and the notice board
+// are in the Tracklist).
+const TABS = TRACKS.filter((t) => !t.extra && !['home', 'resume'].includes(t.key));
 import { getState, setState, subscribe } from './lib/state.js';
 import { ensureAudio, playClick } from './lib/audio.js';
 import { themes, NOW_PLAYING } from './lib/themes.js';
@@ -38,13 +39,13 @@ export function createShell({ onSound }) {
         <div class="tracklist-panel" id="tracklist" hidden>
           <ol class="tracks">
             ${TRACKS.map(
-              (t) => `<li><a class="track" href="${pathFor(t.key)}" data-track="${t.key}"><span class="track-no">${esc(t.no)}</span><span class="track-name">${esc(t.venue)}</span><span class="track-label">${esc(t.label)}</span></a></li>`,
+              (t) => `<li${t.extra ? ' class="track-extra"' : ''}><a class="track" href="${pathFor(t.key)}" data-track="${t.key}"><span class="track-no">${esc(t.no)}</span><span class="track-name">${esc(t.label)}</span></a></li>`,
             ).join('')}
           </ol>
           <div class="tracklist-extra">
             <button class="btn btn-secondary" type="button" data-act="sound" aria-pressed="false"></button>
           </div>
-          <label class="tracklist-setting"><input type="checkbox" data-act="keep" /> Keep music playing across pages</label>
+          <label class="tracklist-setting" hidden><input type="checkbox" data-act="keep" /> Keep music playing across pages</label>
         </div>
       </div>
     </nav>
@@ -82,7 +83,8 @@ export function createShell({ onSound }) {
   // It appears once anything has played, and stays.
   function renderPlayer() {
     const playing = themes.playing;
-    if (themes.everPlayed) player.hidden = false;
+    // The player and its setting appear once anything has played, and stay.
+    if (themes.everPlayed) player.hidden = keep.parentElement.hidden = false;
     playBtn.innerHTML = playing ? ICON.pause : ICON.play;
     playBtn.setAttribute('aria-label', playing ? `Pause ${NOW_PLAYING.title}` : `Play ${NOW_PLAYING.title}`);
     player.classList.toggle('is-playing', playing);
