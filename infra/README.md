@@ -11,12 +11,27 @@ Expected cost at portfolio traffic: $0 (CloudFront's always-free 1 TB and 10 mil
 
 ## What you need
 
-- Terraform 1.10 or newer and the AWS CLI, on your own computer.
-- The AWS CLI signed in as an administrator user with multi-factor sign-in, **not the root account**. AWS IAM Identity Center is the simplest way: create a user with the AdministratorAccess permission set, then sign in with the command below.
+- Terraform 1.10 or newer and the AWS CLI, on your own computer. On macOS, with Homebrew:
+
+```bash
+brew install awscli
+```
+
+```bash
+brew tap hashicorp/tap && brew install hashicorp/tap/terraform
+```
+
+- The AWS CLI signed in as an administrator user with multi-factor sign-in, **not the root account**. AWS IAM Identity Center is the simplest way: create a user with the AdministratorAccess permission set, then sign in with the command below (name the profile `wyclef-admin`), and use that profile for everything after.
 
 ```bash
 aws configure sso
 ```
+
+```bash
+export AWS_PROFILE=wyclef-admin && aws sts get-caller-identity
+```
+
+When the sign-in expires (after a few hours), sign in again with `aws sso login`.
 
 ## First-time setup (about 15 minutes, most of it CloudFront deploying)
 
