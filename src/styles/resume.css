@@ -81,7 +81,7 @@
 .doc {
   width: min(720px, 100% - 2 * var(--s-5));
   margin: 0 auto;
-  padding: var(--s-8) 0 var(--s-9);
+  padding: var(--s-6) 0 var(--s-7);
 }
 .doc-head h1 {
   font: 600 var(--t-display) / 0.98 var(--font-display);
@@ -93,7 +93,7 @@
   color: var(--text-2);
 }
 .doc-lead {
-  margin-top: var(--s-6);
+  margin-top: var(--s-4);
   font-size: var(--t-lg);
   line-height: 1.5;
 }
@@ -112,21 +112,21 @@
   font-weight: 600;
 }
 .doc section {
-  margin-top: var(--s-8);
+  margin-top: var(--s-6);
 }
 .doc h2 {
-  margin-bottom: var(--s-5);
+  margin-bottom: var(--s-4);
   font: 600 var(--t-xl) / 1.15 var(--font-display);
 }
 .entry + .entry {
-  margin-top: var(--s-6);
+  margin-top: var(--s-5);
 }
 .entry h3,
 .sub-h {
   font: 700 var(--t-md) / 1.35 var(--font-ui);
 }
 .sub-h {
-  margin: var(--s-6) 0 var(--s-2);
+  margin: var(--s-5) 0 var(--s-2);
 }
 .when {
   margin-top: var(--s-1);
@@ -169,7 +169,7 @@
   font-size: var(--t-sm);
 }
 .doc-foot {
-  margin-top: var(--s-9);
+  margin-top: var(--s-7);
   color: var(--text-2);
   font-size: var(--t-sm);
 }
@@ -248,7 +248,7 @@
   margin-top: var(--s-4);
 }
 .resume-part {
-  margin-top: var(--s-8);
+  margin-top: var(--s-6);
   scroll-margin-top: calc(var(--topbar-h) + var(--s-8));
 }
 .resume-part:focus {

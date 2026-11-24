@@ -301,6 +301,7 @@ export async function createWorld({ canvas, onStep }) {
 
     const k = still ? 1 : 1 - Math.exp(-dt * (pose === 'overview' || pose === 'build' ? 1.4 : 2.2));
     if (placeCamera(t, k)) changing = true;
+    if (fx.stepBackstage(dt)) changing = true;
 
     // Follow spot eases toward the hovered or open section.
     const s = spotTarget();
@@ -483,6 +484,7 @@ export async function createWorld({ canvas, onStep }) {
     setSelected(id) {
       selected = id;
       fx.setEncore(id === 'about', still);
+      fx.setBackstageLit(id === 'services', still);
       dirty = true;
     },
     setActive(id) {
@@ -502,7 +504,10 @@ export async function createWorld({ canvas, onStep }) {
       if (!revealed) return null;
       ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
       ray.setFromCamera(ndc, camera);
-      const hit = ray.intersectObjects(proxyList, false)[0];
+      // The stage (Music) is big and stands in front of other places from some angles, so any
+      // other place under the pointer wins over it.
+      const hits = ray.intersectObjects(proxyList, false);
+      const hit = hits.find((h) => h.object.userData.section !== 'music') ?? hits[0];
       return hit ? hit.object.userData.section : null;
     },
     // Screen position of a section's marker, or null when it is behind the camera.

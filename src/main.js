@@ -115,6 +115,11 @@ backdrop.className = 'over-backdrop';
 backdrop.href = pathFor('home');
 backdrop.tabIndex = -1;
 backdrop.setAttribute('aria-hidden', 'true');
+// The open page's printed frame: a layer of its own over the page, so it runs unbroken on all four
+// sides while the page scrolls under it.
+const frame = document.createElement('div');
+frame.className = 'page-frame surface-paper';
+frame.setAttribute('aria-hidden', 'true');
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.classList.contains('over-hall') && !e.defaultPrevented) navigate('home');
 });
@@ -168,8 +173,9 @@ function route() {
       : roomScreen({ go, world, key, param: where.param, over });
   next.el.classList.toggle('is-over-hall', panel);
   next.el.classList.toggle('is-turning', turning);
+  frame.classList.toggle('is-turning', turning);
   next.el.classList.toggle('surface-paper', panel);
-  root.replaceChildren(...(panel ? [backdrop, next.el] : [next.el]));
+  root.replaceChildren(...(panel ? [backdrop, next.el, frame] : [next.el]));
   document.title = next.title;
   document.body.dataset.screen = key;
   document.body.dataset.surface = over ? 'hall' : (next.surface ?? 'hall');

@@ -58,7 +58,6 @@ export function aboutMarkup() {
         <p class="resume-name">${esc(person.name)}</p>
         <p class="doc-full">${esc(person.headline)} · ${esc(person.location)}</p>
         <p class="doc-avail">${esc(person.availability)}</p>
-        ${see('services', 'Work with me: services and quotes')}
         <p class="doc-links">${contactLinks.join('')}</p>
       </header>
 
@@ -74,7 +73,6 @@ export function aboutMarkup() {
           </article>`,
           )
           .join('')}
-        ${see('work', 'The case studies are in Work')}
       </section>
 
       <section aria-labelledby="h-lead">

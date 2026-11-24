@@ -348,6 +348,7 @@ export async function buildHall(scene, step) {
 
   // The stage door: a frame in the panelling, the door swung wide open into the hall, and
   // backstage behind it.
+  let back = null;
   {
     const { z: dz, w: dw, h: dh } = BACKSTAGE.door;
     const sill = BACKSTAGE.floor; // the door opens off the stage
@@ -359,8 +360,7 @@ export async function buildHall(scene, step) {
     const leaf = dw - 0.06;
     const hinge = new THREE.Vector3(11.26, 0, dz - dw / 2);
     hall.box(0.05, dh - 0.06, leaf, COL.walnut, hinge.x - Math.sin(open) * (leaf / 2), sill + (dh - 0.06) / 2, hinge.z + Math.cos(open) * (leaf / 2), 0, -open);
-    const back = buildBackstage(scene);
-    glowSmall.push(...back.glows);
+    back = buildBackstage(scene);
   }
 
   // The Notice Board: a corkboard beside the stage door, with Wyclef's notes pinned on it. These
@@ -380,7 +380,12 @@ export async function buildHall(scene, step) {
   }
   fx.boardNotes = new THREE.Mesh(notes.geometry(), lambert());
   scene.add(fx.boardNotes);
-  glowSmall.push([10.95, BOARD.y + 0.5, BOARD_Z, 0xffd9a8]);
+  // A brass picture lamp over the board, so it reads from across the hall.
+  hall.box(0.06, 0.05, 1.4, COL.brass, FACE - 0.16, BOARD.y + BOARD.h / 2 + 0.06, BOARD_Z);
+  for (const dz of [-0.5, 0.5]) hall.box(0.2, 0.025, 0.025, COL.brass, FACE - 0.08, BOARD.y + BOARD.h / 2 + 0.06, BOARD_Z + dz);
+  steady.box(0.02, 0.025, 1.3, 0xffe9c4, FACE - 0.16, BOARD.y + BOARD.h / 2 + 0.03, BOARD_Z);
+  glowBig.push([FACE - 0.3, BOARD.y + 0.62, BOARD_Z, 0xffd9a8]);
+  glowSmall.push([FACE - 0.2, BOARD.y + BOARD.h / 2, BOARD_Z - 0.4, 0xffe2b0], [FACE - 0.2, BOARD.y + BOARD.h / 2, BOARD_Z + 0.4, 0xffe2b0]);
   // The desk under it, where visitors leave their notes.
   glowSmall.push(...buildDesk(scene).glows);
 
@@ -746,7 +751,7 @@ export async function buildHall(scene, step) {
   };
   const proxies = {
     work: box(BOOTH.glassX - BOOTH.backX + 0.2, BOOTH.roofY - BOOTH.floorY + 0.2, BOOTH.width + 0.2, (BOOTH.glassX + BOOTH.backX) / 2, (BOOTH.floorY + BOOTH.roofY) / 2, BOOTH.z),
-    music: box(18, 3.2, 11.5, 0, STAGE_TOP + 1.6, -12.75),
+    music: box(16, 2.6, 10, 0, STAGE_TOP + 1.3, -12.2), // the orchestra, not the whole stage
     services: box(0.9, BACKSTAGE.door.h + 0.2, 1.7, 11.0, BACKSTAGE.floor + BACKSTAGE.door.h / 2, ROOM_Z),
     wall: box(1.0, BOARD.y + BOARD.h / 2 - STAGE_TOP, BOARD.w, 10.9, (STAGE_TOP + BOARD.y + BOARD.h / 2) / 2, BOARD_Z), // board and desk
     about: box(1.4, 2.4, 1.6, C.x, STAGE_TOP + 1.2, C.z),
@@ -871,6 +876,28 @@ export async function buildHall(scene, step) {
   };
   fx.glowBig = glowPoints(glowBig, 1.1, 0.6);
   fx.glowSmall = glowPoints(glowSmall, 0.45, 0.8);
+
+  // Backstage's lamps: low until Services is chosen, then they come up, and go down again when the
+  // visitor leaves.
+  const backGlow = glowPoints(back.lamps, 0.55, 0);
+  const DIM = 0.22;
+  let backWant = 0;
+  let backLevel = 0;
+  const setBack = (v) => {
+    backLevel = v;
+    back.mesh.material.color.setScalar(DIM + (1 - DIM) * v);
+    backGlow.material.opacity = 0.85 * v;
+  };
+  setBack(0);
+  fx.setBackstageLit = (on, instant) => {
+    backWant = on ? 1 : 0;
+    if (instant) setBack(backWant);
+  };
+  fx.stepBackstage = (dt) => {
+    if (Math.abs(backWant - backLevel) < 0.002) return false;
+    setBack(backLevel + (backWant - backLevel) * Math.min(1, dt * 2.5));
+    return true;
+  };
 
   // Four lights in total. The stage is lit, the house is at half.
   const hemi = new THREE.HemisphereLight(0xffe0bb, 0x2c160c, 1.15);

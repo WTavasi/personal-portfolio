@@ -2,13 +2,15 @@ import * as THREE from 'three';
 import { Kit } from './kit.js';
 
 // Backstage, behind the stage door on the right: Services. The door stands open onto a long
-// corridor that runs away from the stage, out past the hall's wall: cream walls with a maroon band,
-// carpet with metal threshold strips, ceiling lights, doors along both sides (one ajar, lit), a
-// bay of flight cases, and double doors under a lit sign at the far end. It is only seen through
-// the doorway, so it only has to look like it leads somewhere.
+// corridor that runs away from the stage, out past the hall's wall, in the hall's own warm wood:
+// maple panelling with a mahogany band, crimson carpet with brass threshold strips, warm ceiling
+// lights, doors along both sides (one ajar, lit), a bay of flight cases, and double doors under a
+// lit sign at the far end. It is only seen through the doorway, so it only has to look like it
+// leads somewhere.
 //
-// The hall's lights do not reach in here, so its colours are drawn unlit, already as the
-// corridor's own lights show them.
+// The hall's lights do not reach in here, so its colours are drawn unlit, as its own lamps show
+// them. The lamps come up when Services is chosen and go down when the visitor leaves
+// (setLit, from the hall).
 
 export const BACKSTAGE = {
   floor: 1.0, // stage level
@@ -20,19 +22,20 @@ export const BACKSTAGE = {
   door: { z: -10.4, w: 1.45, h: 2.2 }, // the stage door, from the stage floor
 };
 
+// The hall's palette (maple, mahogany, walnut, crimson), as the corridor's warm lamps show it.
 const C = {
-  wall: 0xe6dcc8,
-  wallFar: 0xd9cdb6,
-  band: 0x7a2f33,
-  skirting: 0x5a4a3e,
-  ceiling: 0xcfc4ae,
-  carpet: 0x5e5a55,
-  strip: 0xa8a49a,
-  light: 0xfffaf0,
-  door: 0xf1ebe0,
-  frame: 0xb9ab95,
-  handle: 0x8a8a86,
-  glass: 0xfff4d6,
+  wall: 0xc9925a,
+  wallFar: 0xb37e4a,
+  band: 0x6b3520,
+  skirting: 0x45261a,
+  ceiling: 0x7a4e2e,
+  carpet: 0x6e2026,
+  strip: 0xc99a48,
+  light: 0xffe2b0,
+  door: 0x8a4a2a,
+  frame: 0x5a2f1c,
+  handle: 0xc99a48,
+  glass: 0xffd9a8,
   sign: 0x3fae6a,
   caseRed: 0x7e2328,
   caseBlack: 0x232326,
@@ -41,7 +44,9 @@ const C = {
 
 export function buildBackstage(scene) {
   const k = new Kit();
-  const { floor: f, height: h, x0, x1, z, half } = BACKSTAGE;
+  const { floor: f, height: h, x1, z, half } = BACKSTAGE;
+  // Everything starts a little behind the hall's panelling, so nothing shows through it.
+  const x0 = BACKSTAGE.x0 + 0.04;
   const top = f + h;
   const len = x1 - x0;
   const mx = (x0 + x1) / 2;
@@ -94,7 +99,7 @@ export function buildBackstage(scene) {
     for (const dx of [-0.48, 0.48]) k.box(0.06, 2.1, 0.05, C.frame, x + dx, f + 1.05, zw + off);
     k.box(1.02, 0.06, 0.05, C.frame, x, f + 2.13, zw + off);
     if (ajar) {
-      k.box(0.92, 2.04, 0.02, 0xfff1cf, x, f + 1.03, zw + off * 0.3); // light from the room behind
+      k.box(0.92, 2.04, 0.02, 0xffd59a, x, f + 1.03, zw + off * 0.3); // light from the room behind
       k.box(0.04, 2.04, 0.9, C.door, x - 0.46 + 0.02, f + 1.03, zw + off * 12);
     } else {
       k.box(0.9, 2.04, 0.04, C.door, x, f + 1.03, zw + off);
@@ -120,10 +125,15 @@ export function buildBackstage(scene) {
   const lights = [];
   for (let x = x0 + 1.2; x < x1 - 0.4; x += 2.3) {
     k.box(0.5, 0.03, 0.3, C.light, x, top - 0.03, z);
-    lights.push([x, top - 0.12, z, 0xfff4dc]);
+    lights.push([x, top - 0.12, z, 0xffd9a8]);
   }
 
-  scene.add(new THREE.Mesh(k.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true })));
+  const mesh = new THREE.Mesh(k.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true }));
+  scene.add(mesh);
 
-  return { glows: [...lights, [x1 - 0.1, f + 2.22, z, 0x5fdc8a], [18.4, f + 1.3, zL + 0.2, 0xffe6b8]] };
+  return {
+    mesh,
+    // The lamps' glows, brought up and down with the lights (see the hall).
+    lamps: [...lights, [x1 - 0.1, f + 2.22, z, 0x5fdc8a], [18.4, f + 1.3, zL + 0.2, 0xffd59a]],
+  };
 }

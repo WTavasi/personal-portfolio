@@ -95,9 +95,6 @@ export const projects = [
     slug: 'mzazicare',
     oneLine: 'An emergency alert that reaches someone who can help, even when the network does not.',
     role: 'Designed and built the alerting subsystem',
-    // The signal flow drawn at the top of the case study, left to right like an audio chain.
-    flow: ['Panic button', 'Severity score (six weighted factors)', 'Caregiver', 'Family member', 'Emergency responder'],
-    flowNote: 'Each tier has a timeout; an unacknowledged alert moves to the next. If a push notification cannot be delivered, the alert falls back to SMS.',
     results: [
       '1,417 automated tests and 12 system tests.',
       'Real-time alert updates reach the elder’s care circle within 16 ms; users outside the circle receive nothing.',
@@ -115,8 +112,6 @@ export const projects = [
     name: 'Distributed load balancer with consistent hashing',
     slug: 'load-balancer',
     oneLine: 'A load balancer that keeps routing when servers come and go.',
-    flow: ['Request', 'Hash ring (512 slots, 9 virtual nodes per server)', 'Server container'],
-    flowNote: 'A background heartbeat checks every server; a server that stops answering is taken off the ring and its share of requests moves to its neighbours.',
     stack: 'Python, Flask, Docker',
     year: '2026',
     href: 'https://github.com/WTavasi/consistent-hashing-load-balancer',

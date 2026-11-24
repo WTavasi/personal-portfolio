@@ -79,14 +79,6 @@ function project(slug) {
       <p class="doc-lead">${esc(p.oneLine)}</p>
     </header>
     ${definitions(credits, 'skills credits')}
-    ${
-      p.flow
-        ? `<figure class="flow">
-            <ol class="flow-steps">${p.flow.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
-            ${p.flowNote ? `<figcaption>${esc(p.flowNote)}</figcaption>` : ''}
-          </figure>`
-        : ''
-    }
     <section aria-labelledby="h-built"><h2 id="h-built">What I built</h2>${list(p.bullets)}</section>
     ${p.results ? `<section aria-labelledby="h-results"><h2 id="h-results">Results</h2>${list(p.results)}</section>` : ''}
     ${footer()}`;

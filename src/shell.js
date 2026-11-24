@@ -35,7 +35,7 @@ export function createShell({ onSound }) {
       <button class="link-quiet topbar-sound" type="button" data-act="sound" aria-pressed="false"></button>
       <a class="btn btn-secondary topbar-btn topbar-resume" href="${pathFor('resume')}">Résumé</a>
       <div class="tracklist">
-        <button class="btn btn-secondary topbar-btn" type="button" data-act="tracklist" aria-expanded="false" aria-controls="tracklist">Tracklist</button>
+        <button class="btn btn-secondary topbar-btn" type="button" data-act="tracklist" aria-expanded="false" aria-controls="tracklist">All Sections</button>
         <div class="tracklist-panel" id="tracklist" hidden>
           <ol class="tracks">
             ${TRACKS.map(

@@ -56,7 +56,7 @@ export function homeScreen({ world }) {
 
   function unavailable() {
     button.disabled = true;
-    status.textContent = 'The 3D hall is not available on this device. Every room is in the Tracklist.';
+    status.textContent = 'The 3D hall is not available on this device. Every room is under All Sections.';
   }
 
   /* ------------------------------------------------------------ the terminal */
