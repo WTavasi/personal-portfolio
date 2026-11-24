@@ -59,6 +59,78 @@ body[data-screen='resume'] .topbar-resume {
   display: none;
 }
 
+/* The mini-player (sound desk): play or pause, what is playing, and volume. It appears once
+   anything has played and stays on every page. */
+.player {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 44px;
+  padding: var(--s-1) var(--s-3) var(--s-1) var(--s-1);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+.player[hidden] {
+  display: none;
+}
+.player-play {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-inner);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.player-play:hover {
+  background: var(--accent-hover);
+}
+.player-play:active {
+  transform: translateY(1px);
+}
+.player-now {
+  display: grid;
+  margin: 0;
+  line-height: 1.2;
+}
+.player-title {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.player-cat {
+  font: 400 var(--t-sm) / 1.2 var(--font-mono);
+  color: var(--text-2);
+}
+.player-vol {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.player-vol input {
+  width: 6rem;
+  accent-color: var(--accent);
+}
+
+.tracklist-setting {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  margin-top: var(--s-2);
+  padding: 0 var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+.tracklist-setting input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
 /* Quiet text button, used for secondary controls such as Sound. */
 .link-quiet {
   min-height: 44px;
@@ -152,6 +224,20 @@ body[data-screen='resume'] .topbar-resume {
   }
   .tracklist-extra {
     display: grid;
+  }
+  /* Phones keep only the play button; volume is the device's own. */
+  .player {
+    padding: var(--s-1);
+  }
+  .player-now,
+  .player-vol {
+    display: none;
+  }
+}
+/* Mid widths: the title gives way before the name and the Tracklist do. */
+@media (max-width: 1024px) {
+  .player-now {
+    display: none;
   }
 }
 

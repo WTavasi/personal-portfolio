@@ -17,6 +17,7 @@ import { resumeScreen } from './screens/resume.js';
 import { roomScreen } from './screens/room.js';
 import { themes, BPM } from './lib/themes.js';
 import { stopTuning } from './lib/audio.js';
+import { getState } from './lib/state.js';
 import { startRouter, currentRoute, navigate } from './lib/router.js';
 import { createShell } from './shell.js';
 import { visits } from './lib/visits.js';
@@ -115,10 +116,13 @@ function route() {
   if (key === 'home') showStill();
   else if (key !== 'hall' && !over) dropStill();
 
-  // Without the hall behind it, a page is silent; over the hall, the music carries on.
+  // Without the hall behind it, a page is silent, unless the visitor started the music from the
+  // player and wants it to keep playing across pages: then it carries on, dipped to read over.
+  // Over the hall, the music carries on in the room's own tone.
   if (key !== 'home' && key !== 'hall' && !over) {
-    themes.pause(0.8);
     stopTuning(0.8);
+    if (themes.chosen && getState().keepPlaying) themes.setTone('page');
+    else themes.pause(0.8);
   }
 
   current?.destroy?.();
@@ -144,7 +148,9 @@ function route() {
       world.api.celebrate();
       themes.applause();
     }
-    // The Studio brings the whole orchestra up; every other room keeps it at the hall's level.
+    // The Studio brings the whole orchestra up; every other room keeps it at the hall's level,
+    // heard in that room's tone (the Booth through glass, the foyer rooms far away).
+    themes.setTone(room === 'resume' ? 'page' : room);
     themes.play(room === 'music' ? 'about' : null);
   }
   next.mount?.();

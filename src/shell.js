@@ -1,5 +1,5 @@
-// The top bar shared by every screen: the name (home), the Tracklist menu, the sound control and
-// the résumé. It lives outside the screens, so it stays put while pages change underneath it.
+// The top bar shared by every screen: the name (home), the mini-player, the Tracklist menu, the
+// sound control and the résumé. It lives outside the screens, so it stays put while pages change underneath it.
 // On narrow screens the sound and résumé controls move into the Tracklist menu, and a tab bar
 // along the bottom gives one-tap access to the rooms.
 import { person } from './content.js';
@@ -9,6 +9,12 @@ import { TRACKS, pathFor } from './lib/router.js';
 const TABS = TRACKS.filter((t) => !['home', 'resume'].includes(t.key));
 import { getState, setState, subscribe } from './lib/state.js';
 import { ensureAudio, playClick } from './lib/audio.js';
+import { themes, NOW_PLAYING } from './lib/themes.js';
+
+const ICON = {
+  play: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>',
+  pause: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z" fill="currentColor"/></svg>',
+};
 import { esc } from './screens/resume-markup.js';
 
 export function createShell({ onSound }) {
@@ -20,6 +26,11 @@ export function createShell({ onSound }) {
       <p class="topbar-role">${esc(person.headline)}</p>
     </div>
     <nav class="topbar-nav" aria-label="Site">
+      <div class="player" data-bind="player" role="group" aria-label="Music player" hidden>
+        <button class="player-play" type="button" data-act="play"></button>
+        <p class="player-now"><span class="player-title">${esc(NOW_PLAYING.title)}</span><span class="player-cat">${esc(NOW_PLAYING.category)}</span></p>
+        <label class="player-vol"><span class="sr-only">Volume</span><input type="range" min="0" max="100" step="1" data-act="volume" /></label>
+      </div>
       <button class="link-quiet topbar-sound" type="button" data-act="sound" aria-pressed="false"></button>
       <a class="btn btn-secondary topbar-btn topbar-resume" href="${pathFor('resume')}">Résumé</a>
       <div class="tracklist">
@@ -33,6 +44,7 @@ export function createShell({ onSound }) {
           <div class="tracklist-extra">
             <button class="btn btn-secondary" type="button" data-act="sound" aria-pressed="false"></button>
           </div>
+          <label class="tracklist-setting"><input type="checkbox" data-act="keep" /> Keep music playing across pages</label>
         </div>
       </div>
     </nav>
@@ -58,6 +70,52 @@ export function createShell({ onSound }) {
       b.textContent = on ? 'Sound on' : 'Sound off';
       b.setAttribute('aria-pressed', String(on));
     });
+  }
+
+  /* ------------------------------------------------ the mini-player */
+
+  const player = el.querySelector('[data-bind="player"]');
+  const playBtn = player.querySelector('[data-act="play"]');
+  const volume = player.querySelector('[data-act="volume"]');
+  const keep = el.querySelector('[data-act="keep"]');
+
+  // It appears once anything has played, and stays.
+  function renderPlayer() {
+    const playing = themes.playing;
+    if (themes.everPlayed) player.hidden = false;
+    playBtn.innerHTML = playing ? ICON.pause : ICON.play;
+    playBtn.setAttribute('aria-label', playing ? `Pause ${NOW_PLAYING.title}` : `Play ${NOW_PLAYING.title}`);
+    player.classList.toggle('is-playing', playing);
+    if ('mediaSession' in navigator) navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+  }
+  function renderSettings() {
+    const { volume: v, keepPlaying } = getState();
+    if (document.activeElement !== volume) volume.value = String(Math.round(v * 100));
+    keep.checked = keepPlaying;
+  }
+
+  function play() {
+    ensureAudio();
+    // Pressing play is asking to hear it, so it turns sound on too.
+    if (!getState().sound) setState({ sound: true });
+    themes.resume();
+  }
+  const pause = () => themes.hold();
+
+  playBtn.addEventListener('click', () => (themes.playing ? pause() : play()));
+  volume.addEventListener('input', () => setState({ volume: Number(volume.value) / 100 }));
+  keep.addEventListener('change', () => setState({ keepPlaying: keep.checked }));
+
+  // Lock-screen and media-key controls.
+  if ('mediaSession' in navigator) {
+    navigator.mediaSession.metadata = new window.MediaMetadata({ title: NOW_PLAYING.title, artist: person.name, album: NOW_PLAYING.category });
+    try {
+      navigator.mediaSession.setActionHandler('play', play);
+      navigator.mediaSession.setActionHandler('pause', pause);
+      navigator.mediaSession.setActionHandler('stop', pause);
+    } catch {
+      /* an action this browser does not support */
+    }
   }
 
   el.addEventListener('click', (e) => {
@@ -88,7 +146,11 @@ export function createShell({ onSound }) {
   });
 
   renderSound();
+  renderPlayer();
+  renderSettings();
   subscribe(renderSound);
+  subscribe(renderSettings);
+  themes.onChange(renderPlayer);
 
   return {
     el,

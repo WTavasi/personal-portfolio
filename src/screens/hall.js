@@ -109,7 +109,8 @@ export function hallScreen({ world }) {
       }
       // The applause is rendered in the background, ready for when the house is full.
       setTimeout(prepareApplauseAll, 3000);
-      // Coming back from a room, the whole orchestra returns at the hall's level.
+      // Coming back from a room, the whole orchestra returns at the hall's level and tone.
+      themes.setTone('hall');
       if (!tuningActive() && !entrance.pending) themes.play(null);
     },
     // The top bar's sound control: turning sound back on picks the music up again.
