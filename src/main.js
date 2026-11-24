@@ -9,12 +9,14 @@ import './styles/hall.css';
 import './styles/resume.css';
 import './styles/shell.css';
 import './styles/rooms.css';
+import './styles/board.css';
 
 import { homeScreen } from './screens/home.js';
 import { stillMarkup } from './screens/home-markup.js';
 import { hallScreen } from './screens/hall.js';
 import { resumeScreen } from './screens/resume.js';
 import { roomScreen } from './screens/room.js';
+import { boardScreen } from './screens/board.js';
 import { themes, BPM } from './lib/themes.js';
 import { stopTuning } from './lib/audio.js';
 import { getState } from './lib/state.js';
@@ -128,15 +130,25 @@ function route() {
     else themes.pause(0.8);
   }
 
+  // The Notice Board over the hall is the board itself, not a page beside it. Phones, where the
+  // notes would be too small to read, get the page.
+  const onBoard = over && key === 'wall' && window.innerWidth > 640;
+  const panel = over && !onBoard;
+
   current?.destroy?.();
-  const next = key in screens ? screens[key]({ go, world, over }) : roomScreen({ go, world, key, param: where.param, over });
-  next.el.classList.toggle('is-over-hall', over);
-  next.el.classList.toggle('surface-paper', over);
-  root.replaceChildren(...(over ? [backdrop, next.el] : [next.el]));
+  const next = onBoard
+    ? boardScreen({ world })
+    : key in screens
+      ? screens[key]({ go, world, over })
+      : roomScreen({ go, world, key, param: where.param, over });
+  next.el.classList.toggle('is-over-hall', panel);
+  next.el.classList.toggle('surface-paper', panel);
+  root.replaceChildren(...(panel ? [backdrop, next.el] : [next.el]));
   document.title = next.title;
   document.body.dataset.screen = key;
   document.body.dataset.surface = over ? 'hall' : (next.surface ?? 'hall');
   document.body.classList.toggle('over-hall', over);
+  document.body.classList.toggle('on-board', onBoard);
   current = next;
   shell.update(room);
 
@@ -156,7 +168,7 @@ function route() {
 // The hall frames a room in the part of the screen the page leaves visible. On phones the page
 // covers the screen, so there is nothing to fit.
 function fitBesidePage() {
-  const panel = document.body.classList.contains('over-hall') ? current?.el : null;
+  const panel = current?.el.classList.contains('is-over-hall') ? current.el : null;
   const left = panel && window.innerWidth > 640 ? panel.getBoundingClientRect().left : window.innerWidth;
   world.api?.setInset(window.innerWidth - left);
 }

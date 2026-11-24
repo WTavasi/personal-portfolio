@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { buildHall, nextFrame } from './hall.js';
+import { BOARD } from '../lib/board.js';
 
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -13,6 +15,8 @@ const TAN = Math.tan(THREE.MathUtils.degToRad(BASE_FOV / 2));
 // Rendering budget: 60 frames a second at most, and resolution capped for Intel laptops
 // with Retina screens. Text stays sharp because it is HTML, not part of the 3D scene.
 const MIN_FRAME_MS = 12;
+// The Notice Board's real notes are page elements sized in CSS pixels; this many make a metre.
+export const BOARD_PX = 1000;
 const MAX_PIXEL_RATIO = 1.25;
 
 export async function createWorld({ canvas, onStep }) {
@@ -67,9 +71,28 @@ export async function createWorld({ canvas, onStep }) {
     else camera.clearViewOffset();
   };
 
+  // The Notice Board's real notes: page elements laid over the 3D exactly where the painted notes
+  // are, shown only while the camera faces the board (nothing stands between them and the camera
+  // there, so they never need to be hidden behind anything).
+  const css = new CSS3DRenderer();
+  const layer = css.domElement;
+  layer.className = 'board-layer';
+  layer.hidden = true;
+  canvas.after(layer);
+  const cssScene = new THREE.Scene();
+  const board = new THREE.Group();
+  board.position.set(BOARD.x - 0.09, BOARD.y, BOARD.z);
+  board.rotation.y = -Math.PI / 2; // face into the hall: the board's right is the hall's +z
+  cssScene.add(board);
+  let boardWanted = false;
+  let boardShown = false;
+  let boardTimer = 0;
+  let boardSince = 0;
+
   let dirty = true;
   const resize = () => {
     renderer.setSize(window.innerWidth, window.innerHeight, false);
+    css.setSize(window.innerWidth, window.innerHeight);
     applyInset();
     camera.updateProjectionMatrix();
     dirty = true;
@@ -109,7 +132,8 @@ export async function createWorld({ canvas, onStep }) {
     if (pose === 'build') return orbit(BUILD, t, goalPos, goalTarget);
     if (pose === 'overview') return orbit(OVERVIEW, t, goalPos, goalTarget);
     const v = viewFor(pose);
-    const sway = still ? 0 : 0.12 * Math.sin((2 * Math.PI * t) / 23);
+    // A faint sway keeps a view alive, except at the board, which is read like a page.
+    const sway = still || pose === 'wall' ? 0 : 0.12 * Math.sin((2 * Math.PI * t) / 23);
     goalPos.set(v.pos[0] + sway, v.pos[1], v.pos[2]);
     goalTarget.set(...v.target);
   }
@@ -248,9 +272,26 @@ export async function createWorld({ canvas, onStep }) {
       changing = true;
     }
 
+    // The real notes appear once the camera has arrived at the board, over the painted ones.
+    // (Or after 2.5 s at most, on a device too slow for the camera to settle sooner.)
+    if (boardWanted && !boardShown && (camPos.distanceToSquared(goalPos) < 0.05 || now - boardSince > 2500)) {
+      boardShown = true;
+      layer.classList.add('is-on');
+      // The painted notes go once the real ones have faded in over them.
+      clearTimeout(boardTimer);
+      boardTimer = setTimeout(() => {
+        if (boardShown) {
+          fx.boardNotes.visible = false;
+          dirty = true;
+        }
+      }, 260);
+      changing = true;
+    }
+
     // With reduced motion the scene only redraws when something actually changes.
     if (still && !changing) return;
     renderer.render(scene, camera);
+    if (boardWanted) css.render(cssScene, camera);
     for (const fn of frameListeners) fn();
     if (interval < 200) adapt(interval);
   }
@@ -305,6 +346,37 @@ export async function createWorld({ canvas, onStep }) {
     setView(name) {
       pose = name === 'overview' || fx.views[name] ? name : 'overview';
       dirty = true;
+    },
+    // Lay the board's notes over the hall: items are { el, u, v } with u and v in metres from the
+    // board's centre (see lib/board.js), each element sized in CSS pixels (BOARD_PX to a metre).
+    showBoard(items) {
+      clearTimeout(boardTimer);
+      board.clear();
+      for (const { el, u, v } of items) {
+        const o = new CSS3DObject(el);
+        o.position.set(u, v, 0);
+        o.scale.setScalar(1 / BOARD_PX);
+        board.add(o);
+      }
+      boardWanted = true;
+      boardShown = false;
+      boardSince = performance.now();
+      layer.hidden = false;
+      fx.boardNotes.visible = true;
+      dirty = true;
+    },
+    hideBoard() {
+      boardWanted = false;
+      boardShown = false;
+      layer.classList.remove('is-on');
+      fx.boardNotes.visible = true;
+      dirty = true;
+      clearTimeout(boardTimer);
+      boardTimer = setTimeout(() => {
+        if (boardWanted) return;
+        board.clear();
+        layer.hidden = true;
+      }, 300);
     },
     // Pixels on the right of the screen covered by an open page (0 for none).
     setInset(px) {

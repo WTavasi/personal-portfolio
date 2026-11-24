@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { linear, M, Kit, slab, sector, lambert, instances, facing } from './kit.js';
 import { buildOrchestra } from './orchestra.js';
 import { buildCrowd } from './crowd.js';
+import { BOARD, boardLayout } from '../lib/board.js';
 
 // The concert hall, built from primitives in code: no model files, no licences to check, and a
 // small download. Units are metres. The stage is toward -z, the audience toward +z, and the
@@ -348,18 +349,25 @@ export async function buildHall(scene, step) {
   steady.box(0.05, 0.12, 0.5, 0xffcf8a, 11.17, 2.62, ROOM_Z);
   glowSmall.push([10.95, 1.4, ROOM_Z, 0xffd9a8]);
 
-  // The Notice Board: a corkboard with notes pinned on it, beside the stage door.
-  const BOARD_Z = -14.4;
-  hall.box(0.08, 1.35, 2.05, COL.walnut, 11.25, 1.8, BOARD_Z);
-  hall.box(0.04, 1.15, 1.85, 0xb07a45, 11.2, 1.8, BOARD_Z);
-  const NOTE_COLS = [COL.paper, 0xe3b552, 0xf3ecdf, 0xd9c9a8, COL.paper, 0xe8d7b0, 0xf6efe2];
-  for (let i = 0; i < NOTE_COLS.length; i++) {
-    const y = 1.45 + (i % 3) * 0.33 + (rand() - 0.5) * 0.06;
-    const z = BOARD_Z - 0.7 + Math.floor(i / 3) * 0.6 + (rand() - 0.5) * 0.12;
-    hall.box(0.012, 0.22, 0.28, NOTE_COLS[i], 11.17, y, z, (rand() - 0.5) * 0.3);
+  // The Notice Board: a corkboard beside the stage door, with Wyclef's notes pinned on it. These
+  // are painted notes, seen from across the hall; when the camera faces the board the real notes
+  // (page elements, see world/board.js) are laid exactly over them, from the same layout.
+  const BOARD_Z = BOARD.z;
+  const FACE = BOARD.x - 0.07; // the cork's surface
+  hall.box(0.08, BOARD.h, BOARD.w, COL.walnut, BOARD.x, BOARD.y, BOARD_Z);
+  hall.box(0.04, BOARD.cork[1], BOARD.cork[0], 0xb07a45, FACE + 0.02, BOARD.y, BOARD_Z);
+  const notes = new Kit();
+  const { tabs, notes: noteList } = boardLayout();
+  for (const t of tabs) notes.box(0.006, t.h, t.w, 0xf3ecdf, FACE - 0.004, BOARD.y + t.v, BOARD_Z + t.u);
+  for (const n of noteList) {
+    const colour = new THREE.Color(n.colour).getHex();
+    notes.box(0.006, n.size, n.size, colour, FACE - 0.006, BOARD.y + n.v, BOARD_Z + n.u, n.tilt);
+    notes.cyl(0.018, 0.018, 0.02, 8, new THREE.Color(n.pinColour).getHex(), FACE - 0.02, BOARD.y + n.v + n.size * 0.4, BOARD_Z + n.u, 0, 0, Math.PI / 2);
   }
-  steady.box(0.05, 0.1, 0.6, 0xffcf8a, 11.17, 2.62, BOARD_Z);
-  glowSmall.push([10.95, 2.3, BOARD_Z, 0xffd9a8]);
+  fx.boardNotes = new THREE.Mesh(notes.geometry(), lambert());
+  scene.add(fx.boardNotes);
+  steady.box(0.05, 0.1, 0.8, 0xffcf8a, FACE, BOARD.y + BOARD.h / 2 + 0.12, BOARD_Z);
+  glowSmall.push([10.95, BOARD.y + 0.5, BOARD_Z, 0xffd9a8]);
 
   /* ---------- Audience ---------- */
   await step('Seating the audience');
@@ -712,7 +720,7 @@ export async function buildHall(scene, step) {
     music: box(18, 3.2, 11.5, 0, STAGE_TOP + 1.6, -12.75),
     services: box(0.9, 1.9, 2.3, -11.0, 1.6, ROOM_Z),
     about: box(0.9, 2.6, 1.7, 11.0, 1.3, ROOM_Z),
-    wall: box(0.9, 1.5, 2.3, 11.0, 1.8, BOARD_Z),
+    wall: box(0.9, BOARD.h, BOARD.w, 11.0, BOARD.y, BOARD_Z),
     resume: box(1.4, 2.4, 1.6, C.x, STAGE_TOP + 1.2, C.z),
   };
   const proxyMat = new THREE.MeshBasicMaterial();
@@ -722,7 +730,7 @@ export async function buildHall(scene, step) {
     music: new THREE.Vector3(0, STAGE_TOP + 3.6, -12.5),
     services: new THREE.Vector3(-10.9, 2.95, ROOM_Z),
     about: new THREE.Vector3(10.9, 2.95, ROOM_Z),
-    wall: new THREE.Vector3(10.9, 2.85, BOARD_Z),
+    wall: new THREE.Vector3(10.9, BOARD.y + BOARD.h / 2 + 0.4, BOARD_Z),
     resume: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
   };
   // What each room's camera frames: the object's centre, the way it faces (out into the hall),
@@ -733,7 +741,7 @@ export async function buildHall(scene, step) {
     work: { at: [-(WALL_X - 0.15), 9.9, -12.5], face: [1, 0, 0], size: [5.2, 2.9], eye: 9.9 },
     services: { at: [-11.16, 1.95, ROOM_Z], face: [1, 0, 0], size: [3.4, 2.4], eye: STAGE_TOP + 1.55 },
     about: { at: [11.2, 1.5, ROOM_Z], face: [-1, 0, 0], size: [3.0, 3.1], eye: STAGE_TOP + 1.55 },
-    wall: { at: [11.18, 1.95, BOARD_Z], face: [-1, 0, 0], size: [2.6, 1.95], eye: STAGE_TOP + 1.2 },
+    wall: { at: [BOARD.x - 0.07, BOARD.y, BOARD_Z], face: [-1, 0, 0], size: [BOARD.w + 0.3, BOARD.h + 0.35], eye: BOARD.y + 0.1 },
     music: { pos: [0, 5.6, 1.5], target: [0, 2.6, -13] },
     // From the front stalls, facing the podium: at the encore the conductor turns to the house.
     resume: { pos: [C.x, STAGE_TOP + 1.1, C.z + 6.2], target: [C.x, STAGE_TOP + 1.35, C.z - 0.6] },

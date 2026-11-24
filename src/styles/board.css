@@ -1,0 +1,231 @@
+/* The Notice Board over the hall: the board is the content. The real notes live in a layer laid
+   over the 3D (world/index.js); the page itself only holds the way back, the hint and a note
+   brought forward. Notes are paper, so their ink is fixed and does not follow the surfaces. */
+.board-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 240ms var(--ease);
+}
+/* Never scrollable: focusing a note (Tab) must not scroll the notes off the board. */
+.board-layer,
+.board-layer > div {
+  overflow: clip !important;
+}
+.board-layer.is-on {
+  opacity: 1;
+}
+.board-layer[hidden] {
+  display: none;
+}
+.board-layer:not(.is-on) .board-item {
+  pointer-events: none !important;
+}
+.board-item {
+  transform-style: preserve-3d;
+}
+body.over-hall.on-board .world {
+  filter: none;
+}
+
+/* The page: clicks pass through to the notes except on its own controls. */
+body.on-board #app,
+.board-screen {
+  pointer-events: none;
+}
+.board-screen > :not(.sr-only) {
+  pointer-events: auto;
+}
+.board-dock {
+  position: fixed;
+  left: var(--s-6);
+  bottom: var(--s-5);
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+.board-back {
+  width: auto;
+  min-height: 48px;
+  padding: 0 var(--s-5);
+  text-decoration: none;
+}
+.board-hint {
+  padding: var(--s-2) var(--s-4);
+  background: rgb(var(--scrim) / 0.78);
+  border-radius: var(--r-inner);
+  font-weight: 600;
+}
+
+/* A sticky note. Sizes are in board pixels (1000 to a metre), so they look large here and are
+   scaled down onto the board. */
+.note {
+  --ink: #1b1306;
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 52px 30px 26px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px 4px 4px 18px;
+  background: var(--note);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  text-align: left;
+  box-shadow: 0 8px 12px rgb(0 0 0 / 0.28);
+  transform: rotate(var(--tilt));
+  transition:
+    transform 220ms var(--ease),
+    box-shadow 220ms var(--ease),
+    opacity 220ms var(--ease);
+  cursor: pointer;
+}
+.note:hover,
+.note:focus-visible {
+  transform: translateZ(60px) rotate(0) scale(1.06);
+  box-shadow: 0 40px 50px rgb(0 0 0 / 0.4);
+}
+.note:focus-visible,
+.board-tab:focus-visible {
+  outline: 6px solid var(--focus);
+  outline-offset: 6px;
+}
+.note-pin {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  margin-left: -13px;
+  border-radius: 50%;
+  background: var(--pin);
+  box-shadow:
+    inset -4px -4px 0 rgb(0 0 0 / 0.22),
+    0 4px 6px rgb(0 0 0 / 0.35);
+}
+.note-cat {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+.note-title {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  font: 600 40px / 1.12 var(--font-display);
+}
+/* The short line appears when the note is lifted. */
+.note-line {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 24px;
+  line-height: 1.3;
+  opacity: 0;
+  transition: opacity 200ms var(--ease);
+}
+.note:hover .note-line,
+.note:focus-visible .note-line {
+  opacity: 0.85;
+}
+.note.is-dim {
+  opacity: 0.22;
+  pointer-events: none;
+}
+
+/* The filter tabs: index cards along the top of the board. */
+.board-tab {
+  border: 0;
+  border-radius: 4px;
+  background: #fbf7ef;
+  color: #1b1306;
+  font: 700 34px / 1 var(--font-ui);
+  box-shadow: 0 6px 8px rgb(0 0 0 / 0.25);
+  cursor: pointer;
+  transition: transform 160ms var(--ease);
+}
+.board-tab:hover {
+  transform: translateZ(20px);
+}
+.board-tab[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* A note brought forward: the same paper, large enough to read in full. */
+.note-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  background: rgb(var(--scrim) / 0.5);
+}
+.note-card {
+  position: fixed;
+  inset: 0;
+  z-index: 7;
+  display: grid;
+  gap: var(--s-3);
+  width: min(460px, calc(100vw - 2 * var(--s-5)));
+  height: fit-content;
+  max-height: calc(100vh - 2 * var(--s-6));
+  margin: auto;
+  padding: var(--s-7) var(--s-6) var(--s-6);
+  overflow-y: auto;
+  border-radius: 6px 6px 6px 28px;
+  background: var(--note);
+  color: #1b1306;
+  box-shadow: 0 30px 60px rgb(0 0 0 / 0.5);
+}
+.note-scrim[hidden],
+.note-card[hidden] {
+  display: none;
+}
+.note-card-cat {
+  font-size: var(--t-sm);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #3b2f1f;
+}
+.note-card h2 {
+  font: 600 var(--t-xl) / 1.12 var(--font-display);
+}
+.note-card-by {
+  font-size: var(--t-md);
+  font-weight: 600;
+}
+.note-card-note {
+  font-size: var(--t-md);
+}
+.note-card-date {
+  color: #3b2f1f;
+  font-size: var(--t-sm);
+}
+.note-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  margin-top: var(--s-3);
+}
+.note-card-actions .btn {
+  width: auto;
+  min-height: 48px;
+  padding: 0 var(--s-5);
+  text-decoration: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note,
+  .note-line,
+  .board-tab,
+  .board-layer {
+    transition: none;
+  }
+}
