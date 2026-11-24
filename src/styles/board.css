@@ -10,9 +10,19 @@
   transition: opacity 240ms var(--ease);
 }
 /* Never scrollable: focusing a note (Tab) must not scroll the notes off the board. */
-.board-layer,
-.board-layer > div {
-  overflow: clip !important;
+.board-layer {
+  overflow: clip;
+}
+/* A surface (the board or the desk top): one flat page, mapped onto the screen by a single
+   perspective transform (world/index.js). */
+.board-surface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+.board-surface[hidden] {
+  display: none;
 }
 .board-layer.is-on {
   opacity: 1;
@@ -20,11 +30,18 @@
 .board-layer[hidden] {
   display: none;
 }
-.board-layer:not(.is-on) .board-item {
-  pointer-events: none !important;
-}
 .board-item {
-  transform-style: preserve-3d;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+.board-layer:not(.is-on) .board-item {
+  pointer-events: none;
+}
+/* The note under the pointer comes up over its neighbours. */
+.board-item:hover,
+.board-item:focus-within {
+  z-index: 100000 !important;
 }
 body.over-hall.on-board .world {
   filter: none;
@@ -41,12 +58,15 @@ body.on-board #app,
 .board-dock {
   position: fixed;
   left: var(--s-6);
+  right: var(--s-6);
   bottom: var(--s-5);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--s-4);
 }
 .board-back {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
@@ -102,7 +122,7 @@ body.on-board #app,
 }
 .note:hover,
 .note:focus-visible {
-  transform: translateZ(60px) rotate(0) scale(1.06);
+  transform: rotate(0) scale(1.08);
   box-shadow: 0 40px 50px rgb(0 0 0 / 0.4);
 }
 .note:focus-visible,
@@ -169,7 +189,10 @@ body.on-board #app,
   transition: transform 160ms var(--ease);
 }
 .board-tab:hover {
-  transform: translateZ(20px);
+  transform: scale(1.06);
+  box-shadow:
+    0 6px 8px rgb(0 0 0 / 0.25),
+    0 0 26px rgb(var(--glow) / 0.55);
 }
 .board-tab[aria-pressed='true'] {
   background: var(--accent);
@@ -273,7 +296,7 @@ body.on-board #app,
 }
 .desk-card:hover,
 .desk-card:focus-visible {
-  transform: translateZ(20px) rotate(var(--turn)) scale(1.04);
+  transform: rotate(var(--turn)) scale(1.06);
   box-shadow: 0 16px 20px rgb(0 0 0 / 0.35);
 }
 .desk-card:focus-visible {

@@ -24,6 +24,7 @@ body[data-surface='paper'] .topbar {
   color: var(--text);
   font: 600 var(--t-xl) / 1.1 var(--font-display);
   letter-spacing: -0.01em;
+  white-space: nowrap;
   text-decoration: none;
 }
 .topbar-name:hover {
@@ -47,6 +48,7 @@ body:not([data-screen='hall']) .topbar-role {
   width: auto;
   min-height: 44px;
   padding: 0 var(--s-4);
+  white-space: nowrap;
 }
 .topbar-btn[aria-expanded='true'] {
   background: var(--surface-2-hover);
@@ -148,8 +150,50 @@ a.topbar-btn {
 }
 
 /* The Tracklist menu: a numbered list of the rooms, like an album's track list. */
-.tracklist {
+/* The two menus in the top bar: Résumé, and All Sections. */
+.menu {
   position: relative;
+}
+.menu-panel {
+  display: grid;
+  gap: var(--s-2);
+  width: min(300px, calc(100vw - 2 * var(--s-4)));
+}
+.menu-panel[hidden] {
+  display: none;
+}
+.menu-item {
+  justify-content: flex-start;
+  min-height: 48px;
+}
+.menu-panel .mail-form:not([hidden]) {
+  display: grid;
+  gap: var(--s-2);
+}
+.menu-panel .mail-form {
+  padding: var(--s-2) var(--s-1) var(--s-1);
+  background: none;
+  border: 0;
+}
+.menu-panel .mail-form input {
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-inner);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.menu-panel .mail-form input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.menu-panel .mail-form input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.menu-panel .mail-note {
+  color: var(--text-2);
+  font-size: var(--t-sm);
 }
 .tracklist-panel {
   position: absolute;
@@ -182,6 +226,7 @@ a.topbar-btn {
 }
 .track:hover {
   background: var(--surface-2);
+  box-shadow: 0 0 14px rgb(var(--glow) / 0.22);
 }
 .track:active {
   transform: translateY(1px);
@@ -220,14 +265,21 @@ a.topbar-btn {
     padding: var(--s-3) var(--s-4);
   }
   .topbar-name {
-    font-size: var(--t-lg);
+    font-size: 1.25rem;
   }
   .topbar-role {
     display: none;
   }
-  .topbar-sound,
-  .topbar-resume {
+  /* The sound control moves into All Sections. */
+  .topbar-sound {
     display: none;
+  }
+  .topbar-nav {
+    gap: var(--s-2);
+  }
+  .topbar-btn {
+    padding: 0 var(--s-3);
+    font-size: var(--t-sm);
   }
   .tracklist-extra {
     display: grid;
@@ -282,8 +334,28 @@ a.topbar-btn {
     white-space: nowrap;
     text-decoration: none;
   }
+  .tab:hover {
+    background: var(--surface-2);
+    box-shadow: 0 0 12px rgb(var(--glow) / 0.25);
+  }
   .tab[aria-current='page'] {
     color: var(--accent-text);
     background: var(--surface-2);
+  }
+}
+
+/* The smallest phones (320px): a little tighter still, so all three fit on one line. */
+@media (max-width: 359px) {
+  .topbar {
+    padding-inline: var(--s-3);
+  }
+  .topbar-name {
+    font-size: 1.0625rem;
+  }
+  .topbar-nav {
+    gap: var(--s-1);
+  }
+  .topbar-btn {
+    padding: 0 var(--s-2);
   }
 }

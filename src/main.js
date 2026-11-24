@@ -1,7 +1,6 @@
-import '@fontsource-variable/fraunces/wght.css';
-import '@fontsource-variable/figtree';
-import '@fontsource/space-mono/400.css';
-import '@fontsource/space-mono/700.css';
+import '@fontsource-variable/source-serif-4/opsz.css';
+import '@fontsource-variable/source-serif-4/opsz-italic.css';
+import '@fontsource-variable/source-code-pro/wght.css';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/home.css';
@@ -10,6 +9,8 @@ import './styles/resume.css';
 import './styles/shell.css';
 import './styles/rooms.css';
 import './styles/board.css';
+import './styles/manuscript.css';
+import './styles/ornaments.css';
 
 import { homeScreen } from './screens/home.js';
 import { stillMarkup } from './screens/home-markup.js';
@@ -99,8 +100,6 @@ const shell = createShell({ onSound: (on) => current?.onSound?.(on) });
 document.body.insertBefore(shell.el, root);
 document.body.append(shell.tabbar);
 
-// Screens ask for 'hall' or 'resume'; the first screen and the hall share the home address.
-const go = (name) => navigate(name === 'resume' ? 'resume' : 'home');
 
 // Once the hall is lit, rooms open over it instead of replacing it: the camera moves to the room's
 // place, the hall dims, and the page opens on the right. Without the hall (a direct link, no
@@ -113,6 +112,30 @@ backdrop.className = 'over-backdrop';
 backdrop.href = pathFor('home');
 backdrop.tabIndex = -1;
 backdrop.setAttribute('aria-hidden', 'true');
+// The open page's printed frame: a layer of its own over the page, so it runs unbroken on all four
+// sides while the page scrolls under it.
+const frame = document.createElement('div');
+frame.className = 'page-frame surface-paper';
+frame.setAttribute('aria-hidden', 'true');
+frame.innerHTML = '<span class="frame-band is-left"></span><span class="frame-band is-right"></span>';
+// And its paper, a layer of its own under the page, so the ornament can sit between the paper and
+// the words.
+const paper = document.createElement('div');
+paper.className = 'page-paper surface-paper';
+paper.setAttribute('aria-hidden', 'true');
+
+// How far the page has scrolled, for the ornaments that drift with it (styles/ornaments.css).
+const setScroll = (el, y) => el.style.setProperty('--scroll', String(Math.round(y)));
+window.addEventListener('scroll', () => setScroll(document.documentElement, window.scrollY), { passive: true });
+document.addEventListener(
+  'scroll',
+  (e) => {
+    if (!(e.target instanceof Element) || !e.target.classList.contains('is-over-hall')) return;
+    setScroll(paper, e.target.scrollTop);
+    setScroll(frame, e.target.scrollTop);
+  },
+  { capture: true, passive: true },
+);
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.body.classList.contains('over-hall') && !e.defaultPrevented) navigate('home');
 });
@@ -154,15 +177,24 @@ function route() {
   const onBoard = over && key === 'wall' && window.innerWidth > 640;
   const panel = over && !onBoard;
 
+  // Moving from one page to another over the hall, the page stays where it is and the new one
+  // turns in like a leaf; only a page opened from the hall slides in.
+  const turning = panel && !!current?.el.classList.contains('is-over-hall');
+
   current?.destroy?.();
   const next = onBoard
     ? boardScreen({ world })
     : key in screens
-      ? screens[key]({ go, world, over })
-      : roomScreen({ go, world, key, param: where.param, over });
+      ? screens[key]({ world, over })
+      : roomScreen({ world, key, param: where.param, over });
   next.el.classList.toggle('is-over-hall', panel);
+  next.el.classList.toggle('is-turning', turning);
+  frame.classList.toggle('is-turning', turning);
+  paper.classList.toggle('is-turning', turning);
   next.el.classList.toggle('surface-paper', panel);
-  root.replaceChildren(...(panel ? [backdrop, next.el] : [next.el]));
+  root.replaceChildren(...(panel ? [backdrop, paper, next.el, frame] : [next.el]));
+  setScroll(paper, 0);
+  setScroll(frame, 0);
   document.title = next.title;
   document.body.dataset.screen = key;
   document.body.dataset.surface = over ? 'hall' : (next.surface ?? 'hall');

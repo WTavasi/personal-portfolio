@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { buildHall, nextFrame } from './hall.js';
 import { BOARD, DESK } from '../lib/board.js';
 
@@ -18,6 +17,31 @@ const MIN_FRAME_MS = 12;
 // The Notice Board's real notes are page elements sized in CSS pixels; this many make a metre.
 export const BOARD_PX = 1000;
 const MAX_PIXEL_RATIO = 1.25;
+
+// The CSS transform that maps a flat w-by-h page (corners src: top-left, top-right, bottom-left,
+// bottom-right) onto four points on the screen (dst, same order): a projective transform, so it
+// follows the surface's perspective exactly.
+function homography(src, dst) {
+  const adj = (m) => [
+    m[4] * m[8] - m[5] * m[7], m[2] * m[7] - m[1] * m[8], m[1] * m[5] - m[2] * m[4],
+    m[5] * m[6] - m[3] * m[8], m[0] * m[8] - m[2] * m[6], m[2] * m[3] - m[0] * m[5],
+    m[3] * m[7] - m[4] * m[6], m[1] * m[6] - m[0] * m[7], m[0] * m[4] - m[1] * m[3],
+  ];
+  const mm = (a, b) => {
+    const c = [];
+    for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) c[3 * i + j] = a[3 * i] * b[j] + a[3 * i + 1] * b[3 + j] + a[3 * i + 2] * b[6 + j];
+    return c;
+  };
+  const mv = (m, v) => [m[0] * v[0] + m[1] * v[1] + m[2] * v[2], m[3] * v[0] + m[4] * v[1] + m[5] * v[2], m[6] * v[0] + m[7] * v[1] + m[8] * v[2]];
+  const basis = (p) => {
+    const m = [p[0], p[2], p[4], p[1], p[3], p[5], 1, 1, 1];
+    const v = mv(adj(m), [p[6], p[7], 1]);
+    return mm(m, [v[0], 0, 0, 0, v[1], 0, 0, 0, v[2]]);
+  };
+  const t = mm(basis(dst), adj(basis(src)));
+  for (let i = 0; i < 9; i++) t[i] /= t[8];
+  return `matrix3d(${t[0]},${t[3]},0,${t[6]},${t[1]},${t[4]},0,${t[7]},0,0,1,0,${t[2]},${t[5]},0,${t[8]})`;
+}
 
 export async function createWorld({ canvas, onStep }) {
   let renderer = null;
@@ -71,26 +95,43 @@ export async function createWorld({ canvas, onStep }) {
     else camera.clearViewOffset();
   };
 
-  // The Notice Board's real notes: page elements laid over the 3D exactly where the painted notes
-  // are, shown only while the camera faces the board (nothing stands between them and the camera
-  // there, so they never need to be hidden behind anything).
-  const css = new CSS3DRenderer();
-  const layer = css.domElement;
+  // The Notice Board's real notes, and the cards on the desk: page elements laid over the 3D
+  // exactly where the painted ones are, shown only while the camera faces that surface (nothing
+  // stands between it and the camera there). Each surface is one flat page, mapped onto the
+  // screen by a single perspective transform from its four corners, so the notes inside are
+  // ordinary flat layout: nothing is depth-sorted, nothing can drop out, and a click always lands
+  // on the note you see.
+  const layer = document.createElement('div');
   layer.className = 'board-layer';
   layer.hidden = true;
   canvas.after(layer);
-  const cssScene = new THREE.Scene();
-  const board = new THREE.Group();
-  board.position.set(BOARD.x - 0.09, BOARD.y, BOARD.z);
-  board.rotation.y = -Math.PI / 2; // face into the hall: the board's right is the hall's +z
-  cssScene.add(board);
-  // The desk top: lying flat, facing up; along the desk (u) is the hall's +z, away from whoever
-  // stands at it (v) is +x, toward the wall.
-  const desk = new THREE.Group();
-  desk.position.set(DESK.x, DESK.y + 0.003, DESK.z);
-  desk.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0)));
-  cssScene.add(desk);
-  const surfaces = { board, desk };
+  const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+  const surfaces = {
+    // The board, facing into the hall: its right is the hall's +z, its up is +y.
+    board: { centre: V3(BOARD.x - 0.09, BOARD.y, BOARD.z), right: V3(0, 0, 1), up: V3(0, 1, 0), w: BOARD.w, h: BOARD.h },
+    // The desk top, lying flat: along the desk (u) is the hall's +z, away from whoever stands at
+    // it (v) is +x, toward the wall.
+    desk: { centre: V3(DESK.x, DESK.y + 0.003, DESK.z), right: V3(0, 0, 1), up: V3(1, 0, 0), w: DESK.length, h: DESK.depth },
+  };
+  for (const s of Object.values(surfaces)) {
+    s.el = document.createElement('div');
+    s.el.className = 'board-surface';
+    s.el.style.width = `${s.w * BOARD_PX}px`;
+    s.el.style.height = `${s.h * BOARD_PX}px`;
+    s.el.hidden = true;
+    layer.append(s.el);
+  }
+  const corner = new THREE.Vector3();
+  // Where a surface's corner falls on the screen, in CSS pixels.
+  function onScreen(s, du, dv) {
+    corner.copy(s.centre).addScaledVector(s.right, du).addScaledVector(s.up, dv).project(camera);
+    return [((corner.x + 1) / 2) * window.innerWidth, ((1 - corner.y) / 2) * window.innerHeight];
+  }
+  function placeSurface(s) {
+    const [w, h] = [s.w * BOARD_PX, s.h * BOARD_PX];
+    const dst = [...onScreen(s, -s.w / 2, s.h / 2), ...onScreen(s, s.w / 2, s.h / 2), ...onScreen(s, -s.w / 2, -s.h / 2), ...onScreen(s, s.w / 2, -s.h / 2)];
+    s.el.style.transform = homography([0, 0, w, 0, 0, h, w, h], dst);
+  }
   const deskPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(DESK.y + 0.003));
   const hit = new THREE.Vector3();
   let boardWanted = false;
@@ -102,7 +143,6 @@ export async function createWorld({ canvas, onStep }) {
   let dirty = true;
   const resize = () => {
     renderer.setSize(window.innerWidth, window.innerHeight, false);
-    css.setSize(window.innerWidth, window.innerHeight);
     applyInset();
     camera.updateProjectionMatrix();
     dirty = true;
@@ -261,6 +301,7 @@ export async function createWorld({ canvas, onStep }) {
 
     const k = still ? 1 : 1 - Math.exp(-dt * (pose === 'overview' || pose === 'build' ? 1.4 : 2.2));
     if (placeCamera(t, k)) changing = true;
+    if (fx.stepBackstage(dt)) changing = true;
 
     // Follow spot eases toward the hovered or open section.
     const s = spotTarget();
@@ -310,7 +351,7 @@ export async function createWorld({ canvas, onStep }) {
     // With reduced motion the scene only redraws when something actually changes.
     if (still && !changing) return;
     renderer.render(scene, camera);
-    if (boardWanted) css.render(cssScene, camera);
+    if (boardWanted) placeSurface(surfaces[boardWhere]);
     for (const fn of frameListeners) fn();
     if (interval < 200) adapt(interval);
   }
@@ -374,23 +415,30 @@ export async function createWorld({ canvas, onStep }) {
       pose = next;
       dirty = true;
     },
-    // Lay page elements over the hall, on the board or the desk: items are { el, u, v, lift?,
-    // turn? } with u and v in metres from the surface's centre (see lib/board.js), each element
-    // sized in CSS pixels (BOARD_PX to a metre). Returns a handle per item to move it later.
+    // Lay page elements over the hall, on the board or the desk: items are { el, u, v, lift? }
+    // with u and v in metres from the surface's centre (see lib/board.js), each element sized in
+    // CSS pixels (BOARD_PX to a metre); lift orders them, higher on top. Returns a handle per item
+    // to move it later.
     showBoard(items, where = 'board') {
       clearTimeout(boardTimer);
-      board.clear();
-      desk.clear();
-      const handles = items.map(({ el, u, v, lift = 0, turn = 0 }) => {
-        const o = new CSS3DObject(el);
-        o.position.set(u, v, lift);
-        o.rotation.z = -turn;
-        o.scale.setScalar(1 / BOARD_PX);
-        surfaces[where].add(o);
+      const s = surfaces[where];
+      for (const other of Object.values(surfaces)) {
+        other.el.replaceChildren();
+        other.el.hidden = other !== s;
+      }
+      const put = (el, u, v, lift) => {
+        el.style.left = `${(u + s.w / 2) * BOARD_PX}px`;
+        el.style.top = `${(s.h / 2 - v) * BOARD_PX}px`;
+        el.style.zIndex = String(Math.round(lift * 10000));
+      };
+      const handles = items.map(({ el, u, v, lift = 0 }) => {
+        put(el, u, v, lift);
+        s.el.append(el);
+        let last = lift;
         return {
-          move(nu, nv, nlift = o.position.z) {
-            o.position.set(nu, nv, nlift);
-            dirty = true;
+          move(nu, nv, nlift = last) {
+            last = nlift;
+            put(el, nu, nv, nlift);
           },
         };
       });
@@ -419,8 +467,7 @@ export async function createWorld({ canvas, onStep }) {
       clearTimeout(boardTimer);
       boardTimer = setTimeout(() => {
         if (boardWanted) return;
-        board.clear();
-        desk.clear();
+        for (const s of Object.values(surfaces)) s.el.replaceChildren();
         layer.hidden = true;
       }, 300);
     },
@@ -437,6 +484,7 @@ export async function createWorld({ canvas, onStep }) {
     setSelected(id) {
       selected = id;
       fx.setEncore(id === 'about', still);
+      fx.setBackstageLit(id === 'services', still);
       dirty = true;
     },
     setActive(id) {
@@ -456,7 +504,10 @@ export async function createWorld({ canvas, onStep }) {
       if (!revealed) return null;
       ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
       ray.setFromCamera(ndc, camera);
-      const hit = ray.intersectObjects(proxyList, false)[0];
+      // The stage (Music) is big and stands in front of other places from some angles, so any
+      // other place under the pointer wins over it.
+      const hits = ray.intersectObjects(proxyList, false);
+      const hit = hits.find((h) => h.object.userData.section !== 'music') ?? hits[0];
       return hit ? hit.object.userData.section : null;
     },
     // Screen position of a section's marker, or null when it is behind the camera.

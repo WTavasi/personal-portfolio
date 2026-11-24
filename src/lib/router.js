@@ -30,10 +30,10 @@ const LEGACY = { resume: 'resume', program: 'resume', about: 'about', hall: 'hom
 // The résumé is part of About me: /resume opens About me at its résumé.
 export const TRACKS = [
   { key: 'home', no: '00', label: 'Home' },
-  { key: 'work', no: '01', label: 'Work' },
-  { key: 'music', no: '02', label: 'Music' },
+  { key: 'about', no: '01', label: 'About me' },
+  { key: 'work', no: '02', label: 'Work' },
   { key: 'services', no: '03', label: 'Services' },
-  { key: 'about', no: '04', label: 'About me' },
+  { key: 'music', no: '04', label: 'Music' },
   { key: 'wall', no: '', label: 'Notice board', extra: true },
 ];
 

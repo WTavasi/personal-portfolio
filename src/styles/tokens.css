@@ -25,7 +25,9 @@
   --line: #85746a; /* borders of fields and controls */
   --focus: #e3b552;
   --danger: #f0a58f;
-  --scrim: 11 7 9; /* rgb channels, for rgb(var(--scrim) / alpha) over the 3D */
+  --scrim: 11 7 9;
+  --glow: 227 181 82; /* rgb channels of the brass, for the hover glow */
+  --rubric: #d9805c; /* rgb channels, for rgb(var(--scrim) / alpha) over the 3D */
   --term-bg: #120c0e;
   --term-dot: #4a3d3a;
 
@@ -49,11 +51,12 @@
   --t-2xl: 3rem; /* 48 */
   --t-display: clamp(3.25rem, 7vw, 5.5rem);
 
-  /* Fraunces for titles, Figtree for everything you read or press, Space Mono only for changing
-     numbers, readouts and code (design rules, section 10A). */
-  --font-ui: 'Figtree Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-display: 'Fraunces Variable', Georgia, serif;
-  --font-mono: 'Space Mono', ui-monospace, Menlo, Consolas, monospace;
+  /* One type family, Adobe's Source: Source Serif 4 for everything you read or press, headings
+     included (its optical sizes keep small text open and give large titles finer, more elegant
+     shapes), and its monospace sibling Source Code Pro only for the terminal, labels and readouts. */
+  --font-ui: 'Source Serif 4 Variable', 'Iowan Old Style', Georgia, serif;
+  --font-display: 'Source Serif 4 Variable', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'Source Code Pro Variable', ui-monospace, Menlo, Consolas, monospace;
 
   /* Radii: an inner element's radius = outer radius minus the padding between them. */
   --r-panel: 12px;
@@ -69,24 +72,27 @@
   color-scheme: dark;
 }
 
-/* Score paper, light. Also on .surface-paper: a room page opened over the hall. */
+/* Manuscript paper, light: aged parchment, iron-gall ink and red-ochre rubric, like a score or
+   a book of the Classical and Romantic era. Also on .surface-paper: a room page opened over the
+   hall. */
 body[data-surface='paper'],
 .surface-paper {
-  --bg: #f3ecdf;
-  --surface: #fbf7ef;
-  --surface-2: #e7dccb;
-  --surface-2-hover: #dccfbb;
-  --text: #17120f;
-  --text-2: #4f443b;
-  --text-3: #66594d;
+  --bg: #efe3c6;
+  --surface: #f6ecd4;
+  --surface-2: #e2d0a8;
+  --surface-2-hover: #d8c293;
+  --text: #24180d;
+  --text-2: #4f3b25;
+  --text-3: #5e4830;
   --accent: #e3b552;
   --accent-hover: #edc56a;
   --on-accent: #1b1306;
-  --accent-text: #7a5a12; /* brass itself is too light to read on cream */
+  --accent-text: #8a2914; /* rubric: links and the current item, in red ochre */
+  --rubric: #a6361d; /* rules, initials and ornaments */
   --extra: #b3261e;
-  --line: #8c7b6c;
-  --focus: #7a5a12;
-  --danger: #a3263a;
+  --line: #85694a;
+  --focus: #8a2914;
+  --danger: #9c1f33;
   color-scheme: light;
 }
 
@@ -94,20 +100,21 @@ body[data-surface='paper'],
 @media (prefers-color-scheme: dark) {
   body[data-surface='paper'],
   .surface-paper {
-    --bg: #16110e;
-    --surface: #211a16;
-    --surface-2: #2e2520;
-    --surface-2-hover: #3b302a;
-    --text: #f3ecdf;
-    --text-2: #d2c4b0;
-    --text-3: #ada08d;
+    --bg: #1b140e; /* the same page by candlelight */
+    --surface: #251c14;
+    --surface-2: #33271c;
+    --surface-2-hover: #403125;
+    --text: #f1e5c8;
+    --text-2: #d6c3a0;
+    --text-3: #b7a283;
     --accent: #e3b552;
     --accent-hover: #f1c96b;
     --on-accent: #1b1306;
-    --accent-text: #e3b552;
+    --accent-text: #eaa57a;
+    --rubric: #d9805c;
     --extra: #ef5b50;
-    --line: #8a796c;
-    --focus: #e3b552;
+    --line: #8a7458;
+    --focus: #eaa57a;
     --danger: #f0a58f;
     color-scheme: dark;
   }

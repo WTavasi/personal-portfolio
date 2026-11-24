@@ -7,7 +7,10 @@
   font: 600 var(--t-2xl) / 1.05 var(--font-display);
   letter-spacing: -0.01em;
 }
-.room-head h1:focus {
+/* A page's heading takes focus when the page opens (for keyboard and screen reader users);
+   that is not a place to press, so it shows no ring. */
+:is(.room-head, .doc-head) h1:focus,
+#resume:focus {
   outline: none;
 }
 .room-doc .doc-lead {
@@ -20,7 +23,7 @@
 
 /* The Booth: the list of case studies. */
 .cases {
-  margin: var(--s-7) 0 0;
+  margin: var(--s-5) 0 0;
   padding: 0;
   list-style: none;
 }
@@ -40,59 +43,9 @@
   text-decoration-color: currentColor;
 }
 
-/* A case study: credits, then the signal flow, drawn left to right like an audio chain. */
+/* A case study: the credits under the lead. */
 .credits {
-  margin-top: var(--s-6);
-}
-.flow {
-  margin: var(--s-7) 0 0;
-}
-.flow-steps {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: var(--s-2) var(--s-6);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.flow-steps li {
-  position: relative;
-  display: grid;
-  align-items: center;
-  max-width: 14rem;
-  padding: var(--s-3) var(--s-4);
-  background: var(--surface);
-  border-radius: var(--r-inner);
-  font-weight: 600;
-}
-.flow-steps li + li::before {
-  content: '→';
-  position: absolute;
-  left: calc(var(--s-6) / -2);
-  top: 50%;
-  transform: translate(-50%, -50%);
-  color: var(--text-3);
-  font-weight: 400;
-}
-.flow figcaption {
-  margin-top: var(--s-3);
-  color: var(--text-2);
-}
-@media (max-width: 560px) {
-  .flow-steps {
-    flex-direction: column;
-    gap: var(--s-5);
-  }
-  .flow-steps li {
-    max-width: none;
-  }
-  .flow-steps li + li::before {
-    content: '↓';
-    left: var(--s-4);
-    top: calc(var(--s-5) / -2);
-    transform: translateY(-50%);
-  }
+  margin-top: var(--s-5);
 }
 
 /* Box Office. */
@@ -178,23 +131,30 @@
   top: var(--topbar-h);
   z-index: 2;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
-  gap: var(--s-2);
-  margin: 0 0 var(--s-6);
-  padding: var(--s-2) 0;
+  gap: var(--s-3);
+  margin: 0 0 var(--s-4);
+  padding: var(--s-3) 0;
   background: var(--bg);
 }
+/* On a page of its own the arrows start right under the top bar, where they stay. */
+.room .room-nav {
+  margin-top: calc(-1 * var(--s-6));
+}
+/* In a page over the hall, the arrows hold the top of the page while it scrolls under them. */
 .is-over-hall .room-nav {
-  top: calc(-1 * var(--s-6));
-  margin-top: calc(-1 * var(--s-3));
+  top: 0;
+  margin-top: calc(-1 * var(--s-6));
+  padding-top: var(--s-4);
 }
 .nav-arrow {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: var(--s-2);
+  width: 100%;
   min-width: 0;
-  max-width: 100%;
   min-height: 48px;
   padding: 0 var(--s-3);
   border: 1px solid var(--line);
@@ -204,8 +164,10 @@
   text-decoration: none;
 }
 .nav-arrow:hover {
+  border-color: var(--accent-text);
   background: var(--surface-2);
   color: var(--text);
+  box-shadow: 0 0 16px rgb(var(--glow) / 0.32);
 }
 .nav-arrow:active {
   transform: translateY(1px);
@@ -213,14 +175,11 @@
 .nav-arrow svg {
   flex: none;
 }
-.nav-prev {
-  justify-self: start;
-}
-.nav-hall {
-  justify-self: center;
-}
+/* Three arrows of equal width across the page. */
+.nav-prev,
+.nav-hall,
 .nav-next {
-  justify-self: end;
+  justify-self: stretch;
 }
 .nav-text {
   overflow: hidden;
@@ -232,6 +191,11 @@
   font-weight: 400;
 }
 .nav-short {
+  display: none;
+}
+/* Where the arrows are narrow (an open page over the hall, smaller windows), the arrow alone says
+   which way; the room's name stays. */
+.is-over-hall :is(.nav-prev, .nav-next) .nav-hint {
   display: none;
 }
 @media (max-width: 900px) {
@@ -263,12 +227,10 @@
 
 /* The résumé's list spacing (.doc ul, .doc li + li) is for reading lists, not for these layouts. */
 .room-doc .pins,
-.room-doc .flow-steps,
 .room-doc .cases {
   padding-left: 0;
 }
-.room-doc .pins > li + li,
-.room-doc .flow-steps > li + li {
+.room-doc .pins > li + li {
   margin-top: 0;
 }
 
@@ -306,9 +268,6 @@
   margin: 0;
   padding: var(--s-6) var(--s-6) var(--s-7);
 }
-.is-over-hall .p-bar {
-  background: var(--bg);
-}
 body.over-hall .world {
   filter: brightness(0.55);
 }
@@ -316,6 +275,25 @@ body.over-hall .world {
   transition:
     opacity 700ms var(--ease),
     filter 400ms var(--ease);
+}
+/* The next page over the hall turns in from its spine, without the page itself moving. */
+.screen.is-over-hall.is-turning {
+  animation: none;
+}
+.screen.is-over-hall.is-turning > * {
+  transform-origin: left center;
+  animation: leaf-in 320ms var(--ease) both;
+}
+@keyframes leaf-in {
+  from {
+    opacity: 0;
+    transform: perspective(1400px) rotateY(-7deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen.is-over-hall.is-turning > * {
+    animation: none;
+  }
 }
 @media (max-width: 640px) {
   .screen.is-over-hall {
@@ -329,11 +307,14 @@ body.over-hall .world {
   .is-over-hall .doc {
     padding: var(--s-5) var(--s-4) var(--s-7);
   }
+  .is-over-hall .room-nav {
+    margin-top: calc(-1 * var(--s-5));
+  }
 }
 
 /* The desk on the plain notice board page: the notes as cards, then the form. */
 .desk-plain {
-  margin-top: var(--s-8);
+  margin-top: var(--s-6);
 }
 .room-doc .desk-notes {
   display: grid;

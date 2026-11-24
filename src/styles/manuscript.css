@@ -1,0 +1,126 @@
+/* The text pages as manuscript pages of the Classical and Romantic era: aged parchment with a
+   faint grain and darkened edges, a double red margin rule, headings in Source Serif 4's display
+   cut, a red initial opening each page, small capitals for dates and labels, and red list
+   marks. The body stays Source Serif 4 at a reading size, so it reads as easily as before.
+   Applies to every room page and to About me, on their own and opened over the hall. */
+
+:is(.room, .page-paper) {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.29 0 0 0 0 0.12 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background:
+    radial-gradient(ellipse 95% 80% at 50% 45%, transparent 60%, rgb(110 70 25 / 0.16) 100%),
+    var(--grain),
+    var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :is(.room, .page-paper) {
+    background:
+      radial-gradient(ellipse 95% 80% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.35) 100%),
+      var(--bg);
+  }
+}
+/* The open page over the hall gets a fine double frame, like a printed page. It is its own layer,
+   placed exactly over the page (the same box as .screen.is-over-hall in rooms.css), so the page
+   scrolls under it and nothing covers it. The page's own scrollbar is hidden; it still scrolls. */
+.page-frame {
+  position: fixed;
+  top: calc(var(--topbar-h) + var(--s-2));
+  right: var(--s-5);
+  bottom: var(--s-5);
+  z-index: 6;
+  width: min(680px, calc(100vw - 2 * var(--s-5)));
+  border: 1px solid color-mix(in srgb, var(--rubric) 60%, transparent);
+  border-radius: var(--r-panel);
+  box-shadow:
+    inset 0 0 0 6px transparent,
+    inset 0 0 0 7px color-mix(in srgb, var(--rubric) 35%, transparent);
+  pointer-events: none;
+  animation: sheet-in 280ms var(--ease) both;
+}
+.page-frame.is-turning {
+  animation: none;
+}
+@media (max-width: 640px) {
+  .page-frame {
+    top: var(--topbar-h);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+  }
+}
+.screen.is-over-hall {
+  scrollbar-width: none;
+}
+.screen.is-over-hall::-webkit-scrollbar {
+  display: none;
+}
+/* An open page is transparent: its paper (and the ornament on it) is the layer under it. */
+.screen.is-over-hall {
+  background: transparent;
+}
+/* The arrows and the bar keep the page's own paper behind them as the page scrolls under. */
+:is(.room, .screen.is-over-hall) .room-nav {
+  background: var(--bg);
+}
+
+/* The double red rule down the margin. */
+:is(.room-doc, .resume .doc) {
+  position: relative;
+}
+:is(.room-doc, .resume .doc)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--s-4));
+  width: 5px;
+  border-left: 1px solid var(--rubric);
+  border-right: 1px solid var(--rubric);
+  opacity: 0.55;
+  pointer-events: none;
+}
+/* An open page has its frame instead. */
+.is-over-hall :is(.room-doc, .doc)::before {
+  display: none;
+}
+
+/* Headings: Source Serif 4 at its display sizes, set a touch tighter. */
+:is(.room-head, .doc-head) h1,
+.resume-name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+:is(.room-doc, .resume .doc) h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+/* Each section opens under a thin double rule in red. */
+:is(.room-doc, .resume .doc) section > h2 {
+  padding-top: var(--s-4);
+  border-top: 3px double color-mix(in srgb, var(--rubric) 70%, transparent);
+}
+
+/* The page's first paragraph opens with a red initial, three lines tall. */
+:is(.room-doc, .resume .doc) .doc-lead::first-letter {
+  float: left;
+  margin: 0.06em 0.1em 0 0;
+  padding: 0.04em 0.12em 0;
+  border: 1px solid var(--rubric);
+  color: var(--rubric);
+  font-family: var(--font-display);
+  font-size: 3.1em;
+  font-weight: 700;
+  line-height: 0.86;
+}
+
+/* Dates, labels and categories in small capitals. */
+:is(.room-doc, .resume .doc) :is(.when, .pin-meta, .pin-date, dt, .note-card-cat) {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+}
+:is(.room-doc, .resume .doc) li::marker {
+  color: var(--rubric);
+}

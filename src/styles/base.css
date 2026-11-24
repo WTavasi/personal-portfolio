@@ -92,6 +92,24 @@ a:hover {
   font-weight: 600;
   text-align: left;
 }
+/* Everything you can press eases into a lighter shade and a soft brass glow on hover, so it is
+   plain that it can be pressed; the text itself never changes, so it stays as readable. */
+.btn,
+.nav-arrow,
+.sec,
+.track,
+.tab,
+.board-tab,
+.player-play,
+.link-quiet,
+.marker-label {
+  transition:
+    background-color 220ms var(--ease),
+    border-color 220ms var(--ease),
+    box-shadow 280ms var(--ease),
+    color 220ms var(--ease),
+    transform 160ms var(--ease);
+}
 .btn:active {
   transform: translateY(1px);
 }
@@ -104,6 +122,9 @@ a:hover {
 }
 .btn-primary:hover {
   background: var(--accent-hover);
+  box-shadow:
+    0 0 0 3px rgb(var(--glow) / 0.28),
+    0 0 22px rgb(var(--glow) / 0.45);
 }
 .btn-secondary {
   background: var(--surface-2);
@@ -111,6 +132,9 @@ a:hover {
 }
 .btn-secondary:hover {
   background: var(--surface-2-hover);
+  box-shadow:
+    0 0 0 1px rgb(var(--glow) / 0.6),
+    0 0 16px rgb(var(--glow) / 0.28);
 }
 .btn[aria-disabled='true'] {
   color: var(--text-2);

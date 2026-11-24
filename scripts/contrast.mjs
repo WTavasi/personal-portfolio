@@ -59,6 +59,8 @@ const PAIRS = [
   ['focus', 'surface-2', 3, 'focus ring on a secondary button'],
   ['extra', 'bg', 4.5, 'notice board marker and label'],
   ['extra', 'surface', 3, 'notice board dot in the Tracklist'],
+  ['rubric', 'bg', 3, 'manuscript rules and initials'],
+  ['text', 'surface-2-hover', 4.5, 'secondary button label, hover (pages)'],
 ];
 
 let failures = 0;

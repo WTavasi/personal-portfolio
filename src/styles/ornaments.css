@@ -1,0 +1,162 @@
+/* Ornaments, for decoration only and kept faint: damask-like curls, with a G clef and an F clef
+   hidden among them, behind the welcome screen and the text pages; a looping flourish under the
+   welcome and at the top and bottom of an open page; and looping bands down the sides of the
+   pages that drift as the page scrolls (--scroll, set by main.js; still with reduced motion).
+   The drawings are masks, so they take the colour of the surface they sit on. */
+
+:root {
+  --drift: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --drift: 0;
+  }
+}
+
+/* The curls, as a layer of their own behind a page's content. */
+.home,
+.room {
+  position: relative;
+  isolation: isolate;
+}
+.home::before,
+.room::before,
+.page-paper::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--rubric);
+  -webkit-mask: url('../assets/ornaments/ornament-tile.svg') 0 calc(var(--scroll, 0) * -0.3px * var(--drift)) / 420px repeat;
+  mask: url('../assets/ornaments/ornament-tile.svg') 0 calc(var(--scroll, 0) * -0.3px * var(--drift)) / 420px repeat;
+  opacity: 0.08;
+  pointer-events: none;
+}
+/* An open page over the hall has them on its paper layer instead (below). */
+.room.is-over-hall::before,
+.room.is-over-hall::after {
+  display: none;
+}
+/* On the welcome screen they are gold, over the turning wireframe. */
+.home::before {
+  background: var(--accent);
+  opacity: 0.07;
+}
+@media (prefers-color-scheme: dark) {
+  .room::before,
+  .page-paper::before {
+    opacity: 0.07;
+  }
+}
+
+/* A flourish under the welcome. */
+.home-hero h1::after {
+  content: '';
+  display: block;
+  width: min(240px, 60%);
+  aspect-ratio: 300 / 56;
+  margin-top: var(--s-3);
+  background: var(--accent);
+  -webkit-mask: url('../assets/ornaments/flourish.svg') left center / contain no-repeat;
+  mask: url('../assets/ornaments/flourish.svg') left center / contain no-repeat;
+  opacity: 0.85;
+}
+
+/* Text pages on their own: looping bands down both sides of the reading column, drifting a
+   little faster than the curls as the page scrolls. */
+.room::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--rubric);
+  --band-y: calc(var(--scroll, 0) * -0.55px * var(--drift));
+  -webkit-mask:
+    url('../assets/ornaments/flourish-band.svg') calc(50% - 410px) var(--band-y) / 26px 65px repeat-y,
+    url('../assets/ornaments/flourish-band.svg') calc(50% + 410px) var(--band-y) / 26px 65px repeat-y;
+  mask:
+    url('../assets/ornaments/flourish-band.svg') calc(50% - 410px) var(--band-y) / 26px 65px repeat-y,
+    url('../assets/ornaments/flourish-band.svg') calc(50% + 410px) var(--band-y) / 26px 65px repeat-y;
+  opacity: 0.35;
+  pointer-events: none;
+}
+@media (max-width: 900px) {
+  .room::after {
+    display: none;
+  }
+}
+
+/* An open page over the hall: its paper is a layer of its own under the page (so the curls can
+   sit between the paper and the words), and its frame carries a flourish at the top and the
+   bottom and looping bands down its sides, which drift as the page scrolls. */
+.page-paper {
+  position: fixed;
+  top: calc(var(--topbar-h) + var(--s-2));
+  right: var(--s-5);
+  bottom: var(--s-5);
+  z-index: 4;
+  width: min(680px, calc(100vw - 2 * var(--s-5)));
+  overflow: hidden;
+  border-radius: var(--r-panel);
+  isolation: isolate;
+  animation: sheet-in 280ms var(--ease) both;
+}
+.page-paper::before {
+  position: absolute;
+}
+.page-paper.is-turning {
+  animation: none;
+}
+@media (max-width: 640px) {
+  .page-paper {
+    top: var(--topbar-h);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+  }
+}
+.page-frame::before,
+.page-frame::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 150px;
+  height: 28px;
+  margin-left: -75px;
+  background: var(--rubric);
+  -webkit-mask: url('../assets/ornaments/flourish.svg') center / contain no-repeat;
+  mask: url('../assets/ornaments/flourish.svg') center / contain no-repeat;
+  opacity: 0.8;
+}
+/* The top flourish sits on the frame, just under the arrows' bar; the bottom one is turned over. */
+.page-frame::before {
+  top: 2px;
+  transform: scaleY(-1);
+}
+.page-frame::after {
+  bottom: 2px;
+}
+.frame-band {
+  position: absolute;
+  top: 40px;
+  bottom: 40px;
+  width: 14px;
+  background: var(--rubric);
+  -webkit-mask: url('../assets/ornaments/flourish-band.svg') 0 calc(var(--scroll, 0) * -0.5px * var(--drift)) / 14px 35px repeat-y;
+  mask: url('../assets/ornaments/flourish-band.svg') 0 calc(var(--scroll, 0) * -0.5px * var(--drift)) / 14px 35px repeat-y;
+  opacity: 0.45;
+}
+.frame-band.is-left {
+  left: 10px;
+}
+.frame-band.is-right {
+  right: 10px;
+  transform: scaleX(-1);
+}
+@media (max-width: 640px) {
+  .frame-band {
+    display: none;
+  }
+}

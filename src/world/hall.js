@@ -6,7 +6,6 @@ import { BOARD, boardLayout } from '../lib/board.js';
 import { BOOTH, buildBooth } from './booth.js';
 import { BACKSTAGE, buildBackstage } from './backstage.js';
 import { buildDesk } from './desk.js';
-import { services } from '../content.js';
 
 // The concert hall, built from primitives in code: no model files, no licences to check, and a
 // small download. Units are metres. The stage is toward -z, the audience toward +z, and the
@@ -259,10 +258,12 @@ export async function buildHall(scene, step) {
   const wallMat = lambert({ map: panelTexture() });
 
   // A textured wall rectangle; UVs are scaled so the panelling keeps its real size.
-  function panel(w, h, matrix, tint) {
+  // A panelled wall, w by h metres. u0 and v0 shift the texture, so a wall built in pieces (around
+  // an opening) still lines up.
+  function panel(w, h, matrix, tint, u0 = 0, v0 = 0) {
     const g = new THREE.PlaneGeometry(w, h);
     const uv = g.attributes.uv;
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * w) / PANEL_TILE, (uv.getY(i) * h) / PANEL_TILE);
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) * w + u0) / PANEL_TILE, (uv.getY(i) * h + v0) / PANEL_TILE);
     panels.add(g, tint, matrix);
   }
 
@@ -270,9 +271,21 @@ export async function buildHall(scene, step) {
   await step('Raising the walls');
   const hallLen = REAR_Z - BACK_Z;
   const midZ = (REAR_Z + BACK_Z) / 2;
-  for (const s of [-1, 1]) {
-    panel(hallLen, CEILING, M(s * WALL_X, CEILING / 2, midZ, 0, -s * Math.PI / 2), COL.mapleDeep);
-    hall.box(0.08, 1.1, hallLen, COL.mahogany, s * (WALL_X - 0.04), 0.55, midZ); // dado
+  panel(hallLen, CEILING, M(-WALL_X, CEILING / 2, midZ, 0, Math.PI / 2), COL.mapleDeep);
+  hall.box(0.08, 1.1, hallLen, COL.mahogany, -(WALL_X - 0.04), 0.55, midZ); // dado
+  // The right wall has an opening behind the stage door, where the backstage corridor runs out
+  // of the hall. It is hidden by the panelling and the gallery except through the door.
+  {
+    const o0 = BACKSTAGE.z - BACKSTAGE.half - 0.05;
+    const o1 = BACKSTAGE.z + BACKSTAGE.half + 0.05;
+    const oTop = BACKSTAGE.floor + BACKSTAGE.height + 0.05;
+    const at = (z0, z1, y0, y1) => panel(z1 - z0, y1 - y0, M(WALL_X, (y0 + y1) / 2, (z0 + z1) / 2, 0, -Math.PI / 2), COL.mapleDeep, z0 - BACK_Z, y0);
+    at(BACK_Z, REAR_Z, oTop, CEILING);
+    at(BACK_Z, o0, 0, oTop);
+    at(o1, REAR_Z, 0, oTop);
+    at(o0, o1, 0, BACKSTAGE.floor);
+    hall.box(0.08, 1.1, o0 - BACK_Z, COL.mahogany, WALL_X - 0.04, 0.55, (BACK_Z + o0) / 2);
+    hall.box(0.08, 1.1, REAR_Z - o1, COL.mahogany, WALL_X - 0.04, 0.55, (o1 + REAR_Z) / 2);
   }
   panel(WALL_X * 2, CEILING, M(0, CEILING / 2, BACK_Z), 0x7a4a2c);
   hall.box(WALL_X * 2, 0.3, hallLen, COL.dark, 0, CEILING + 0.15, midZ); // ceiling
@@ -335,18 +348,19 @@ export async function buildHall(scene, step) {
 
   // The stage door: a frame in the panelling, the door swung wide open into the hall, and
   // backstage behind it.
+  let back = null;
   {
     const { z: dz, w: dw, h: dh } = BACKSTAGE.door;
-    for (const s of [-1, 1]) hall.box(0.14, dh, 0.08, COL.mahogany, 11.27, dh / 2, dz + s * (dw / 2 + 0.03));
-    hall.box(0.14, 0.1, dw + 0.22, COL.mahogany, 11.27, dh + 0.05, dz);
+    const sill = BACKSTAGE.floor; // the door opens off the stage
+    for (const s of [-1, 1]) hall.box(0.14, dh, 0.08, COL.mahogany, 11.27, sill + dh / 2, dz + s * (dw / 2 + 0.03));
+    hall.box(0.14, 0.08, dw + 0.22, COL.mahogany, 11.27, sill + dh + 0.04, dz);
+    hall.box(0.34, 0.04, dw, COL.walnut, 11.15, sill - 0.02, dz); // the threshold, from the stage's edge
     // Hinged on the side away from the audience and swung right back, so it never hides the way in.
     const open = 2.3; // how far the door is swung, in radians
     const leaf = dw - 0.06;
     const hinge = new THREE.Vector3(11.26, 0, dz - dw / 2);
-    hall.box(0.05, dh - 0.06, leaf, COL.walnut, hinge.x - Math.sin(open) * (leaf / 2), (dh - 0.06) / 2, hinge.z + Math.cos(open) * (leaf / 2), 0, -open);
-    steady.box(0.05, 0.12, 0.5, 0xffcf8a, 11.2, dh + 0.25, dz);
-    const back = buildBackstage(scene, services);
-    glowSmall.push(...back.glows);
+    hall.box(0.05, dh - 0.06, leaf, COL.walnut, hinge.x - Math.sin(open) * (leaf / 2), sill + (dh - 0.06) / 2, hinge.z + Math.cos(open) * (leaf / 2), 0, -open);
+    back = buildBackstage(scene);
   }
 
   // The Notice Board: a corkboard beside the stage door, with Wyclef's notes pinned on it. These
@@ -366,7 +380,12 @@ export async function buildHall(scene, step) {
   }
   fx.boardNotes = new THREE.Mesh(notes.geometry(), lambert());
   scene.add(fx.boardNotes);
-  glowSmall.push([10.95, BOARD.y + 0.5, BOARD_Z, 0xffd9a8]);
+  // A brass picture lamp over the board, so it reads from across the hall.
+  hall.box(0.06, 0.05, 1.4, COL.brass, FACE - 0.16, BOARD.y + BOARD.h / 2 + 0.06, BOARD_Z);
+  for (const dz of [-0.5, 0.5]) hall.box(0.2, 0.025, 0.025, COL.brass, FACE - 0.08, BOARD.y + BOARD.h / 2 + 0.06, BOARD_Z + dz);
+  steady.box(0.02, 0.025, 1.3, 0xffe9c4, FACE - 0.16, BOARD.y + BOARD.h / 2 + 0.03, BOARD_Z);
+  glowBig.push([FACE - 0.3, BOARD.y + 0.62, BOARD_Z, 0xffd9a8]);
+  glowSmall.push([FACE - 0.2, BOARD.y + BOARD.h / 2, BOARD_Z - 0.4, 0xffe2b0], [FACE - 0.2, BOARD.y + BOARD.h / 2, BOARD_Z + 0.4, 0xffe2b0]);
   // The desk under it, where visitors leave their notes.
   glowSmall.push(...buildDesk(scene).glows);
 
@@ -517,11 +536,16 @@ export async function buildHall(scene, step) {
     const zB = -12.6 + len / 2;
     panel(len, 3.24, M(-11.3, 1.62, -12.6, 0, Math.PI / 2), COL.maple);
     const { z: dz, w: dw, h: dh } = BACKSTAGE.door;
+    const sill = BACKSTAGE.floor;
     const d0 = dz - dw / 2;
     const d1 = dz + dw / 2;
     panel(d0 - zA, 3.24, M(11.3, 1.62, (zA + d0) / 2, 0, -Math.PI / 2), COL.maple);
-    panel(zB - d1, 3.24, M(11.3, 1.62, (d1 + zB) / 2, 0, -Math.PI / 2), COL.maple);
-    panel(dw, 3.24 - dh, M(11.3, dh + (3.24 - dh) / 2, dz, 0, -Math.PI / 2), COL.maple);
+    panel(zB - d1, 3.24, M(11.3, 1.62, (d1 + zB) / 2, 0, -Math.PI / 2), COL.maple, d1 - zA);
+    panel(dw, 3.24 - sill - dh, M(11.3, sill + dh + (3.24 - sill - dh) / 2, dz, 0, -Math.PI / 2), COL.maple, d0 - zA, sill + dh);
+    panel(dw, sill, M(11.3, sill / 2, dz, 0, -Math.PI / 2), COL.maple, d0 - zA);
+    // A return at the panelling's open end, closing the space behind it (and the corridor) off
+    // from the stalls.
+    hall.box(WALL_X - 11.3, 3.42, 0.06, COL.mapleDeep, (WALL_X + 11.3) / 2, 1.71, zB);
   }
 
   // Organ above the choir: case, shelf, and towers of pipes
@@ -727,8 +751,8 @@ export async function buildHall(scene, step) {
   };
   const proxies = {
     work: box(BOOTH.glassX - BOOTH.backX + 0.2, BOOTH.roofY - BOOTH.floorY + 0.2, BOOTH.width + 0.2, (BOOTH.glassX + BOOTH.backX) / 2, (BOOTH.floorY + BOOTH.roofY) / 2, BOOTH.z),
-    music: box(18, 3.2, 11.5, 0, STAGE_TOP + 1.6, -12.75),
-    services: box(0.9, 2.6, 1.7, 11.0, 1.3, ROOM_Z),
+    music: box(16, 2.6, 10, 0, STAGE_TOP + 1.3, -12.2), // the orchestra, not the whole stage
+    services: box(0.9, BACKSTAGE.door.h + 0.2, 1.7, 11.0, BACKSTAGE.floor + BACKSTAGE.door.h / 2, ROOM_Z),
     wall: box(1.0, BOARD.y + BOARD.h / 2 - STAGE_TOP, BOARD.w, 10.9, (STAGE_TOP + BOARD.y + BOARD.h / 2) / 2, BOARD_Z), // board and desk
     about: box(1.4, 2.4, 1.6, C.x, STAGE_TOP + 1.2, C.z),
   };
@@ -737,7 +761,7 @@ export async function buildHall(scene, step) {
   const roomAnchors = {
     work: new THREE.Vector3(BOOTH.glassX + 0.2, BOOTH.roofY + 0.45, BOOTH.z),
     music: new THREE.Vector3(0, STAGE_TOP + 3.6, -12.5),
-    services: new THREE.Vector3(10.9, 2.95, ROOM_Z),
+    services: new THREE.Vector3(10.9, BACKSTAGE.floor + BACKSTAGE.door.h + 0.35, ROOM_Z),
     wall: new THREE.Vector3(10.9, BOARD.y + BOARD.h / 2 + 0.4, BOARD_Z),
     about: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
   };
@@ -749,10 +773,8 @@ export async function buildHall(scene, step) {
     work: { at: [BOOTH.glassX, 9.95, BOOTH.z], face: [1, 0, 0], size: [BOOTH.width + 0.5, 2.15], eye: 10.15 },
     // Services: backstage, from the far end of the passage, looking back along the posters to the
     // lit stage door.
-    services: { pos: [11.6, 1.68, -14.9], target: [12.86, 1.52, -11.6], via: [
-        { pos: [10.2, 1.7, -10.4], target: [12.9, 1.6, -10.6] },
-        { pos: [11.85, 1.7, -10.4], target: [12.9, 1.6, -12.4] },
-      ] },
+    // Services: the stage door, straight on, with the corridor running away behind it.
+    services: { at: [11.3, BACKSTAGE.floor + 1.15, BACKSTAGE.door.z], face: [-1, 0, 0], size: [3.4, 2.9], eye: BACKSTAGE.floor + 1.6 },
     wall: { at: [BOARD.x - 0.07, BOARD.y, BOARD_Z], face: [-1, 0, 0], size: [BOARD.w + 0.3, BOARD.h + 0.35], eye: BOARD.y + 0.1 },
     // The desk under the board, seen from in front and above, as when standing to write.
     desk: { pos: [9.85, 3.05, -14.4], target: [10.86, 1.77, -14.4] },
@@ -854,6 +876,28 @@ export async function buildHall(scene, step) {
   };
   fx.glowBig = glowPoints(glowBig, 1.1, 0.6);
   fx.glowSmall = glowPoints(glowSmall, 0.45, 0.8);
+
+  // Backstage's lamps: low until Services is chosen, then they come up, and go down again when the
+  // visitor leaves.
+  const backGlow = glowPoints(back.lamps, 0.55, 0);
+  const DIM = 0.22;
+  let backWant = 0;
+  let backLevel = 0;
+  const setBack = (v) => {
+    backLevel = v;
+    back.mesh.material.color.setScalar(DIM + (1 - DIM) * v);
+    backGlow.material.opacity = 0.85 * v;
+  };
+  setBack(0);
+  fx.setBackstageLit = (on, instant) => {
+    backWant = on ? 1 : 0;
+    if (instant) setBack(backWant);
+  };
+  fx.stepBackstage = (dt) => {
+    if (Math.abs(backWant - backLevel) < 0.002) return false;
+    setBack(backLevel + (backWant - backLevel) * Math.min(1, dt * 2.5));
+    return true;
+  };
 
   // Four lights in total. The stage is lit, the house is at half.
   const hemi = new THREE.HemisphereLight(0xffe0bb, 0x2c160c, 1.15);

@@ -2,13 +2,13 @@
 // renders it at runtime, and the build writes each page as its own HTML file (vite.config.js), so
 // every room can be read, shared and indexed without JavaScript. Pages follow one template
 // (design document, section 11): plain title, lead, content, next track, footer.
-import { person, contact, experience, leadership, projects, skills, education, certifications, honors, music, services } from '../content.js';
+import { person, contact, leadership, projects, music, services, credits } from '../content.js';
 import pinsFile from '../content/pins.json' with { type: 'json' };
 import deskFile from '../content/desk.json' with { type: 'json' };
 import { LIMITS, DEFAULT_NOTE } from '../lib/desk.js';
 import { esc } from './resume-markup.js';
 import { pathFor } from '../lib/router.js';
-import { roomNav, caseNav } from './room-nav.js';
+import { roomNav, caseNav, pageFoot } from './room-nav.js';
 
 const ext = (href, label) => `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}</a>`;
 const list = (items) => `<ul>${items.map((b) => `<li>${esc(b)}</li>`).join('')}</ul>`;
@@ -27,10 +27,7 @@ function head(key, title, lead = '') {
 // The end of every room: the footer (the arrows are at the top).
 const foot = () => footer();
 
-const footer = () => `
-    <footer class="doc-foot">
-      <p>No cookies, no tracking. <a href="${pathFor('privacy')}">Privacy</a></p>
-    </footer>`;
+const footer = pageFoot;
 
 const entry = (e) => `
   <article class="entry">
@@ -79,14 +76,6 @@ function project(slug) {
       <p class="doc-lead">${esc(p.oneLine)}</p>
     </header>
     ${definitions(credits, 'skills credits')}
-    ${
-      p.flow
-        ? `<figure class="flow">
-            <ol class="flow-steps">${p.flow.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
-            ${p.flowNote ? `<figcaption>${esc(p.flowNote)}</figcaption>` : ''}
-          </figure>`
-        : ''
-    }
     <section aria-labelledby="h-built"><h2 id="h-built">What I built</h2>${list(p.bullets)}</section>
     ${p.results ? `<section aria-labelledby="h-results"><h2 id="h-results">Results</h2>${list(p.results)}</section>` : ''}
     ${footer()}`;
@@ -200,7 +189,7 @@ function noticeBoard() {
 
 function privacy() {
   return `
-    ${head('privacy', 'Privacy')}
+    ${head('privacy', 'Privacy and credits')}
     <p class="doc-lead">This site sets no cookies, runs no analytics and loads nothing from other companies.</p>
     <section aria-labelledby="h-stored">
       <h2 id="h-stored">What is stored, and where</h2>
@@ -216,6 +205,10 @@ function privacy() {
       <p>Before any feature that stores data goes live, such as notes on the notice board, this page will say exactly what is kept, why and for how long. Questions: ${esc(contact.email)}.</p>
       <p class="when">Last updated 24 November 2026.</p>
     </section>
+    <section aria-labelledby="h-credits">
+      <h2 id="h-credits">Credits</h2>
+      ${list(credits)}
+    </section>
     ${footer()}`;
 }
 
@@ -227,7 +220,7 @@ const ROOMS = {
   music: { title: () => 'Music', markup: studio },
   services: { title: () => 'Services', markup: boxOffice },
   wall: { title: () => 'Notice board', markup: noticeBoard },
-  privacy: { title: () => 'Privacy', markup: privacy },
+  privacy: { title: () => 'Privacy and credits', markup: privacy },
 };
 
 export const roomTitle = (key, param) => `${ROOMS[key].title(param)} | ${person.name}`;

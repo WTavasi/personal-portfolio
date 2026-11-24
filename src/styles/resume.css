@@ -4,84 +4,11 @@
 .resume {
   padding-top: var(--topbar-h);
 }
-.p-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3) var(--s-5);
-  background: var(--bg);
-}
-.p-bar a.btn {
-  text-decoration: none;
-}
-.p-bar .btn {
-  width: auto;
-  min-height: 44px;
-  font-size: var(--t-md);
-}
-.p-actions {
-  display: flex;
-  gap: var(--s-2);
-}
-.mail-form {
-  display: grid;
-  gap: var(--s-2);
-  padding: var(--s-4) var(--s-5);
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
-}
-.mail-form[hidden] {
-  display: none;
-}
-.mail-form label {
-  font-weight: 600;
-}
-.mail-row {
-  display: flex;
-  gap: var(--s-2);
-  max-width: 560px;
-}
-.mail-row input {
-  flex: 1;
-  min-width: 0;
-  min-height: 44px;
-  padding: 0 var(--s-3);
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: var(--r-inner);
-  font: inherit;
-}
-.mail-row input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-.mail-row input[aria-invalid='true'] {
-  border-color: var(--danger);
-}
-.mail-row .btn {
-  width: auto;
-  min-height: 44px;
-  font-size: var(--t-md);
-}
-.mail-note {
-  color: var(--text-2);
-  font-size: var(--t-xs);
-  max-width: 60ch;
-}
-@media (max-width: 560px) {
-  .p-bar {
-    flex-wrap: wrap;
-  }
-  .mail-row {
-    flex-direction: column;
-  }
-}
+
 .doc {
   width: min(720px, 100% - 2 * var(--s-5));
   margin: 0 auto;
-  padding: var(--s-8) 0 var(--s-9);
+  padding: var(--s-6) 0 var(--s-7);
 }
 .doc-head h1 {
   font: 600 var(--t-display) / 0.98 var(--font-display);
@@ -93,7 +20,7 @@
   color: var(--text-2);
 }
 .doc-lead {
-  margin-top: var(--s-6);
+  margin-top: var(--s-4);
   font-size: var(--t-lg);
   line-height: 1.5;
 }
@@ -112,21 +39,21 @@
   font-weight: 600;
 }
 .doc section {
-  margin-top: var(--s-8);
+  margin-top: var(--s-6);
 }
 .doc h2 {
-  margin-bottom: var(--s-5);
+  margin-bottom: var(--s-4);
   font: 600 var(--t-xl) / 1.15 var(--font-display);
 }
 .entry + .entry {
-  margin-top: var(--s-6);
+  margin-top: var(--s-5);
 }
 .entry h3,
 .sub-h {
   font: 700 var(--t-md) / 1.35 var(--font-ui);
 }
 .sub-h {
-  margin: var(--s-6) 0 var(--s-2);
+  margin: var(--s-5) 0 var(--s-2);
 }
 .when {
   margin-top: var(--s-1);
@@ -169,7 +96,7 @@
   font-size: var(--t-sm);
 }
 .doc-foot {
-  margin-top: var(--s-9);
+  margin-top: var(--s-7);
   color: var(--text-2);
   font-size: var(--t-sm);
 }
@@ -187,13 +114,6 @@
   .resume {
     background: #fff;
     color: #111;
-  }
-  .p-bar,
-  .mail-form,
-  .about-head,
-  .see-also,
-  .doc-foot {
-    display: none;
   }
   .resume-part {
     margin-top: 0;
@@ -248,7 +168,7 @@
   margin-top: var(--s-4);
 }
 .resume-part {
-  margin-top: var(--s-8);
+  margin-top: var(--s-6);
   scroll-margin-top: calc(var(--topbar-h) + var(--s-8));
 }
 .resume-part:focus {
@@ -258,14 +178,35 @@
   font: 600 var(--t-2xl) / 1 var(--font-display);
   letter-spacing: -0.02em;
 }
-/* About me: the arrows take the whole row; Print and Mail sit under them, on the right. */
-.p-bar:has(.room-nav) {
-  flex-wrap: wrap;
-  justify-content: flex-end;
+
+/* Printing the résumé (the top bar's Résumé menu): only the résumé's own sheet prints, whatever
+   page is open. On screen the sheet is never shown. */
+.print-resume {
+  display: none;
 }
-.p-bar .room-nav {
-  flex: 1 1 100%;
-  position: static;
-  margin: 0;
-  padding: 0;
+.print-only {
+  display: none;
+}
+@media print {
+  body.printing-resume > :not(.print-resume) {
+    display: none !important;
+  }
+  body.printing-resume .print-resume {
+    display: block;
+  }
+  .print-only {
+    display: initial;
+  }
+  p.print-only {
+    display: block;
+  }
+  .screen-only {
+    display: none;
+  }
+  .print-resume .doc {
+    padding: 0;
+  }
+  .print-resume .doc::before {
+    display: none;
+  }
 }
