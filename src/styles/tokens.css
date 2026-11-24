@@ -68,8 +68,9 @@
   color-scheme: dark;
 }
 
-/* Score paper, light. */
-body[data-surface='paper'] {
+/* Score paper, light. Also on .surface-paper: a room page opened over the hall. */
+body[data-surface='paper'],
+.surface-paper {
   --bg: #f3ecdf;
   --surface: #fbf7ef;
   --surface-2: #e7dccb;
@@ -89,7 +90,8 @@ body[data-surface='paper'] {
 
 /* Score paper, dark: for visitors whose system is set to dark. */
 @media (prefers-color-scheme: dark) {
-  body[data-surface='paper'] {
+  body[data-surface='paper'],
+  .surface-paper {
     --bg: #16110e;
     --surface: #211a16;
     --surface-2: #2e2520;

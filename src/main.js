@@ -18,6 +18,8 @@ import { themes, BPM } from './lib/themes.js';
 import { stopTuning } from './lib/audio.js';
 import { startRouter, currentRoute, navigate } from './lib/router.js';
 import { createShell } from './shell.js';
+import { visits } from './lib/visits.js';
+import { pathFor } from './lib/router.js';
 
 // Every page has a real address (see lib/router.js). A recruiter can open <site>/resume and skip
 // everything. Home is the boot screen until the hall is built, then the hall itself.
@@ -66,25 +68,61 @@ document.body.append(shell.tabbar);
 // Screens ask for 'hall' or 'resume'; both the boot screen and the hall live at the home address.
 const go = (name) => navigate(name === 'resume' ? 'resume' : 'home');
 
+// Once the hall is lit, rooms open over it instead of replacing it: the camera moves to the room's
+// place, the hall dims, and the page opens on the right. Without the hall (a direct link, no
+// WebGL) a room is an ordinary page.
+const hallIsOn = () => !!world.api?.revealed && !world.fallback;
+
+// Clicking the dimmed hall around an open room goes back to the hall, as does Esc.
+const backdrop = document.createElement('a');
+backdrop.className = 'over-backdrop';
+backdrop.href = pathFor('home');
+backdrop.tabIndex = -1;
+backdrop.setAttribute('aria-hidden', 'true');
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.body.classList.contains('over-hall') && !e.defaultPrevented) navigate('home');
+});
+
 function route() {
   const where = currentRoute() ?? { key: 'home' };
+  const room = where.key === 'project' ? 'work' : where.key;
   let key = where.key === 'home' ? 'boot' : where.key;
   // The hall must be built before it can be shown.
   if (key === 'boot' && (world.api || world.fallback)) key = 'hall';
-  // Leaving the hall pauses its music (the player that follows you between rooms comes in S3).
-  if (key !== 'boot' && key !== 'hall') {
+  const over = key !== 'boot' && key !== 'hall' && hallIsOn();
+
+  // Without the hall behind it, a page is silent; over the hall, the music carries on.
+  if (key !== 'boot' && key !== 'hall' && !over) {
     themes.pause(0.8);
     stopTuning(0.8);
   }
 
   current?.destroy?.();
-  const next = key in screens ? screens[key]({ go, world }) : roomScreen({ go, world, key, param: where.param });
-  root.replaceChildren(next.el);
+  const next = key in screens ? screens[key]({ go, world, over }) : roomScreen({ go, world, key, param: where.param, over });
+  next.el.classList.toggle('is-over-hall', over);
+  next.el.classList.toggle('surface-paper', over);
+  root.replaceChildren(...(over ? [backdrop, next.el] : [next.el]));
   document.title = next.title;
   document.body.dataset.screen = key;
-  document.body.dataset.surface = next.surface ?? 'hall';
+  document.body.dataset.surface = over ? 'hall' : (next.surface ?? 'hall');
+  document.body.classList.toggle('over-hall', over);
   current = next;
-  shell.update(where.key === 'project' ? 'work' : where.key);
+  shell.update(room);
+
+  // Seat the audience as rooms are visited; the sixth room fills the house.
+  const fullHouse = visits.record(room);
+  if (over) {
+    world.show();
+    world.api.setView(room);
+    world.api.setSelected(room);
+    world.api.setAudience(visits.share());
+    if (fullHouse) {
+      world.api.celebrate();
+      themes.applause();
+    }
+    // The Studio brings the whole orchestra up; every other room keeps it at the hall's level.
+    themes.play(room === 'music' ? 'about' : null);
+  }
   next.mount?.();
 }
 

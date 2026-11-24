@@ -22,7 +22,7 @@ function mailtoFor(to) {
 
 // The résumé is the recruiter view: plain HTML you can read, search, print and link to
 // directly at /resume. It does not depend on the 3D hall or on playing anything.
-export function resumeScreen({ go, world }) {
+export function resumeScreen({ go, world, over = false }) {
   const el = document.createElement('div');
   el.className = 'screen resume';
 
@@ -72,7 +72,7 @@ export function resumeScreen({ go, world }) {
     title: `${person.name} | Résumé`,
     surface: 'paper',
     mount() {
-      world.hide?.();
+      if (!over) world.hide?.();
       window.scrollTo(0, 0);
       el.querySelector('h1').setAttribute('tabindex', '-1');
     },

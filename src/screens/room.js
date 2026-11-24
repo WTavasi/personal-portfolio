@@ -2,7 +2,7 @@
 // rendered from the same markup the build writes as static HTML.
 import { roomMarkup, roomTitle } from './rooms-markup.js';
 
-export function roomScreen({ world, key, param }) {
+export function roomScreen({ world, key, param, over = false }) {
   const el = document.createElement('div');
   el.className = 'screen room';
   el.innerHTML = roomMarkup(key, param);
@@ -23,7 +23,7 @@ export function roomScreen({ world, key, param }) {
     title: roomTitle(key, param),
     surface: 'paper',
     mount() {
-      world.hide?.();
+      if (!over) world.hide?.();
       window.scrollTo(0, 0);
       // Move focus to the new page's heading, so keyboard and screen reader users start there.
       el.querySelector('h1')?.focus({ preventScroll: true });

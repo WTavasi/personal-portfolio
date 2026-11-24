@@ -21,7 +21,7 @@ function block(selectorPattern, from = 0) {
 const tokens = (text) => Object.fromEntries([...text.matchAll(/--([\w-]+):\s*(#[0-9a-f]{6})\b/gi)].map((m) => [m[1], m[2]]));
 
 const root = tokens(block(/:root\s*\{/).body);
-const paperLightBlock = block(/body\[data-surface='paper'\]\s*\{/);
+const paperLightBlock = block(/body\[data-surface='paper'\],\s*\.surface-paper\s*\{/);
 const paperLight = { ...root, ...tokens(paperLightBlock.body) };
 const media = block(/@media \(prefers-color-scheme: dark\)\s*\{/, paperLightBlock.end);
 const paperDark = { ...root, ...tokens(media.body) };

@@ -205,3 +205,56 @@
   color: var(--text);
   font-weight: 600;
 }
+
+/* A room opened over the lit hall: the page sits in a panel on the right (a sheet from the bottom
+   on phones), the hall stays visible and dimmed behind it, and clicking the hall goes back. */
+.over-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+}
+.screen.is-over-hall {
+  position: fixed;
+  top: calc(var(--topbar-h) + var(--s-2));
+  right: var(--s-5);
+  bottom: var(--s-5);
+  z-index: 5;
+  width: min(680px, calc(100vw - 2 * var(--s-5)));
+  min-height: 0;
+  padding-top: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  color: var(--text);
+  border-radius: var(--r-panel);
+  animation: sheet-in 280ms var(--ease) both;
+}
+.is-over-hall .doc {
+  width: auto;
+  margin: 0;
+  padding: var(--s-6) var(--s-6) var(--s-7);
+}
+.is-over-hall .p-bar {
+  background: var(--bg);
+}
+body.over-hall .world {
+  filter: brightness(0.55);
+}
+.world {
+  transition:
+    opacity 700ms var(--ease),
+    filter 400ms var(--ease);
+}
+@media (max-width: 640px) {
+  .screen.is-over-hall {
+    top: var(--topbar-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+  }
+  .is-over-hall .doc {
+    padding: var(--s-5) var(--s-4) var(--s-7);
+  }
+}

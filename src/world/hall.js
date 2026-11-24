@@ -319,6 +319,48 @@ export async function buildHall(scene, step) {
     }
   }
 
+  /* ---------- Rooms you can see from the stalls ---------- */
+  // Each room of the site is a real place in the hall (design document, section 7): the control
+  // booth window high on the left wall, the box office window and the green room door in the
+  // panelling either side of the stage, and the notice board beside the door. The stage itself
+  // is The Studio, and the conductor's score is the résumé.
+  const ROOM_Z = -10.4;
+  // The Booth: a lit control-room window above the left upper gallery, with screens inside.
+  hall.box(0.12, 1.75, 3.6, COL.mahogany, -(WALL_X - 0.07), 9.9, -12.5);
+  steady.box(0.04, 1.4, 3.2, 0x6f97ad, -(WALL_X - 0.15), 9.9, -12.5);
+  for (const [y, z, w] of [[9.75, -13.5, 0.55], [9.75, -12.8, 0.5], [9.8, -11.9, 0.6], [10.25, -11.3, 0.4]]) {
+    steady.box(0.03, 0.32, w, 0xd8efff, -(WALL_X - 0.19), y, z);
+  }
+  hall.box(0.05, 1.4, 0.07, COL.dark, -(WALL_X - 0.2), 9.9, -12.5); // mullion
+  glowBig.push([-(WALL_X - 0.5), 9.9, -12.5, 0x9fc8e0]);
+
+  // Box Office: a ticket window with a counter and a brass plate, left of the stage.
+  hall.box(0.12, 1.55, 2.0, COL.mahogany, -11.24, 1.6, ROOM_Z);
+  steady.box(0.04, 0.95, 1.6, 0xffd6a0, -11.17, 1.7, ROOM_Z);
+  hall.box(0.36, 0.08, 2.1, COL.walnut, -11.1, 1.18, ROOM_Z);
+  steady.box(0.03, 0.2, 1.1, 0xe3b552, -11.16, 2.62, ROOM_Z);
+  glowSmall.push([-10.95, 1.75, ROOM_Z, 0xffd9a8]);
+
+  // Green Room: a stage door, left ajar, with light from backstage, right of the stage.
+  hall.box(0.12, 2.5, 1.45, COL.mahogany, 11.24, 1.25, ROOM_Z);
+  steady.box(0.03, 2.25, 1.2, 0xffe2b0, 11.2, 1.13, ROOM_Z); // the lit doorway behind the door
+  hall.box(0.05, 2.25, 0.95, COL.walnut, 11.06, 1.13, ROOM_Z - 0.35, 0, 0.5); // the door, swung in
+  steady.box(0.05, 0.12, 0.5, 0xffcf8a, 11.17, 2.62, ROOM_Z);
+  glowSmall.push([10.95, 1.4, ROOM_Z, 0xffd9a8]);
+
+  // The Notice Board: a corkboard with notes pinned on it, beside the stage door.
+  const BOARD_Z = -14.4;
+  hall.box(0.08, 1.35, 2.05, COL.walnut, 11.25, 1.8, BOARD_Z);
+  hall.box(0.04, 1.15, 1.85, 0xb07a45, 11.2, 1.8, BOARD_Z);
+  const NOTE_COLS = [COL.paper, 0xe3b552, 0xf3ecdf, 0xd9c9a8, COL.paper, 0xe8d7b0, 0xf6efe2];
+  for (let i = 0; i < NOTE_COLS.length; i++) {
+    const y = 1.45 + (i % 3) * 0.33 + (rand() - 0.5) * 0.06;
+    const z = BOARD_Z - 0.7 + Math.floor(i / 3) * 0.6 + (rand() - 0.5) * 0.12;
+    hall.box(0.012, 0.22, 0.28, NOTE_COLS[i], 11.17, y, z, (rand() - 0.5) * 0.3);
+  }
+  steady.box(0.05, 0.1, 0.6, 0xffcf8a, 11.17, 2.62, BOARD_Z);
+  glowSmall.push([10.95, 2.3, BOARD_Z, 0xffd9a8]);
+
   /* ---------- Audience ---------- */
   await step('Seating the audience');
   const seatMx = [];
@@ -643,21 +685,29 @@ export async function buildHall(scene, step) {
   fx.animate(0, 0, null, 1);
   fx.setAudience(0);
 
-  /* ---------- Sections: what can be clicked, where its marker sits, where the camera goes ---------- */
-  const proxies = { about: new Kit(), ...orchestra.proxies, education: new Kit() };
-  proxies.about.box(1.4, 2.4, 1.6, 0xffffff, C.x, STAGE_TOP + 1.2, C.z);
-  proxies.education.box(19, 2.6, 3.6, 0xffffff, 0, STAGE_TOP + 2.0, -18.8);
-  const mid = (list) => list.reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / list.length);
+  /* ---------- Rooms: what can be clicked, where its marker sits, where the follow spot points ---------- */
+  const box = (w, h, d, x, y, z) => {
+    const k = new Kit();
+    k.box(w, h, d, 0xffffff, x, y, z);
+    return k;
+  };
+  const proxies = {
+    work: box(0.7, 1.9, 3.7, -(WALL_X - 0.3), 9.9, -12.5),
+    music: box(18, 3.2, 11.5, 0, STAGE_TOP + 1.6, -12.75),
+    services: box(0.9, 1.9, 2.3, -11.0, 1.6, ROOM_Z),
+    about: box(0.9, 2.6, 1.7, 11.0, 1.3, ROOM_Z),
+    wall: box(0.9, 1.5, 2.3, 11.0, 1.8, BOARD_Z),
+    resume: box(1.4, 2.4, 1.6, C.x, STAGE_TOP + 1.2, C.z),
+  };
   const proxyMat = new THREE.MeshBasicMaterial();
   const at = (v, dy) => v.clone().setY(v.y + dy);
-  const marks = orchestra.marks;
-  const sectionAnchors = {
-    about: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
-    experience: at(mid(marks.experience), 1.9),
-    projects: at(mid(marks.projects), 2.3),
-    skills: at(mid(marks.skills), 2.2),
-    certifications: at(mid(marks.certifications), 2.2),
-    education: new THREE.Vector3(0, STAGE_TOP + 3.9, -18.9),
+  const roomAnchors = {
+    work: new THREE.Vector3(-(WALL_X - 0.6), 11.2, -12.5),
+    music: new THREE.Vector3(0, STAGE_TOP + 3.6, -12.5),
+    services: new THREE.Vector3(-10.9, 2.95, ROOM_Z),
+    about: new THREE.Vector3(10.9, 2.95, ROOM_Z),
+    wall: new THREE.Vector3(10.9, 2.85, BOARD_Z),
+    resume: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
   };
   fx.sections = {};
   for (const [id, kit] of Object.entries(proxies)) {
@@ -665,7 +715,7 @@ export async function buildHall(scene, step) {
     mesh.visible = false; // never drawn; only used to find what the pointer is over
     mesh.userData.section = id;
     scene.add(mesh);
-    fx.sections[id] = { id, proxy: mesh, anchor: sectionAnchors[id], focus: at(sectionAnchors[id], -1.4) };
+    fx.sections[id] = { id, proxy: mesh, anchor: roomAnchors[id], focus: at(roomAnchors[id], -1.4) };
   }
 
   /* ---------- Lighting ---------- */

@@ -8,13 +8,14 @@ const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)')
 const OVERVIEW = { R: 22.5, swing: 0.28, height: 7.6, target: new THREE.Vector3(0, 4.0, -10.5), period: 60 };
 const BUILD = { R: 30, swing: 0.55, height: 14, target: new THREE.Vector3(0, 3.2, -9), period: 90 };
 const SECTION_VIEWS = {
-  // Each view leaves its section left of centre, clear of the panel on the right.
-  about: { pos: [2.2, 3.3, -1.2], target: [-0.3, 2.0, -8.2] },
-  experience: { pos: [1.2, 4.3, -2.8], target: [-0.6, 1.4, -8.8] },
-  projects: { pos: [-1.2, 5.0, -3.6], target: [2.6, 1.7, -12.2] },
-  skills: { pos: [-5.2, 5.4, -6.4], target: [0.6, 2.2, -15.6] },
-  certifications: { pos: [1.8, 4.6, -7.6], target: [8.2, 2.0, -15.6] },
-  education: { pos: [-2.4, 4.4, -9.6], target: [3.4, 2.6, -19.0] },
+  // One view per room. Each leaves its place left of centre, clear of the page that opens on the
+  // right. (A camera facing +x has +z on its right; one facing -x has -z on its right.)
+  music: { pos: [0, 5.6, 1.5], target: [2.2, 2.4, -13] },
+  resume: { pos: [2.2, 3.3, -1.2], target: [-0.3, 2.0, -8.2] },
+  work: { pos: [-4.5, 8.8, -11.6], target: [-12.9, 9.6, -15.8] },
+  services: { pos: [-4.5, 2.6, -9.6], target: [-11.2, 1.7, -12.2] },
+  about: { pos: [6.2, 3.0, -7.4], target: [12.2, 1.4, -7.6] },
+  wall: { pos: [8.4, 3.6, -10.6], target: [12.4, 1.7, -13.6] },
 };
 const BASE_FOV = 46;
 
