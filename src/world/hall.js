@@ -4,6 +4,8 @@ import { buildOrchestra } from './orchestra.js';
 import { buildCrowd } from './crowd.js';
 import { BOARD, boardLayout } from '../lib/board.js';
 import { BOOTH, buildBooth } from './booth.js';
+import { BACKSTAGE, buildBackstage } from './backstage.js';
+import { services } from '../content.js';
 
 // The concert hall, built from primitives in code: no model files, no licences to check, and a
 // small download. Units are metres. The stage is toward -z, the audience toward +z, and the
@@ -323,27 +325,28 @@ export async function buildHall(scene, step) {
 
   /* ---------- Rooms you can see from the stalls ---------- */
   // Each room of the site is a real place in the hall (design document, section 7): the control
-  // booth window high on the left wall, the box office window and the green room door in the
-  // panelling either side of the stage, and the notice board beside the door. The stage itself
-  // is The Studio, and the conductor's score is the résumé.
+  // control booth high on the left wall (Work), the stage (Music), the stage door on the right,
+  // open onto backstage (Services), the podium (About me), and the notice board beside the door.
   const ROOM_Z = -10.4;
   // The Booth: the control room above the left upper gallery, with two engineers at the desk.
   const booth = buildBooth(scene);
   glowSmall.push(...booth.glows);
 
-  // Box Office: a ticket window with a counter and a brass plate, left of the stage.
-  hall.box(0.12, 1.55, 2.0, COL.mahogany, -11.24, 1.6, ROOM_Z);
-  steady.box(0.04, 0.95, 1.6, 0xffd6a0, -11.17, 1.7, ROOM_Z);
-  hall.box(0.36, 0.08, 2.1, COL.walnut, -11.1, 1.18, ROOM_Z);
-  steady.box(0.03, 0.2, 1.1, 0xe3b552, -11.16, 2.62, ROOM_Z);
-  glowSmall.push([-10.95, 1.75, ROOM_Z, 0xffd9a8]);
-
-  // Green Room: a stage door, left ajar, with light from backstage, right of the stage.
-  hall.box(0.12, 2.5, 1.45, COL.mahogany, 11.24, 1.25, ROOM_Z);
-  steady.box(0.03, 2.25, 1.2, 0xffe2b0, 11.2, 1.13, ROOM_Z); // the lit doorway behind the door
-  hall.box(0.05, 2.25, 0.95, COL.walnut, 11.06, 1.13, ROOM_Z - 0.35, 0, 0.5); // the door, swung in
-  steady.box(0.05, 0.12, 0.5, 0xffcf8a, 11.17, 2.62, ROOM_Z);
-  glowSmall.push([10.95, 1.4, ROOM_Z, 0xffd9a8]);
+  // The stage door: a frame in the panelling, the door swung wide open into the hall, and
+  // backstage behind it.
+  {
+    const { z: dz, w: dw, h: dh } = BACKSTAGE.door;
+    for (const s of [-1, 1]) hall.box(0.14, dh, 0.08, COL.mahogany, 11.27, dh / 2, dz + s * (dw / 2 + 0.03));
+    hall.box(0.14, 0.1, dw + 0.22, COL.mahogany, 11.27, dh + 0.05, dz);
+    // Hinged on the side away from the audience and swung right back, so it never hides the way in.
+    const open = 2.3; // how far the door is swung, in radians
+    const leaf = dw - 0.06;
+    const hinge = new THREE.Vector3(11.26, 0, dz - dw / 2);
+    hall.box(0.05, dh - 0.06, leaf, COL.walnut, hinge.x - Math.sin(open) * (leaf / 2), (dh - 0.06) / 2, hinge.z + Math.cos(open) * (leaf / 2), 0, -open);
+    steady.box(0.05, 0.12, 0.5, 0xffcf8a, 11.2, dh + 0.25, dz);
+    const back = buildBackstage(scene, services);
+    glowSmall.push(...back.glows);
+  }
 
   // The Notice Board: a corkboard beside the stage door, with Wyclef's notes pinned on it. These
   // are painted notes, seen from across the hall; when the camera faces the board the real notes
@@ -504,10 +507,19 @@ export async function buildHall(scene, step) {
   scene.add(stage);
   const levelY = (lv) => STAGE_TOP + riserH * lv;
 
-  // Panelling under the galleries, beside the stage
-  for (const sx of [-1, 1]) {
+  // Panelling under the galleries, beside the stage. On the right it has the stage door cut
+  // into it, which opens backstage (Services).
+  {
     const len = 8.6;
-    panel(len, 3.24, M(sx * 11.3, 1.62, -12.6, 0, (-sx * Math.PI) / 2), COL.maple);
+    const zA = -12.6 - len / 2;
+    const zB = -12.6 + len / 2;
+    panel(len, 3.24, M(-11.3, 1.62, -12.6, 0, Math.PI / 2), COL.maple);
+    const { z: dz, w: dw, h: dh } = BACKSTAGE.door;
+    const d0 = dz - dw / 2;
+    const d1 = dz + dw / 2;
+    panel(d0 - zA, 3.24, M(11.3, 1.62, (zA + d0) / 2, 0, -Math.PI / 2), COL.maple);
+    panel(zB - d1, 3.24, M(11.3, 1.62, (d1 + zB) / 2, 0, -Math.PI / 2), COL.maple);
+    panel(dw, 3.24 - dh, M(11.3, dh + (3.24 - dh) / 2, dz, 0, -Math.PI / 2), COL.maple);
   }
 
   // Organ above the choir: case, shelf, and towers of pipes
@@ -733,7 +745,12 @@ export async function buildHall(scene, step) {
   // Music and About me are views of the stage, so they are set as a position and a target.
   fx.views = {
     work: { at: [BOOTH.glassX, 9.95, BOOTH.z], face: [1, 0, 0], size: [BOOTH.width + 0.5, 2.15], eye: 10.15 },
-    services: { at: [11.2, 1.5, ROOM_Z], face: [-1, 0, 0], size: [3.0, 3.1], eye: STAGE_TOP + 1.55 },
+    // Services: backstage, from the far end of the passage, looking back along the posters to the
+    // lit stage door.
+    services: { pos: [11.6, 1.68, -14.9], target: [12.86, 1.52, -11.6], via: [
+        { pos: [10.2, 1.7, -10.4], target: [12.9, 1.6, -10.6] },
+        { pos: [11.85, 1.7, -10.4], target: [12.9, 1.6, -12.4] },
+      ] },
     wall: { at: [BOARD.x - 0.07, BOARD.y, BOARD_Z], face: [-1, 0, 0], size: [BOARD.w + 0.3, BOARD.h + 0.35], eye: BOARD.y + 0.1 },
     music: { pos: [0, 5.6, 1.5], target: [0, 2.6, -13] },
     // About me: from the front stalls, facing the podium; the conductor turns to the house.

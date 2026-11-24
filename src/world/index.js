@@ -128,7 +128,16 @@ export async function createWorld({ canvas, onStep }) {
     outTarget.copy(o.target);
     outPos.set(Math.sin(swing) * o.R, o.height, o.target.z + Math.cos(swing) * o.R);
   }
+  // A view behind a wall (backstage) is reached through its doorway: the camera goes to the
+  // doorway first, then on in, and comes back out the same way.
+  let via = []; // [{ pos, target }] to pass through first, in order
   function goal(t) {
+    if (via.length) {
+      goalPos.set(...via[0].pos);
+      goalTarget.set(...via[0].target);
+      if (camPos.distanceToSquared(goalPos) < 0.3) via.shift();
+      return;
+    }
     if (pose === 'build') return orbit(BUILD, t, goalPos, goalTarget);
     if (pose === 'overview') return orbit(OVERVIEW, t, goalPos, goalTarget);
     const v = viewFor(pose);
@@ -349,7 +358,10 @@ export async function createWorld({ canvas, onStep }) {
     },
     // 'overview' or a section id
     setView(name) {
-      pose = name === 'overview' || fx.views[name] ? name : 'overview';
+      const next = name === 'overview' || fx.views[name] ? name : 'overview';
+      // In through the doorway, or back out of it the other way.
+      if (next !== pose) via = fx.views[next]?.via ? [...fx.views[next].via] : fx.views[pose]?.via ? [...fx.views[pose].via].reverse() : [];
+      pose = next;
       dirty = true;
     },
     // Lay the board's notes over the hall: items are { el, u, v } with u and v in metres from the
