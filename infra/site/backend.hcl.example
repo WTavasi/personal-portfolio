@@ -1,0 +1,4 @@
+# Copy to backend.hcl (ignored by git) and set the bucket printed by infra/bootstrap.
+bucket = "wyclef-portfolio-tfstate-<your account id>"
+key    = "site/staging.tfstate"
+region = "us-east-1"

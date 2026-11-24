@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars (ignored by git). The email stays on your machine and in AWS only.
+environment = "staging"
+alert_email = "you@example.com"

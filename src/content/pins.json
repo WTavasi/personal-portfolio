@@ -1,0 +1,60 @@
+{
+  "_howTo": "Wyclef's pins on the Notice Board. To swap one, edit it here (GitHub's web or mobile editor works) and the site redeploys. Fields: category (listening, films, tv, playing or reading), title, creator (optional), note (optional: why it is pinned), link (optional, a plain web address), pinned (the date, YYYY-MM-DD), feature (true for the one pinned larger; at most one).",
+  "categories": {
+    "listening": "Listening",
+    "films": "Films",
+    "tv": "TV",
+    "playing": "Playing",
+    "reading": "Reading"
+  },
+  "pins": [
+    {
+      "category": "listening",
+      "title": "The Romantic era: Mendelssohn and Brahms",
+      "note": "I have played Brahms’s Symphony No. 1 and Tragic Overture as principal clarinet.",
+      "pinned": "2026-11-23",
+      "feature": true
+    },
+    {
+      "category": "listening",
+      "title": "Electronic pop",
+      "creator": "Charli xcx, Shygirl, Tinashe, Rebecca Black, Kim Petras, Rosalía",
+      "pinned": "2026-11-23"
+    },
+    {
+      "category": "films",
+      "title": "Tenet",
+      "creator": "Christopher Nolan",
+      "note": "Score by Ludwig Göransson.",
+      "pinned": "2026-11-23"
+    },
+    {
+      "category": "films",
+      "title": "The Hunger Games: Sunrise on the Reaping",
+      "pinned": "2026-11-23"
+    },
+    {
+      "category": "tv",
+      "title": "The Legend of Korra",
+      "note": "Rewatching.",
+      "pinned": "2026-11-23"
+    },
+    {
+      "category": "tv",
+      "title": "Widow’s Bay",
+      "creator": "Apple TV+",
+      "pinned": "2026-11-23"
+    },
+    {
+      "category": "playing",
+      "title": "Pokémon Legends: Z-A",
+      "pinned": "2026-11-23"
+    },
+    {
+      "category": "reading",
+      "title": "The Technique of Orchestration",
+      "creator": "Kent Wheeler Kennan",
+      "pinned": "2026-11-23"
+    }
+  ]
+}

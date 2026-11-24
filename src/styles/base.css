@@ -3,9 +3,6 @@
 *::after {
   box-sizing: border-box;
 }
-html {
-  color-scheme: dark;
-}
 body {
   margin: 0;
   background: var(--bg);
@@ -32,7 +29,7 @@ button {
   cursor: pointer;
 }
 a {
-  color: var(--accent);
+  color: var(--accent-text);
   text-underline-offset: 0.2em;
 }
 a:hover {
@@ -106,14 +103,14 @@ a:hover {
   font-weight: 700;
 }
 .btn-primary:hover {
-  background: #f1c96b;
+  background: var(--accent-hover);
 }
 .btn-secondary {
   background: var(--surface-2);
   color: var(--text);
 }
 .btn-secondary:hover {
-  background: #33262a;
+  background: var(--surface-2-hover);
 }
 .btn[aria-disabled='true'] {
   color: var(--text-2);

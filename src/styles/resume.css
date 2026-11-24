@@ -1,16 +1,16 @@
 .resume {
   background: var(--bg);
 }
+.resume {
+  padding-top: var(--topbar-h);
+}
 .p-bar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: var(--s-3);
   padding: var(--s-3) var(--s-5);
   background: var(--bg);
-  border-bottom: 1px solid var(--line);
 }
 .p-bar a.btn {
   text-decoration: none;
@@ -58,7 +58,7 @@
   outline-offset: 1px;
 }
 .mail-row input[aria-invalid='true'] {
-  border-color: #e0806b;
+  border-color: var(--danger);
 }
 .mail-row .btn {
   width: auto;
@@ -189,8 +189,17 @@
     color: #111;
   }
   .p-bar,
-  .mail-form {
+  .mail-form,
+  .about-head,
+  .see-also,
+  .doc-foot {
     display: none;
+  }
+  .resume-part {
+    margin-top: 0;
+  }
+  .resume-name {
+    font-size: 2.6rem;
   }
   .doc {
     width: 100%;
@@ -217,4 +226,46 @@
   .entry {
     break-inside: avoid;
   }
+}
+
+/* About me: the introduction, its links to the other rooms, then the résumé. */
+.doc .about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-5);
+  margin: var(--s-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.doc .about-links li + li {
+  margin-top: 0;
+}
+.about-links a,
+.see-also a {
+  font-weight: 600;
+}
+.see-also {
+  margin-top: var(--s-4);
+}
+.resume-part {
+  margin-top: var(--s-8);
+  scroll-margin-top: calc(var(--topbar-h) + var(--s-8));
+}
+.resume-part:focus {
+  outline: none;
+}
+.resume-name {
+  font: 600 var(--t-2xl) / 1 var(--font-display);
+  letter-spacing: -0.02em;
+}
+/* About me: the arrows take the whole row; Print and Mail sit under them, on the right. */
+.p-bar:has(.room-nav) {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.p-bar .room-nav {
+  flex: 1 1 100%;
+  position: static;
+  margin: 0;
+  padding: 0;
 }

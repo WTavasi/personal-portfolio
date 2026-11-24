@@ -61,6 +61,7 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 - Measured in a software renderer at Retina density: v0.2 took 6.7 s per frame, v0.2.1 1.3 s, v0.5 1.5 s, and v0.6 (detailed audience) 1.75 s with a full house. Real GPUs are far faster; the ratio is the point.
 
 ## Design system (src/styles/tokens.css)
+- Surfaces: the dark hall (default) and score paper for reading pages (`<body data-surface="paper">`), light or dark with the visitor's system setting. The redesign document (section 10) is the reference from here on.
 - Colour: warm near-black surfaces, one accent (brass #e3b552) used for the primary action, selected states and links. Crimson appears only inside the 3D hall.
 - Spacing: 4px base (4, 8, 12, 16, 24, 32, 48, 64, 96). Related things sit close, groups are separated by the larger steps. No dividers, borders or coloured-edge cards for grouping.
 - Type: Fraunces (display and section headings, upright only), Figtree (UI and body), Space Mono (boot log only). Numerals use tabular figures. Headings use balanced wrapping.
@@ -68,22 +69,8 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 - Feedback: state changes are instant. Movement is the feedback (press shifts 1px, panels slide in, the camera glides to what was chosen). Nothing fades on hover.
 - Icons: none. Labels do the work.
 
-## Contrast (computed by scripts/contrast.py)
-```
-PASS 17.37:1 (need 7) body text: text on bg
-PASS 11.08:1 (need 7) secondary text: text2 on bg
-PASS  7.29:1 (need 4.5) tertiary text, 14px+: muted on bg
-PASS 16.28:1 (need 7) text on panel: text on surface
-PASS 10.39:1 (need 7) secondary on panel: text2 on surface
-PASS  6.83:1 (need 4.5) tertiary on panel: muted on surface
-PASS  9.63:1 (need 7) CTA label: onAccent on accent
-PASS 10.49:1 (need 4.5) accent text/link on bg: accent on bg
-PASS  9.83:1 (need 4.5) accent on panel: accent on surface
-PASS 14.70:1 (need 7) text on surface2 (section buttons)
-PASS  4.49:1 (need 3) borders and focus (UI components): line on bg
-PASS  8.88:1 (need 3) accent focus ring on panel: accent on surface2
-PASS 18.88:1 (need 7) print: ink on paper
-```
+## Contrast
+Checked by `npm run check:contrast` (scripts/contrast.mjs), which reads `src/styles/tokens.css` and tests every text and control pair on each surface (hall, paper light, paper dark) against WCAG 2.2 AA. It runs before every build, so a failing pair stops the deploy.
 
 ## Accessibility
 - Every action works by keyboard: Enter opens the hall, the section list opens each panel, Esc closes it and returns focus. One visible focus style.

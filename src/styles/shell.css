@@ -1,0 +1,289 @@
+/* The shared top bar. Over the hall it floats on the hall's own scrim; on paper pages it sits on
+   the page colour. Grouped by spacing only: no dividers. */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--s-5);
+  min-height: var(--topbar-h);
+  padding: var(--s-4) var(--s-6);
+  pointer-events: none;
+}
+.topbar > * {
+  pointer-events: auto;
+}
+body[data-surface='paper'] .topbar {
+  background: var(--bg);
+}
+.topbar-name {
+  color: var(--text);
+  font: 600 var(--t-xl) / 1.1 var(--font-display);
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+.topbar-name:hover {
+  color: var(--accent-text);
+}
+.topbar-role {
+  margin-top: var(--s-1);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+/* The role line belongs to the hall; every other page states what it is in its heading. */
+body:not([data-screen='hall']) .topbar-role {
+  display: none;
+}
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.topbar-btn {
+  width: auto;
+  min-height: 44px;
+  padding: 0 var(--s-4);
+}
+.topbar-btn[aria-expanded='true'] {
+  background: var(--surface-2-hover);
+}
+a.topbar-btn {
+  text-decoration: none;
+}
+
+/* The mini-player (sound desk): play or pause, what is playing, and volume. It appears once
+   anything has played and stays on every page. */
+.player {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 44px;
+  padding: var(--s-1) var(--s-3) var(--s-1) var(--s-1);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+.player[hidden] {
+  display: none;
+}
+.player-play {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-inner);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.player-play:hover {
+  background: var(--accent-hover);
+}
+.player-play:active {
+  transform: translateY(1px);
+}
+.player-now {
+  display: grid;
+  margin: 0;
+  line-height: 1.2;
+}
+.player-title {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+.player-cat {
+  font: 400 var(--t-sm) / 1.2 var(--font-mono);
+  color: var(--text-2);
+}
+.player-vol {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+.player-vol input {
+  width: 6rem;
+  accent-color: var(--accent);
+}
+
+.tracklist-setting {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  margin-top: var(--s-2);
+  padding: 0 var(--s-3);
+  font-size: var(--t-sm);
+  color: var(--text-2);
+}
+.tracklist-setting[hidden] {
+  display: none;
+}
+.tracklist-setting input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+/* Quiet text button, used for secondary controls such as Sound. */
+.link-quiet {
+  min-height: 44px;
+  padding: var(--s-2) var(--s-3);
+  background: none;
+  border: 0;
+  color: var(--text);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-color: var(--line);
+}
+.link-quiet:hover {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
+}
+
+/* The Tracklist menu: a numbered list of the rooms, like an album's track list. */
+.tracklist {
+  position: relative;
+}
+.tracklist-panel {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  right: 0;
+  width: min(320px, calc(100vw - 2 * var(--s-4)));
+  padding: var(--pad-panel);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-panel);
+}
+.tracklist-panel[hidden] {
+  display: none;
+}
+.tracks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.track {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  align-items: baseline;
+  gap: var(--s-3);
+  min-height: 48px;
+  padding: var(--s-3);
+  border-radius: var(--r-inner);
+  color: var(--text);
+  text-decoration: none;
+}
+.track:hover {
+  background: var(--surface-2);
+}
+.track:active {
+  transform: translateY(1px);
+}
+.track-no {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.track-name {
+  font-weight: 600;
+}
+/* The notice board: set apart below the tracks, with a red dot instead of a number. */
+.track-extra {
+  margin-top: var(--s-2);
+}
+.track-extra .track-no::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--extra);
+}
+.track[aria-current='page'] .track-name,
+.track[aria-current='page'] .track-no {
+  color: var(--accent-text);
+}
+.tracklist-extra {
+  display: none;
+  margin-top: var(--s-2);
+}
+
+/* Phones: name and Tracklist only; sound and résumé move into the menu. */
+@media (max-width: 640px) {
+  .topbar {
+    padding: var(--s-3) var(--s-4);
+  }
+  .topbar-name {
+    font-size: var(--t-lg);
+  }
+  .topbar-role {
+    display: none;
+  }
+  .topbar-sound,
+  .topbar-resume {
+    display: none;
+  }
+  .tracklist-extra {
+    display: grid;
+  }
+  /* Phones keep only the play button; volume is the device's own. */
+  .player {
+    padding: var(--s-1);
+  }
+  .player-now,
+  .player-vol {
+    display: none;
+  }
+}
+/* Mid widths: the title gives way before the name and the Tracklist do. */
+@media (max-width: 1024px) {
+  .player-now {
+    display: none;
+  }
+}
+
+/* Tab bar: phones only, on paper pages (the hall keeps its own section bar until stage S3). */
+.tabbar {
+  display: none;
+}
+@media (max-width: 640px) {
+  body[data-surface='paper'] .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    justify-content: center;
+    gap: var(--s-1);
+    padding: var(--s-1) var(--s-2) calc(var(--s-1) + env(safe-area-inset-bottom));
+    background: var(--surface);
+  }
+  body[data-surface='paper'] #app {
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+  }
+  .tab {
+    display: grid;
+    place-items: center;
+    min-height: 48px;
+    border-radius: var(--r-inner);
+    color: var(--text-2);
+    padding: 0 var(--s-1);
+    font-size: var(--t-sm);
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .tab[aria-current='page'] {
+    color: var(--accent-text);
+    background: var(--surface-2);
+  }
+}

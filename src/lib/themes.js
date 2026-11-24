@@ -8,7 +8,10 @@
 // - Every change lands on the beat (or on the next bar line when that is close), so sections
 //   come in on cue instead of mid-phrase.
 // - Everything goes through one bus and a limiter, so the full orchestra plus applause never clips.
-// - Leaving the hall pauses the music and coming back picks it up where it left off.
+// - Leaving the hall pauses the music and coming back picks it up where it left off, unless the
+//   visitor started it from the player: music they chose keeps playing across pages.
+// - Each room has its own tone (setTone): the Booth hears the hall through glass, the foyer rooms
+//   hear it far away, and a page dips it so it is easy to read over.
 //
 // The files in src/assets/themes/ are generated placeholders. To use your own piece, replace them
 // with your stems under the same names. Every stem must be the same length and tempo and loop
@@ -20,6 +23,9 @@ import { prepareApplause, prepareApplauseLoop } from './applause.js';
 // Get both applause recordings ready in the background.
 export const prepareApplauseAll = () => Promise.all([prepareApplause(), prepareApplauseLoop()]);
 export { prepareApplause };
+
+// What the player shows while the hall theme plays. The Studio's pieces (stage S4) add their own.
+export const NOW_PLAYING = { title: 'Hall theme', category: 'The hall' };
 
 export const BPM = 80;
 export const BEATS_PER_BAR = 4;
@@ -68,6 +74,22 @@ let set = null; // what is playing: { t0, length, sources, gains, stopping, time
 let starting = null; // Promise while the first play() is waiting for the stems
 let focus = null;
 let resumeAt = 0; // position in the loop, in seconds, to pick up from after a pause
+let chosen = false; // the visitor pressed play themselves: keep playing across pages and tabs
+let held = false; // the visitor pressed pause: nothing starts the music again but them
+let everPlayed = false;
+const listeners = new Set();
+const notify = () => listeners.forEach((fn) => fn());
+
+// Room tone: a filter and a level after the mix, before the limiter.
+const TONES = {
+  hall: { cutoff: 20000, level: 1, hum: 0 },
+  page: { cutoff: 20000, level: 0.55, hum: 0 }, // a dip while a page is open
+  booth: { cutoff: 700, level: 0.75, hum: 0.012 }, // through the control-room glass, desk hum
+  foyer: { cutoff: 1800, level: 0.45, hum: 0 }, // far away, quiet enough to read over
+};
+const TONE_FOR = { work: 'booth', services: 'foyer', about: 'foyer', wall: 'foyer' };
+let tone = null; // { filter, level, hum }
+let toneName = 'hall';
 
 // Applause. Once the house is full the audience never really stops: after the ovation they keep
 // applauding steadily, a little under the music, for as long as the visitor stays in the hall.
@@ -128,17 +150,51 @@ function output() {
     limiter.release.value = 0.2;
     bus = ctx.createGain();
     bus.gain.value = 0.8; // headroom for the limiter's own make-up gain
-    bus.connect(limiter).connect(out);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.Q.value = 0.5;
+    const level = ctx.createGain();
+    // The desk hum: a quiet mains hum with its first harmonic, only heard in the Booth.
+    const hum = ctx.createGain();
+    hum.gain.value = 0;
+    for (const [f, a] of [[60, 1], [120, 0.5]]) {
+      const osc = ctx.createOscillator();
+      osc.frequency.value = f;
+      const g = ctx.createGain();
+      g.gain.value = a;
+      osc.connect(g).connect(hum);
+      osc.start();
+    }
+    bus.connect(filter).connect(level).connect(limiter).connect(out);
+    hum.connect(limiter);
+    tone = { filter, level, hum };
+    setToneNow(toneName, 0);
   }
   if (!watching) {
     watching = true;
-    // Pause with the tab; the stems stay in step because the whole clock stops.
+    // Pause with the tab, unless the visitor chose the music: then it plays on in the background,
+    // like any music site. The stems stay in step because the whole clock stops.
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) ctx.suspend();
-      else ctx.resume();
+      if (document.hidden && !(chosen && set && !set.stopping)) ctx.suspend();
+      else if (!document.hidden) ctx.resume();
     });
   }
   return bus;
+}
+
+function setToneNow(name, glide) {
+  toneName = TONES[name] ? name : 'hall';
+  if (!tone) return;
+  const t = TONES[toneName];
+  const now = ctx.currentTime;
+  for (const [param, value] of [
+    [tone.filter.frequency, t.cutoff],
+    [tone.level.gain, t.level],
+    [tone.hum.gain, set && !set.stopping ? t.hum : 0],
+  ]) {
+    hold(param, now);
+    param.setTargetAtTime(value, now, Math.max(0.001, glide / 3));
+  }
 }
 
 const levelFor = (name) => {
@@ -244,6 +300,7 @@ export const themes = {
   // long to wait before the downbeat, so the conductor can raise the baton and give the upbeat.
   async play(section = null, { countIn = 0.1 } = {}) {
     focus = section;
+    if (held) return; // the visitor paused it; only the player starts it again
     if (set) {
       if (set.stopping) {
         revive();
@@ -258,11 +315,14 @@ export const themes = {
     if (!output()) return;
     if (ctx.state === 'suspended' && !document.hidden) ctx.resume();
     starting = preloadThemes().then((stems) => {
-      if (!set && Object.keys(stems).length) start(stems, countIn);
+      if (!set && Object.keys(stems).length && !held) start(stems, countIn);
       if (applauding) startCrowd(ctx.currentTime + 0.2, 0.9); // back from the résumé
     });
     await starting;
     starting = null;
+    setToneNow(toneName, 0.3); // brings the Booth's hum in with the music
+    if (set) everPlayed = true;
+    notify();
   },
 
   // Fade out and remember where the music was, so play() picks up from there.
@@ -283,6 +343,42 @@ export const themes = {
       for (const g of Object.values(was.gains)) g.disconnect();
       set = null;
     }, (fade + 0.05) * 1000);
+    if (tone) {
+      hold(tone.hum.gain, now);
+      tone.hum.gain.linearRampToValueAtTime(0, now + fade);
+    }
+    notify();
+  },
+
+  // The player's own controls. Play marks the music as the visitor's choice, so it keeps playing
+  // across pages; pause holds it until they press play again.
+  resume() {
+    held = false;
+    chosen = true;
+    return this.play(focus);
+  },
+  hold(fade = 0.5) {
+    held = true;
+    chosen = false;
+    this.pause(fade);
+  },
+  get chosen() {
+    return chosen;
+  },
+  get held() {
+    return held;
+  },
+  get everPlayed() {
+    return everPlayed;
+  },
+  onChange(fn) {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+  },
+
+  // The room's tone: 'hall', 'page', or a room key (work, services, about, wall).
+  setTone(where, glide = 0.8) {
+    setToneNow(TONE_FOR[where] ?? where, glide);
   },
 
   get playing() {

@@ -86,7 +86,14 @@ class Rig {
   }
   // Parts added after this turn around `joint` (an elbow) while their section plays.
   move(joint, axis, amp, phase = 0) {
-    this.moves.push({ joint: joint.clone(), axis: axis.clone().normalize(), amp, phase });
+    this.moves.push({ joint: joint.clone(), axis: axis.clone().normalize(), amp, phase, kind: 'turn' });
+    this.cur = this.moves.length - 1;
+    return this;
+  }
+  // Parts added after this slide along `axis` while their section plays, up to `length` metres
+  // each way, each point by `weight(point)` of that (1 moves fully, 0 stays put): a bow stroke.
+  slide(axis, length, weight, phase = 0) {
+    this.moves.push({ joint: V(0, 0, 0), axis: axis.clone().normalize(), amp: length, phase, kind: 'slide', weight });
     this.cur = this.moves.length - 1;
     return this;
   }
@@ -127,19 +134,24 @@ class Rig {
     return this.tube(a, b, t / 2, t / 2, color, 4);
   }
   build() {
+    const pt = new THREE.Vector3();
     const geos = this.parts.map(({ g, color, move }) => {
       const n = g.attributes.position.count;
       const col = new Float32Array(n * 3);
       const tone = new Float32Array(n);
       const mv = new Float32Array(n).fill(move);
+      const wt = new Float32Array(n).fill(1);
+      const weight = this.moves[move]?.weight;
       const c = typeof color === 'number' ? linear(color) : null;
       for (let i = 0; i < n; i++) {
         if (c) col.set([c.r, c.g, c.b], i * 3);
         tone[i] = color === 'skin' ? 1 : color === 'hair' ? 2 : 0;
+        if (weight) wt[i] = weight(pt.fromBufferAttribute(g.attributes.position, i));
       }
       g.setAttribute('color', new THREE.BufferAttribute(col, 3));
       g.setAttribute('aTone', new THREE.BufferAttribute(tone, 1));
       g.setAttribute('aMove', new THREE.BufferAttribute(mv, 1));
+      g.setAttribute('aW', new THREE.BufferAttribute(wt, 1));
       return g;
     });
     const geo = mergeGeometries(geos, false);
@@ -152,7 +164,7 @@ class Rig {
     }
     const idx = geo.index.array;
     for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
-    const moves = this.moves.map((m) => m && { ...m, joint: m.joint.clone().setX(-m.joint.x), axis: m.axis.clone().setX(-m.axis.x) });
+    const moves = this.moves.map((m) => m && { ...m, weight: null, joint: m.joint.clone().setX(-m.joint.x), axis: m.axis.clone().setX(-m.axis.x) });
     return { geo, moves };
   }
 }
@@ -298,9 +310,10 @@ function stringed(r, B, s, endpin = 0) {
 }
 
 // A bow lying across the strings, its hair through `contact`, frog toward the player's right.
-// The bowing forearm and the bow swing together around the elbow, so the hair slides along the
-// strings while the hand keeps hold of the frog.
-function bowingArm(r, S, ins, s, pole, amp) {
+// A stroke is what a real one is: the bow slides along its own length across the strings, so the
+// hair stays on them and never cuts through the instrument or the player. The hand goes with the
+// frog, the forearm follows it, and the upper arm moves a little from the shoulder.
+function bowingArm(r, S, ins, s, pole, stroke) {
   const f = ins.across.clone();
   if (f.x < 0) f.negate();
   const tip = f.clone().negate();
@@ -308,22 +321,26 @@ function bowingArm(r, S, ins, s, pole, amp) {
   const frog = ins.contact.clone().addScaledVector(f, along);
   const G = frog.clone().addScaledVector(tip, 0.05);
   const n = ins.normal;
-  swingingArm(
-    r,
-    S,
-    G,
-    pole,
-    (E) => new THREE.Vector3().crossVectors(G.clone().sub(E), tip),
-    amp,
-    0,
-    () => {
-      const end = frog.clone().addScaledVector(tip, s.bow);
-      r.tube(frog.clone().addScaledVector(n, s.stick * 2.2), end.clone().addScaledVector(n, s.stick * 1.6), s.stick * 0.6, s.stick * 0.4, STICK, 5);
-      r.plank(frog, end, s.stick * 1.2, 0.002, HAIR_WHITE, n);
-      r.plank(frog.clone().addScaledVector(tip, -0.012), frog.clone().addScaledVector(tip, 0.045), s.stick * 2.2, s.stick * 2.6, EBONY, n);
-      r.bar(end, end.clone().addScaledVector(n, s.stick * 2.4), s.stick * 0.9, HAIR_WHITE);
-    },
-  );
+  const E = ik(S, G, pole);
+  // How far along a segment a point is, 0 at a and 1 at b.
+  const share = (a, b) => {
+    const ab = b.clone().sub(a);
+    const len2 = ab.lengthSq();
+    return (p) => THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / len2, 0, 1);
+  };
+  const upperArm = share(S, E);
+  const lowerArm = share(E, G);
+  r.slide(tip, stroke, (p) => 0.3 * upperArm(p));
+  r.tube(S, E, 0.05, 0.043, BLACK, 6);
+  r.slide(tip, stroke, (p) => 0.3 + 0.7 * lowerArm(p));
+  forearm(r, E, G);
+  r.slide(tip, stroke, () => 1);
+  const end = frog.clone().addScaledVector(tip, s.bow);
+  r.tube(frog.clone().addScaledVector(n, s.stick * 2.2), end.clone().addScaledVector(n, s.stick * 1.6), s.stick * 0.6, s.stick * 0.4, STICK, 5);
+  r.plank(frog, end, s.stick * 1.2, 0.002, HAIR_WHITE, n);
+  r.plank(frog.clone().addScaledVector(tip, -0.012), frog.clone().addScaledVector(tip, 0.045), s.stick * 2.2, s.stick * 2.6, EBONY, n);
+  r.bar(end, end.clone().addScaledVector(n, s.stick * 2.4), s.stick * 0.9, HAIR_WHITE);
+  r.still();
 }
 
 function violinist(s) {
@@ -337,7 +354,7 @@ function violinist(s) {
   const B = basis(base.clone().addScaledVector(d, s.L / 2), d, V(0.42, 0.9, 0.05));
   const ins = stringed(r, B, s);
   arm(r, b.L, ins.neck(0.42).addScaledVector(ins.normal, -0.025), V(0.2, -1, 0.1), ins.normal);
-  bowingArm(r, b.R, ins, s, V(0.6, -0.8, -0.2), 0.42);
+  bowingArm(r, b.R, ins, s, V(0.6, -0.8, -0.2), 0.2);
   return r.build();
 }
 
@@ -345,13 +362,14 @@ function cellist() {
   const r = new Rig();
   seatedLegs(r, 0.23);
   const b = upper(r, 0.6);
-  // Between the knees, leaning back onto the chest, the neck by the left ear.
-  const d = V(-0.07, 1, -0.42).normalize();
+  // Between the knees, leaning back onto the chest, the scroll beside the left ear (not in the
+  // player's head).
+  const d = V(-0.2, 1, -0.36).normalize();
   const bottom = V(0, 0.25, 0.42);
   const B = basis(bottom.clone().addScaledVector(d, CELLO.L / 2), d, V(0.2, 0.35, 0.92));
   const ins = stringed(r, B, CELLO, bottom.y / d.y);
   arm(r, b.L, ins.neck(0.32).addScaledVector(ins.normal, -0.05), V(-1, -0.3, 0.1), ins.normal);
-  bowingArm(r, b.R, ins, CELLO, V(0.8, -0.5, -0.3), 0.36);
+  bowingArm(r, b.R, ins, CELLO, V(0.8, -0.5, -0.3), 0.22);
   return r.build();
 }
 
@@ -359,13 +377,14 @@ function bassist() {
   const r = new Rig();
   standingLegs(r);
   const b = upper(r, 1.0);
-  // Standing behind the bass, which leans back against the body, scroll beside the head.
-  const d = V(-0.05, 1, -0.3).normalize();
+  // Standing behind the bass, which leans back against the body, the neck past the left side of
+  // the head (clear of the hair).
+  const d = V(-0.12, 1, -0.3).normalize();
   const bottom = V(-0.06, 0.46, 0.36);
   const B = basis(bottom.clone().addScaledVector(d, BASS.L / 2), d, V(0.25, 0.3, 0.92));
   const ins = stringed(r, B, BASS, bottom.y / d.y);
   arm(r, b.L, ins.neck(0.3).addScaledVector(ins.normal, -0.07), V(-1, -0.2, 0.2), ins.normal);
-  bowingArm(r, b.R, ins, BASS, V(0.8, -0.6, -0.2), 0.3);
+  bowingArm(r, b.R, ins, BASS, V(0.8, -0.6, -0.2), 0.18);
   return r.build();
 }
 
@@ -698,7 +717,8 @@ const SHADER_HEAD = /* glsl */ `
 attribute vec3 aPivot;
 attribute vec3 aJoint;
 attribute vec3 aAxis;
-attribute vec4 aInfo; // section, sway phase, stroke phase, stroke angle
+attribute vec4 aInfo; // section, sway phase, stroke phase, stroke angle (or minus a slide length)
+attribute float aW; // how much of a slide this point follows
 uniform float uTime;
 uniform float uBeat;
 uniform float uAmp[6];
@@ -717,10 +737,13 @@ if (aInfo.x > -0.5) {
   float amp = uAmp[int(aInfo.x + 0.5)];
   if (amp > 0.001) {
     if (aInfo.w > 0.0) {
-      // one bow or mallet stroke per beat
+      // one mallet stroke per beat, turning around the elbow
       mat3 R = turn(aAxis, aInfo.w * amp * sin(uBeat * PI + aInfo.z));
       posed = aJoint + R * (posed - aJoint);
       objectNormal = R * objectNormal;
+    } else if (aInfo.w < 0.0) {
+      // one bow stroke per beat: the bow slides along its length, the arm follows
+      posed += aAxis * (-aInfo.w * amp * aW * sin(uBeat * PI + aInfo.z));
     }
     mat3 S = turn(vec3(0.0, 1.0, 0.0), 0.045 * amp * sin(uTime * 2.6 + aInfo.y))
            * turn(vec3(1.0, 0.0, 0.0), 0.018 * amp * sin(uTime * 1.7 + aInfo.y * 1.3));
@@ -782,7 +805,7 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
     const hair = linear(extra.hair ?? pick(HAIR));
     const pivot = new THREE.Vector3().setFromMatrixPosition(matrix);
     rot.setFromMatrix4(matrix);
-    const moves = tpl.moves.map((m) => m && { joint: m.joint.clone().applyMatrix4(matrix), axis: m.axis.clone().applyMatrix3(rot).normalize(), amp: m.amp, phase: m.phase });
+    const moves = tpl.moves.map((m) => m && { joint: m.joint.clone().applyMatrix4(matrix), axis: m.axis.clone().applyMatrix3(rot).normalize(), amp: m.amp, phase: m.phase, kind: m.kind });
     const aPivot = new Float32Array(n * 3);
     const aJoint = new Float32Array(n * 3);
     const aAxis = new Float32Array(n * 3);
@@ -798,7 +821,8 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
         aJoint.set([m.joint.x, m.joint.y, m.joint.z], i * 3);
         aAxis.set([m.axis.x, m.axis.y, m.axis.z], i * 3);
       }
-      aInfo.set([sec, sway, m ? m.phase + jitter : 0, m ? m.amp : 0], i * 4);
+      // The stroke's size: an angle for a turn, or minus a length for a slide (a bow stroke).
+      aInfo.set([sec, sway, m ? m.phase + jitter : 0, m ? (m.kind === 'slide' ? -m.amp : m.amp) : 0], i * 4);
     }
     g.deleteAttribute('aTone');
     g.deleteAttribute('aMove');
@@ -922,11 +946,12 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
     uniforms.uTime.value = t;
     uniforms.uBeat.value = beats ?? 0;
     const k = Math.min(1, dt * 2.5);
-    // Waiting for the downbeat, everyone is still. When a section is featured, the others keep
-    // playing underneath, so they keep moving, just less.
+    // Without music (tuning) the players hold their instruments up and barely move. Waiting for
+    // the downbeat, everyone is still. When a section is featured, the others keep playing
+    // underneath, so they keep moving, just less.
     const waiting = beats != null && beats < 0;
     ORDER.forEach((id, i) => {
-      const on = waiting ? 0 : active == null || active === 'about' || active === id ? 1 : 0.35;
+      const on = beats == null ? 0.12 : waiting ? 0 : active == null || active === 'about' || active === id ? 1 : 0.35;
       amp[i] += (on - amp[i]) * k;
     });
   }

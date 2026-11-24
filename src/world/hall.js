@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import { linear, M, Kit, slab, sector, lambert, instances, facing } from './kit.js';
 import { buildOrchestra } from './orchestra.js';
 import { buildCrowd } from './crowd.js';
+import { BOARD, boardLayout } from '../lib/board.js';
+import { BOOTH, buildBooth } from './booth.js';
+import { BACKSTAGE, buildBackstage } from './backstage.js';
+import { buildDesk } from './desk.js';
+import { services } from '../content.js';
 
 // The concert hall, built from primitives in code: no model files, no licences to check, and a
 // small download. Units are metres. The stage is toward -z, the audience toward +z, and the
@@ -319,6 +324,52 @@ export async function buildHall(scene, step) {
     }
   }
 
+  /* ---------- Rooms you can see from the stalls ---------- */
+  // Each room of the site is a real place in the hall (design document, section 7): the control
+  // control booth high on the left wall (Work), the stage (Music), the stage door on the right,
+  // open onto backstage (Services), the podium (About me), and the notice board beside the door.
+  const ROOM_Z = -10.4;
+  // The Booth: the control room above the left upper gallery, with two engineers at the desk.
+  const booth = buildBooth(scene);
+  glowSmall.push(...booth.glows);
+
+  // The stage door: a frame in the panelling, the door swung wide open into the hall, and
+  // backstage behind it.
+  {
+    const { z: dz, w: dw, h: dh } = BACKSTAGE.door;
+    for (const s of [-1, 1]) hall.box(0.14, dh, 0.08, COL.mahogany, 11.27, dh / 2, dz + s * (dw / 2 + 0.03));
+    hall.box(0.14, 0.1, dw + 0.22, COL.mahogany, 11.27, dh + 0.05, dz);
+    // Hinged on the side away from the audience and swung right back, so it never hides the way in.
+    const open = 2.3; // how far the door is swung, in radians
+    const leaf = dw - 0.06;
+    const hinge = new THREE.Vector3(11.26, 0, dz - dw / 2);
+    hall.box(0.05, dh - 0.06, leaf, COL.walnut, hinge.x - Math.sin(open) * (leaf / 2), (dh - 0.06) / 2, hinge.z + Math.cos(open) * (leaf / 2), 0, -open);
+    steady.box(0.05, 0.12, 0.5, 0xffcf8a, 11.2, dh + 0.25, dz);
+    const back = buildBackstage(scene, services);
+    glowSmall.push(...back.glows);
+  }
+
+  // The Notice Board: a corkboard beside the stage door, with Wyclef's notes pinned on it. These
+  // are painted notes, seen from across the hall; when the camera faces the board the real notes
+  // (page elements, see world/board.js) are laid exactly over them, from the same layout.
+  const BOARD_Z = BOARD.z;
+  const FACE = BOARD.x - 0.07; // the cork's surface
+  hall.box(0.08, BOARD.h, BOARD.w, COL.walnut, BOARD.x, BOARD.y, BOARD_Z);
+  hall.box(0.04, BOARD.cork[1], BOARD.cork[0], 0xb07a45, FACE + 0.02, BOARD.y, BOARD_Z);
+  const notes = new Kit();
+  const { tabs, notes: noteList } = boardLayout();
+  for (const t of tabs) notes.box(0.006, t.h, t.w, 0xf3ecdf, FACE - 0.004, BOARD.y + t.v, BOARD_Z + t.u);
+  for (const n of noteList) {
+    const colour = new THREE.Color(n.colour).getHex();
+    notes.box(0.006, n.size, n.size, colour, FACE - 0.006, BOARD.y + n.v, BOARD_Z + n.u, n.tilt);
+    notes.cyl(0.018, 0.018, 0.02, 8, new THREE.Color(n.pinColour).getHex(), FACE - 0.02, BOARD.y + n.v + n.size * 0.4, BOARD_Z + n.u, 0, 0, Math.PI / 2);
+  }
+  fx.boardNotes = new THREE.Mesh(notes.geometry(), lambert());
+  scene.add(fx.boardNotes);
+  glowSmall.push([10.95, BOARD.y + 0.5, BOARD_Z, 0xffd9a8]);
+  // The desk under it, where visitors leave their notes.
+  glowSmall.push(...buildDesk(scene).glows);
+
   /* ---------- Audience ---------- */
   await step('Seating the audience');
   const seatMx = [];
@@ -458,10 +509,19 @@ export async function buildHall(scene, step) {
   scene.add(stage);
   const levelY = (lv) => STAGE_TOP + riserH * lv;
 
-  // Panelling under the galleries, beside the stage
-  for (const sx of [-1, 1]) {
+  // Panelling under the galleries, beside the stage. On the right it has the stage door cut
+  // into it, which opens backstage (Services).
+  {
     const len = 8.6;
-    panel(len, 3.24, M(sx * 11.3, 1.62, -12.6, 0, (-sx * Math.PI) / 2), COL.maple);
+    const zA = -12.6 - len / 2;
+    const zB = -12.6 + len / 2;
+    panel(len, 3.24, M(-11.3, 1.62, -12.6, 0, Math.PI / 2), COL.maple);
+    const { z: dz, w: dw, h: dh } = BACKSTAGE.door;
+    const d0 = dz - dw / 2;
+    const d1 = dz + dw / 2;
+    panel(d0 - zA, 3.24, M(11.3, 1.62, (zA + d0) / 2, 0, -Math.PI / 2), COL.maple);
+    panel(zB - d1, 3.24, M(11.3, 1.62, (d1 + zB) / 2, 0, -Math.PI / 2), COL.maple);
+    panel(dw, 3.24 - dh, M(11.3, dh + (3.24 - dh) / 2, dz, 0, -Math.PI / 2), COL.maple);
   }
 
   // Organ above the choir: case, shelf, and towers of pipes
@@ -569,7 +629,7 @@ export async function buildHall(scene, step) {
     scene.add(piano);
   }
 
-  /* ---------- People: the conductor beats time, the audience fills as sections are explored ---------- */
+  /* ---------- People: the conductor beats time while music plays; a set house in the stalls ---------- */
   const personMat = lambert();
 
   // The conductor on the podium, facing the orchestra.
@@ -608,10 +668,24 @@ export async function buildHall(scene, step) {
     const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
     return k * k * (3 - 2 * k);
   };
+  // In About me the conductor turns round to face the audience, as at an encore.
+  let encore = false;
+  fx.setEncore = (on, instant) => {
+    encore = on;
+    if (instant) maestro.rotation.y = on ? 0 : Math.PI;
+  };
   fx.animate = (t, beats, active, dt) => {
     orchestra.animate(t, beats, active, dt);
     crowd.animate(t, dt);
-    const b = beats ?? 0;
+    const turn = encore ? 0 : Math.PI;
+    maestro.rotation.y += (turn - maestro.rotation.y) * Math.min(1, dt * 2.2);
+    // No music (the orchestra is tuning): the conductor waits, arms down, baton lowered.
+    if (beats == null) {
+      rightArm.rotation.set(0.55, 0, 0);
+      leftArm.rotation.set(0.5, 0, 0);
+      return;
+    }
+    const b = beats;
     let lift; // arm rotation about x: higher values put the hand lower
     let side;
     if (b < 0) {
@@ -632,40 +706,68 @@ export async function buildHall(scene, step) {
     rightArm.rotation.set(lift, -side, 0);
   };
 
-  // The audience fills in a fixed, scattered order so the hall never fills row by row.
+  // The audience: the same people in the same seats on every visit, scattered so the hall reads
+  // as a real house, with gaps, rather than filling row by row. About two thirds of the seats are
+  // taken; the empty ones are where visitors who leave a note on the board will sit (stage S3).
   for (let i = audienceMx.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));
     [audienceMx[i], audienceMx[j]] = [audienceMx[j], audienceMx[i]];
   }
   const crowd = buildCrowd(scene, audienceMx, rand, { stageTop: STAGE_TOP, stageFrontZ });
-  fx.setAudience = (share) => crowd.setCount(Math.round(audienceMx.length * Math.max(0, Math.min(1, share))));
+  const HOUSE = 0.66;
+  crowd.setCount(Math.round(audienceMx.length * HOUSE));
   fx.celebrate = (instant, now) => crowd.celebrate(instant, now);
-  fx.animate(0, 0, null, 1);
-  fx.setAudience(0);
+  fx.animate(0, null, null, 1);
 
-  /* ---------- Sections: what can be clicked, where its marker sits, where the camera goes ---------- */
-  const proxies = { about: new Kit(), ...orchestra.proxies, education: new Kit() };
-  proxies.about.box(1.4, 2.4, 1.6, 0xffffff, C.x, STAGE_TOP + 1.2, C.z);
-  proxies.education.box(19, 2.6, 3.6, 0xffffff, 0, STAGE_TOP + 2.0, -18.8);
-  const mid = (list) => list.reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / list.length);
+  /* ---------- Rooms: what can be clicked, where its marker sits, where the follow spot points ---------- */
+  const box = (w, h, d, x, y, z) => {
+    const k = new Kit();
+    k.box(w, h, d, 0xffffff, x, y, z);
+    return k;
+  };
+  const proxies = {
+    work: box(BOOTH.glassX - BOOTH.backX + 0.2, BOOTH.roofY - BOOTH.floorY + 0.2, BOOTH.width + 0.2, (BOOTH.glassX + BOOTH.backX) / 2, (BOOTH.floorY + BOOTH.roofY) / 2, BOOTH.z),
+    music: box(18, 3.2, 11.5, 0, STAGE_TOP + 1.6, -12.75),
+    services: box(0.9, 2.6, 1.7, 11.0, 1.3, ROOM_Z),
+    wall: box(1.0, BOARD.y + BOARD.h / 2 - STAGE_TOP, BOARD.w, 10.9, (STAGE_TOP + BOARD.y + BOARD.h / 2) / 2, BOARD_Z), // board and desk
+    about: box(1.4, 2.4, 1.6, C.x, STAGE_TOP + 1.2, C.z),
+  };
   const proxyMat = new THREE.MeshBasicMaterial();
   const at = (v, dy) => v.clone().setY(v.y + dy);
-  const marks = orchestra.marks;
-  const sectionAnchors = {
+  const roomAnchors = {
+    work: new THREE.Vector3(BOOTH.glassX + 0.2, BOOTH.roofY + 0.45, BOOTH.z),
+    music: new THREE.Vector3(0, STAGE_TOP + 3.6, -12.5),
+    services: new THREE.Vector3(10.9, 2.95, ROOM_Z),
+    wall: new THREE.Vector3(10.9, BOARD.y + BOARD.h / 2 + 0.4, BOARD_Z),
     about: new THREE.Vector3(C.x, STAGE_TOP + 2.2, C.z),
-    experience: at(mid(marks.experience), 1.9),
-    projects: at(mid(marks.projects), 2.3),
-    skills: at(mid(marks.skills), 2.2),
-    certifications: at(mid(marks.certifications), 2.2),
-    education: new THREE.Vector3(0, STAGE_TOP + 3.9, -18.9),
   };
+  // What each room's camera frames: the object's centre, the way it faces (out into the hall),
+  // the size to fit on screen (width, height, in metres, with some room around it) and the eye
+  // height to look from. The camera is placed in front of it from these (see world/index.js).
+  // Music and About me are views of the stage, so they are set as a position and a target.
+  fx.views = {
+    work: { at: [BOOTH.glassX, 9.95, BOOTH.z], face: [1, 0, 0], size: [BOOTH.width + 0.5, 2.15], eye: 10.15 },
+    // Services: backstage, from the far end of the passage, looking back along the posters to the
+    // lit stage door.
+    services: { pos: [11.6, 1.68, -14.9], target: [12.86, 1.52, -11.6], via: [
+        { pos: [10.2, 1.7, -10.4], target: [12.9, 1.6, -10.6] },
+        { pos: [11.85, 1.7, -10.4], target: [12.9, 1.6, -12.4] },
+      ] },
+    wall: { at: [BOARD.x - 0.07, BOARD.y, BOARD_Z], face: [-1, 0, 0], size: [BOARD.w + 0.3, BOARD.h + 0.35], eye: BOARD.y + 0.1 },
+    // The desk under the board, seen from in front and above, as when standing to write.
+    desk: { pos: [9.85, 3.05, -14.4], target: [10.86, 1.77, -14.4] },
+    music: { pos: [0, 5.6, 1.5], target: [0, 2.6, -13] },
+    // About me: from the front stalls, facing the podium; the conductor turns to the house.
+    about: { pos: [C.x, STAGE_TOP + 1.1, C.z + 6.2], target: [C.x, STAGE_TOP + 1.35, C.z - 0.6] },
+  };
+
   fx.sections = {};
   for (const [id, kit] of Object.entries(proxies)) {
     const mesh = new THREE.Mesh(kit.geometry(), proxyMat);
     mesh.visible = false; // never drawn; only used to find what the pointer is over
     mesh.userData.section = id;
     scene.add(mesh);
-    fx.sections[id] = { id, proxy: mesh, anchor: sectionAnchors[id], focus: at(sectionAnchors[id], -1.4) };
+    fx.sections[id] = { id, proxy: mesh, anchor: roomAnchors[id], focus: at(roomAnchors[id], -1.4) };
   }
 
   /* ---------- Lighting ---------- */
