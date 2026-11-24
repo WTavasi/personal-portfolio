@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CSS3DRenderer, CSS3DObject } from 'three/examples/jsm/renderers/CSS3DRenderer.js';
 import { buildHall, nextFrame } from './hall.js';
-import { BOARD } from '../lib/board.js';
+import { BOARD, DESK } from '../lib/board.js';
 
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -84,10 +84,20 @@ export async function createWorld({ canvas, onStep }) {
   board.position.set(BOARD.x - 0.09, BOARD.y, BOARD.z);
   board.rotation.y = -Math.PI / 2; // face into the hall: the board's right is the hall's +z
   cssScene.add(board);
+  // The desk top: lying flat, facing up; along the desk (u) is the hall's +z, away from whoever
+  // stands at it (v) is +x, toward the wall.
+  const desk = new THREE.Group();
+  desk.position.set(DESK.x, DESK.y + 0.003, DESK.z);
+  desk.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0)));
+  cssScene.add(desk);
+  const surfaces = { board, desk };
+  const deskPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(DESK.y + 0.003));
+  const hit = new THREE.Vector3();
   let boardWanted = false;
   let boardShown = false;
   let boardTimer = 0;
   let boardSince = 0;
+  let boardWhere = 'board';
 
   let dirty = true;
   const resize = () => {
@@ -289,7 +299,7 @@ export async function createWorld({ canvas, onStep }) {
       // The painted notes go once the real ones have faded in over them.
       clearTimeout(boardTimer);
       boardTimer = setTimeout(() => {
-        if (boardShown) {
+        if (boardShown && boardWhere === 'board') {
           fx.boardNotes.visible = false;
           dirty = true;
         }
@@ -364,23 +374,41 @@ export async function createWorld({ canvas, onStep }) {
       pose = next;
       dirty = true;
     },
-    // Lay the board's notes over the hall: items are { el, u, v } with u and v in metres from the
-    // board's centre (see lib/board.js), each element sized in CSS pixels (BOARD_PX to a metre).
-    showBoard(items) {
+    // Lay page elements over the hall, on the board or the desk: items are { el, u, v, lift?,
+    // turn? } with u and v in metres from the surface's centre (see lib/board.js), each element
+    // sized in CSS pixels (BOARD_PX to a metre). Returns a handle per item to move it later.
+    showBoard(items, where = 'board') {
       clearTimeout(boardTimer);
       board.clear();
-      for (const { el, u, v } of items) {
+      desk.clear();
+      const handles = items.map(({ el, u, v, lift = 0, turn = 0 }) => {
         const o = new CSS3DObject(el);
-        o.position.set(u, v, 0);
+        o.position.set(u, v, lift);
+        o.rotation.z = -turn;
         o.scale.setScalar(1 / BOARD_PX);
-        board.add(o);
-      }
+        surfaces[where].add(o);
+        return {
+          move(nu, nv, nlift = o.position.z) {
+            o.position.set(nu, nv, nlift);
+            dirty = true;
+          },
+        };
+      });
       boardWanted = true;
       boardShown = false;
+      boardWhere = where;
       boardSince = performance.now();
       layer.hidden = false;
       fx.boardNotes.visible = true;
       dirty = true;
+      return handles;
+    },
+    // Where a point on the screen falls on the desk top, as { u, v } in metres, or null.
+    deskPoint(clientX, clientY) {
+      ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+      ray.setFromCamera(ndc, camera);
+      if (!ray.ray.intersectPlane(deskPlane, hit)) return null;
+      return { u: hit.z - DESK.z, v: hit.x - DESK.x };
     },
     hideBoard() {
       boardWanted = false;
@@ -392,6 +420,7 @@ export async function createWorld({ canvas, onStep }) {
       boardTimer = setTimeout(() => {
         if (boardWanted) return;
         board.clear();
+        desk.clear();
         layer.hidden = true;
       }, 300);
     },

@@ -1,0 +1,12 @@
+{
+  "_howTo": "Cards that are always on the desk, written by Wyclef. Fields: name, text, u and v (where on the desk, in metres from its centre: u along the desk, v away from you), turn (radians).",
+  "cards": [
+    {
+      "name": "Wyclef",
+      "text": "Thanks for coming by. Leave me a note, or just say you were here.",
+      "u": -0.36,
+      "v": 0.08,
+      "turn": -0.06
+    }
+  ]
+}

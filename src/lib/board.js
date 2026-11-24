@@ -4,10 +4,11 @@
 // left to right and v bottom to top, from the board's centre.
 import pinsFile from '../content/pins.json' with { type: 'json' };
 
-// The board on the right-hand wall of the hall, under the side gallery, facing into the hall.
+// The board on the right-hand wall of the hall, under the side gallery, facing into the hall,
+// hung above the desk where visitors leave their notes.
 export const BOARD = {
   x: 11.25, // the wall side of the frame
-  y: 1.95, // centre height
+  y: 2.55, // centre height (the stage floor is at 1.0)
   z: -14.4, // centre along the wall
   w: 2.6, // the frame
   h: 1.55,
@@ -23,6 +24,19 @@ export const NOTE_COLOURS = {
   reading: '#f2a2c0',
   visitor: '#fbf7ef',
 };
+// The desk under the board, where visitors write their notes and leave them. Its top is a flat
+// surface; u runs along the desk (toward the audience) and v away from whoever stands at it.
+export const DESK = {
+  x: 10.82, // centre of the top
+  y: 1.77, // the top's surface
+  z: -14.4,
+  length: 1.7, // along the wall (z)
+  depth: 0.8, // out from the wall (x)
+  // Where cards may lie: the free part of the top, between the scores and the pad.
+  area: { u: [-0.56, 0.4], v: [-0.27, 0.27] },
+  card: [0.26, 0.17], // an index card, in metres
+};
+
 export const PIN_COLOURS = ['#d8453b', '#3b78d8', '#e3b552', '#3fa36a', '#9b5bd1'];
 
 export const { categories, pins } = pinsFile;

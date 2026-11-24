@@ -47,10 +47,27 @@ body.on-board #app,
   gap: var(--s-4);
 }
 .board-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
   width: auto;
   min-height: 48px;
   padding: 0 var(--s-5);
   text-decoration: none;
+}
+.board-mode {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+.board-mode[hidden] {
+  display: none;
+}
+.board-go {
+  width: auto;
+  min-height: 48px;
+  padding: 0 var(--s-5);
 }
 .board-hint {
   padding: var(--s-2) var(--s-4);
@@ -228,4 +245,128 @@ body.on-board #app,
   .board-layer {
     transition: none;
   }
+}
+
+/* A visitor's card on the desk: a white index card with a red top rule, the note in a hand-ish
+   serif, the name, and a stamp while it waits for approval. Board pixels, like the notes. */
+.desk-card {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 10px;
+  padding: 32px 22px 18px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 3px;
+  background:
+    linear-gradient(#d8453b, #d8453b) 0 24px / 100% 3px no-repeat,
+    repeating-linear-gradient(#fbf7ef 0 29px, #c9d8e6 29px 30px) 0 27px / 100% calc(100% - 27px) no-repeat,
+    #fbf7ef;
+  color: #1b1306;
+  text-align: left;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.3);
+  transform: rotate(var(--turn));
+  transition:
+    transform 180ms var(--ease),
+    box-shadow 180ms var(--ease);
+  cursor: pointer;
+}
+.desk-card:hover,
+.desk-card:focus-visible {
+  transform: translateZ(20px) rotate(var(--turn)) scale(1.04);
+  box-shadow: 0 16px 20px rgb(0 0 0 / 0.35);
+}
+.desk-card:focus-visible {
+  outline: 5px solid var(--focus);
+  outline-offset: 4px;
+}
+.desk-card.is-movable {
+  cursor: grab;
+}
+.desk-card.is-movable:active {
+  cursor: grabbing;
+}
+.desk-card-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  font: 500 26px / 30px var(--font-display);
+}
+.desk-card-name {
+  font: 700 20px / 1 var(--font-ui);
+  opacity: 0.75;
+}
+.desk-card-name::before {
+  content: '— ';
+}
+.desk-card-stamp {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 3px 6px;
+  border: 2px solid #a3263a;
+  border-radius: 3px;
+  color: #a3263a;
+  font: 700 15px / 1 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transform: rotate(-6deg);
+}
+
+/* A desk card read in full, and the form for writing one. */
+.note-card-text {
+  font: 500 var(--t-lg) / 1.35 var(--font-display);
+}
+.note-card-count {
+  align-self: center;
+  font-size: var(--t-sm);
+  color: #3b2f1f;
+}
+.note-card-actions .btn svg {
+  vertical-align: -4px;
+}
+.desk-form {
+  display: grid;
+  gap: var(--s-2);
+}
+.desk-form label {
+  font-weight: 700;
+}
+.desk-form textarea,
+.desk-form input {
+  width: 100%;
+  padding: var(--s-3);
+  border: 1px solid #8c7b6c;
+  border-radius: var(--r-inner);
+  background: #fff;
+  color: #1b1306;
+  font: 400 var(--t-md) / 1.4 var(--font-ui);
+}
+.desk-form textarea {
+  resize: vertical;
+}
+.desk-form textarea:focus-visible,
+.desk-form input:focus-visible {
+  outline: 3px solid #7a5a12;
+  outline-offset: 1px;
+}
+.desk-optional {
+  font-weight: 400;
+  color: var(--text-2);
+}
+.desk-count,
+.desk-privacy {
+  color: var(--text-2);
+  font-size: var(--t-sm);
+}
+/* On the white card the ink is fixed, whatever the page's surface. */
+.note-card .desk-optional,
+.note-card .desk-count,
+.note-card .desk-privacy {
+  color: #4f443b;
+}
+.desk-count {
+  margin-top: calc(-1 * var(--s-1));
+  text-align: right;
 }

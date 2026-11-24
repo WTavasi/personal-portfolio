@@ -5,6 +5,7 @@ import { buildCrowd } from './crowd.js';
 import { BOARD, boardLayout } from '../lib/board.js';
 import { BOOTH, buildBooth } from './booth.js';
 import { BACKSTAGE, buildBackstage } from './backstage.js';
+import { buildDesk } from './desk.js';
 import { services } from '../content.js';
 
 // The concert hall, built from primitives in code: no model files, no licences to check, and a
@@ -365,8 +366,9 @@ export async function buildHall(scene, step) {
   }
   fx.boardNotes = new THREE.Mesh(notes.geometry(), lambert());
   scene.add(fx.boardNotes);
-  steady.box(0.05, 0.1, 0.8, 0xffcf8a, FACE, BOARD.y + BOARD.h / 2 + 0.12, BOARD_Z);
   glowSmall.push([10.95, BOARD.y + 0.5, BOARD_Z, 0xffd9a8]);
+  // The desk under it, where visitors leave their notes.
+  glowSmall.push(...buildDesk(scene).glows);
 
   /* ---------- Audience ---------- */
   await step('Seating the audience');
@@ -727,7 +729,7 @@ export async function buildHall(scene, step) {
     work: box(BOOTH.glassX - BOOTH.backX + 0.2, BOOTH.roofY - BOOTH.floorY + 0.2, BOOTH.width + 0.2, (BOOTH.glassX + BOOTH.backX) / 2, (BOOTH.floorY + BOOTH.roofY) / 2, BOOTH.z),
     music: box(18, 3.2, 11.5, 0, STAGE_TOP + 1.6, -12.75),
     services: box(0.9, 2.6, 1.7, 11.0, 1.3, ROOM_Z),
-    wall: box(0.9, BOARD.h, BOARD.w, 11.0, BOARD.y, BOARD_Z),
+    wall: box(1.0, BOARD.y + BOARD.h / 2 - STAGE_TOP, BOARD.w, 10.9, (STAGE_TOP + BOARD.y + BOARD.h / 2) / 2, BOARD_Z), // board and desk
     about: box(1.4, 2.4, 1.6, C.x, STAGE_TOP + 1.2, C.z),
   };
   const proxyMat = new THREE.MeshBasicMaterial();
@@ -752,6 +754,8 @@ export async function buildHall(scene, step) {
         { pos: [11.85, 1.7, -10.4], target: [12.9, 1.6, -12.4] },
       ] },
     wall: { at: [BOARD.x - 0.07, BOARD.y, BOARD_Z], face: [-1, 0, 0], size: [BOARD.w + 0.3, BOARD.h + 0.35], eye: BOARD.y + 0.1 },
+    // The desk under the board, seen from in front and above, as when standing to write.
+    desk: { pos: [9.85, 3.05, -14.4], target: [10.86, 1.77, -14.4] },
     music: { pos: [0, 5.6, 1.5], target: [0, 2.6, -13] },
     // About me: from the front stalls, facing the podium; the conductor turns to the house.
     about: { pos: [C.x, STAGE_TOP + 1.1, C.z + 6.2], target: [C.x, STAGE_TOP + 1.35, C.z - 0.6] },

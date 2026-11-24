@@ -4,6 +4,8 @@
 // (design document, section 11): plain title, lead, content, next track, footer.
 import { person, contact, experience, leadership, projects, skills, education, certifications, honors, music, services } from '../content.js';
 import pinsFile from '../content/pins.json' with { type: 'json' };
+import deskFile from '../content/desk.json' with { type: 'json' };
+import { LIMITS, DEFAULT_NOTE } from '../lib/desk.js';
 import { esc } from './resume-markup.js';
 import { pathFor } from '../lib/router.js';
 import { roomNav, caseNav } from './room-nav.js';
@@ -141,6 +143,13 @@ function boxOffice() {
 
 /* ------------------------------------------------------------------ 05 The Notice Board */
 
+// A note on the desk, as the plain page lists it.
+export const deskNote = (c) => `
+  <li class="desk-note">
+    <p class="desk-note-text">${esc(c.text)}</p>
+    <p class="desk-note-by">${esc(c.name || 'Someone')}${c.waiting ? ' · <span class="desk-note-wait">Waiting for Wyclef</span>' : ''}</p>
+  </li>`;
+
 function noticeBoard() {
   const { categories, pins } = pinsFile;
   const ordered = [...pins].sort((a, b) => Number(!!b.feature) - Number(!!a.feature));
@@ -165,6 +174,25 @@ function noticeBoard() {
         )
         .join('')}
     </ul>
+    <section class="desk-plain" aria-labelledby="h-desk">
+      <h2 id="h-desk">The desk</h2>
+      <p>Leave a note, or just say you were here.</p>
+      <ul class="desk-notes" data-bind="desk-notes">
+        ${deskFile.cards.map((c) => deskNote(c)).join('')}
+      </ul>
+      <form class="desk-form" data-bind="desk-form" novalidate>
+        <label for="desk-text">Your note</label>
+        <textarea id="desk-text" maxlength="${LIMITS.text}" rows="4" placeholder="${esc(DEFAULT_NOTE)}"></textarea>
+        <label for="desk-name">Sign it <span class="desk-optional">(optional: a name or initials)</span></label>
+        <input id="desk-name" maxlength="${LIMITS.name}" autocomplete="nickname" />
+        <p class="desk-privacy">For now your note is saved in this browser only. Once the guestbook is live, notes go to Wyclef to approve, then everyone sees them. Only what you write here is kept.</p>
+        <div class="desk-actions">
+          <button class="btn btn-primary" type="submit">Leave it on the desk</button>
+          <button class="btn btn-secondary" type="button" data-act="here">Just say “${esc(DEFAULT_NOTE)}”</button>
+        </div>
+        <p class="sr-only" role="status" data-bind="desk-said"></p>
+      </form>
+    </section>
     ${foot('wall')}`;
 }
 
@@ -177,6 +205,7 @@ function privacy() {
     <section aria-labelledby="h-stored">
       <h2 id="h-stored">What is stored, and where</h2>
       <p>Your sound setting and volume are saved in your own browser, so the site remembers them next time. They never leave your device. Clearing this site’s data in your browser removes them.</p>
+      <p>A note you leave on the desk by the notice board (the words and the name you sign with, nothing else) is also saved in your browser only, for now. Before notes start being sent anywhere, this page will say where they go, who sees them and how to have one removed.</p>
     </section>
     <section aria-labelledby="h-not">
       <h2 id="h-not">What is not collected</h2>
@@ -185,7 +214,7 @@ function privacy() {
     <section aria-labelledby="h-changes">
       <h2 id="h-changes">Changes</h2>
       <p>Before any feature that stores data goes live, such as notes on the notice board, this page will say exactly what is kept, why and for how long. Questions: ${esc(contact.email)}.</p>
-      <p class="when">Last updated 23 November 2026.</p>
+      <p class="when">Last updated 24 November 2026.</p>
     </section>
     ${footer()}`;
 }
