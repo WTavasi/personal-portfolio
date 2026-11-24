@@ -1,0 +1,91 @@
+/* The text pages as manuscript pages of the Classical and Romantic era: aged parchment with a
+   faint grain and darkened edges, a double red margin rule, headings in Bodoni Moda (the type of
+   that era), a red initial opening each page, small capitals for dates and labels, and red list
+   marks. The body stays Source Serif 4 at a reading size, so it reads as easily as before.
+   Applies to every room page and to About me, on their own and opened over the hall. */
+
+:is(.room, .resume, .screen.is-over-hall) {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.29 0 0 0 0 0.12 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  background:
+    radial-gradient(ellipse 95% 80% at 50% 45%, transparent 60%, rgb(110 70 25 / 0.16) 100%),
+    var(--grain),
+    var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :is(.room, .resume, .screen.is-over-hall) {
+    background:
+      radial-gradient(ellipse 95% 80% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.35) 100%),
+      var(--bg);
+  }
+}
+/* The open page over the hall gets a fine double frame, like a printed page. */
+.screen.is-over-hall {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--rubric) 55%, transparent),
+    inset 0 0 0 7px transparent,
+    inset 0 0 0 8px color-mix(in srgb, var(--rubric) 30%, transparent);
+}
+/* The arrows and the bar keep the page's own paper behind them as the page scrolls under. */
+:is(.room, .resume, .screen.is-over-hall) :is(.room-nav, .p-bar) {
+  background: var(--bg);
+}
+
+/* The double red rule down the margin. */
+:is(.room-doc, .resume .doc) {
+  position: relative;
+}
+:is(.room-doc, .resume .doc)::before {
+  content: '';
+  position: absolute;
+  top: var(--s-6);
+  bottom: var(--s-6);
+  left: calc(-1 * var(--s-4));
+  width: 5px;
+  border-left: 1px solid var(--rubric);
+  border-right: 1px solid var(--rubric);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.is-over-hall :is(.room-doc, .doc)::before {
+  left: var(--s-3);
+}
+
+/* Headings in Bodoni Moda. */
+:is(.room-head, .doc-head) h1,
+.resume-name {
+  font-family: var(--font-period);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+:is(.room-doc, .resume .doc) h2 {
+  font-family: var(--font-period);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+/* Each section opens under a thin double rule in red. */
+:is(.room-doc, .resume .doc) section > h2 {
+  padding-top: var(--s-4);
+  border-top: 3px double color-mix(in srgb, var(--rubric) 70%, transparent);
+}
+
+/* The page's first paragraph opens with a red initial, three lines tall. */
+:is(.room-doc, .resume .doc) .doc-lead::first-letter {
+  float: left;
+  margin: 0.06em 0.1em 0 0;
+  padding: 0.04em 0.12em 0;
+  border: 1px solid var(--rubric);
+  color: var(--rubric);
+  font-family: var(--font-period);
+  font-size: 3.1em;
+  font-weight: 700;
+  line-height: 0.86;
+}
+
+/* Dates, labels and categories in small capitals. */
+:is(.room-doc, .resume .doc) :is(.when, .pin-meta, .pin-date, dt, .note-card-cat) {
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.05em;
+}
+:is(.room-doc, .resume .doc) li::marker {
+  color: var(--rubric);
+}

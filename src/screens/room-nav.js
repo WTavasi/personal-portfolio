@@ -29,12 +29,13 @@ export function roomNav(key) {
     </nav>`;
 }
 
-// For a case study: all the work, the hall, and the next case study (or on to Music after the last).
+// For a case study: all the work, the hall, and the next case study (or on to the room after
+// Work, after the last).
 export function caseNav(prev, next) {
   return `
     <nav class="room-nav" aria-label="Case studies">
       ${prev ? arrow('prev', pathFor('project', prev.slug), prev.name, 'Previous:', 'prev') : arrow('prev', pathFor('work'), 'Work', 'All of')}
       ${hall()}
-      ${next ? arrow('next', pathFor('project', next.slug), next.name, 'Next:', 'next') : arrow('next', pathFor('music'), 'Music', 'Next:', 'next')}
+      ${next ? arrow('next', pathFor('project', next.slug), next.name, 'Next:', 'next') : arrow('next', pathFor(neighbours('work').next.key), neighbours('work').next.label, 'Next:', 'next')}
     </nav>`;
 }

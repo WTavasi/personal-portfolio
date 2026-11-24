@@ -169,6 +169,9 @@
 }
 .sec:hover {
   background: var(--surface-2-hover);
+  box-shadow:
+    0 0 0 1px rgb(var(--glow) / 0.6),
+    0 0 16px rgb(var(--glow) / 0.3);
 }
 .sec:active {
   transform: translateY(1px);

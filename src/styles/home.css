@@ -224,3 +224,40 @@
     animation: none;
   }
 }
+
+/* Short, wide windows (a phone held sideways): once built, the log gives way so the welcome and
+   all three options fit on the screen. */
+@media (max-height: 520px) and (min-width: 641px) {
+  .home-term {
+    align-items: start;
+    padding-top: calc(var(--topbar-h) - var(--s-2));
+    padding-bottom: var(--s-3);
+  }
+  .home-term:has(.term-ready:not([hidden])) .term-out {
+    display: none;
+  }
+  .term-body {
+    padding: var(--s-3) var(--s-4);
+  }
+  .term-ready {
+    padding-top: 0;
+  }
+  .term-ready .home-hero {
+    gap: var(--s-2);
+  }
+  .term-ready .home-hero h1 {
+    font-size: var(--t-xl);
+  }
+  .term-ready .home-sub {
+    font-size: var(--t-md);
+  }
+  .term-ready .home-actions {
+    margin-top: var(--s-2);
+  }
+  .home-btn {
+    min-height: 44px;
+  }
+  .home-enter {
+    min-height: 52px;
+  }
+}

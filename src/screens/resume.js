@@ -75,9 +75,15 @@ export function aboutScreen({ world, over = false, jump = false }) {
       if (!over) world.hide?.();
       window.scrollTo(0, 0);
       if (jump) {
+        // Once the page has finished turning in (its animation moves it), go to the résumé.
         const part = el.querySelector('#resume');
-        part.scrollIntoView({ block: 'start' });
-        part.focus({ preventScroll: true });
+        const go = () => {
+          part.scrollIntoView({ block: 'start' });
+          part.focus({ preventScroll: true });
+        };
+        const moving = el.getAnimations?.({ subtree: true }) ?? [];
+        if (moving.length) Promise.all(moving.map((a) => a.finished.catch(() => {}))).then(go);
+        else go();
       }
     },
     destroy() {},

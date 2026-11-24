@@ -1,5 +1,6 @@
-import '@fontsource-variable/fraunces/wght.css';
-import '@fontsource-variable/figtree';
+import '@fontsource-variable/source-serif-4/opsz.css';
+import '@fontsource-variable/source-serif-4/opsz-italic.css';
+import '@fontsource-variable/bodoni-moda/opsz.css';
 import '@fontsource/space-mono/400.css';
 import '@fontsource/space-mono/700.css';
 import './styles/tokens.css';
@@ -10,6 +11,7 @@ import './styles/resume.css';
 import './styles/shell.css';
 import './styles/rooms.css';
 import './styles/board.css';
+import './styles/manuscript.css';
 
 import { homeScreen } from './screens/home.js';
 import { stillMarkup } from './screens/home-markup.js';
@@ -154,6 +156,10 @@ function route() {
   const onBoard = over && key === 'wall' && window.innerWidth > 640;
   const panel = over && !onBoard;
 
+  // Moving from one page to another over the hall, the page stays where it is and the new one
+  // turns in like a leaf; only a page opened from the hall slides in.
+  const turning = panel && !!current?.el.classList.contains('is-over-hall');
+
   current?.destroy?.();
   const next = onBoard
     ? boardScreen({ world })
@@ -161,6 +167,7 @@ function route() {
       ? screens[key]({ go, world, over })
       : roomScreen({ go, world, key, param: where.param, over });
   next.el.classList.toggle('is-over-hall', panel);
+  next.el.classList.toggle('is-turning', turning);
   next.el.classList.toggle('surface-paper', panel);
   root.replaceChildren(...(panel ? [backdrop, next.el] : [next.el]));
   document.title = next.title;

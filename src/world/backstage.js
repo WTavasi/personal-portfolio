@@ -1,153 +1,129 @@
 import * as THREE from 'three';
 import { Kit } from './kit.js';
 
-// Backstage, behind the stage door on the right: Services. The door stands open onto a working
-// passage that runs behind the panelling, under the side gallery: a bare floor with a tape line,
-// black drapes at the far end, a work light, a ladder and a flight case, and along the wall a
-// poster for each service, like a theatre's corridor of past shows. Not walkable; it only has to
-// look like it leads somewhere.
+// Backstage, behind the stage door on the right: Services. The door stands open onto a long
+// corridor that runs away from the stage, out past the hall's wall: cream walls with a maroon band,
+// carpet with metal threshold strips, ceiling lights, doors along both sides (one ajar, lit), a
+// bay of flight cases, and double doors under a lit sign at the far end. It is only seen through
+// the doorway, so it only has to look like it leads somewhere.
+//
+// The hall's lights do not reach in here, so its colours are drawn unlit, already as the
+// corridor's own lights show them.
 
 export const BACKSTAGE = {
-  x0: 11.36, // the back of the panelling
-  x1: 12.86, // the passage's far wall
-  z0: -16.8, // its two ends
-  z1: -8.4,
-  top: 3.4, // under the gallery floor
-  door: { z: -10.4, w: 1.45, h: 2.5 },
+  floor: 1.0, // stage level
+  height: 2.3, // floor to ceiling
+  x0: 11.3, // the doorway (the back of the hall's panelling)
+  x1: 20.5, // the double doors at the far end
+  z: -10.4, // the corridor's centre line
+  half: 0.9, // half its width
+  door: { z: -10.4, w: 1.45, h: 2.2 }, // the stage door, from the stage floor
 };
 
-// Backstage is behind the panelling, where the hall's lights do not reach, so it is lit by its
-// own work light: these colours are drawn unlit, already as the work light shows them.
 const C = {
-  floor: 0x5c534b,
-  wall: 0x544b45,
-  drape: 0x17151a,
-  ladder: 0xb9b6ae,
-  case: 0x26262a,
-  caseEdge: 0xc9c7c0,
-  tape: 0xd8c25a,
-  frame: 0x5a3020,
+  wall: 0xe6dcc8,
+  wallFar: 0xd9cdb6,
+  band: 0x7a2f33,
+  skirting: 0x5a4a3e,
+  ceiling: 0xcfc4ae,
+  carpet: 0x5e5a55,
+  strip: 0xa8a49a,
+  light: 0xfffaf0,
+  door: 0xf1ebe0,
+  frame: 0xb9ab95,
+  handle: 0x8a8a86,
+  glass: 0xfff4d6,
+  sign: 0x3fae6a,
+  caseRed: 0x7e2328,
+  caseBlack: 0x232326,
+  caseEdge: 0xc2c0b8,
 };
 
-// A poster for a service: a colour block, the service in large type, its line underneath, and
-// which kind of work it is, drawn once onto a small canvas.
-const POSTER_COLOURS = { engineering: ['#1f3a4d', '#e3b552'], music: ['#5a1f2b', '#f3ecdf'] };
-function posterTexture(kind, title, line) {
-  const W = 360;
-  const H = 520;
-  const c = document.createElement('canvas');
-  c.width = W;
-  c.height = H;
-  const g = c.getContext('2d');
-  const [bg, ink] = POSTER_COLOURS[kind];
-  g.fillStyle = '#efe6d2';
-  g.fillRect(0, 0, W, H);
-  g.fillStyle = bg;
-  g.fillRect(18, 18, W - 36, H - 36);
-  g.fillStyle = ink;
-  g.font = '700 22px "Space Mono", ui-monospace, monospace';
-  g.fillText(kind === 'engineering' ? 'ENGINEERING' : 'MUSIC', 40, 66);
-  g.fillRect(40, 82, 60, 4);
-  // The title, wrapped onto as many lines as it needs.
-  g.font = '600 46px "Fraunces Variable", Georgia, serif';
-  const wrap = (text, x, y, max, lh) => {
-    const words = text.split(' ');
-    let row = '';
-    for (const w of words) {
-      const next = row ? `${row} ${w}` : w;
-      if (g.measureText(next).width > max && row) {
-        g.fillText(row, x, y);
-        y += lh;
-        row = w;
-      } else row = next;
-    }
-    g.fillText(row, x, y);
-    return y + lh;
-  };
-  const after = wrap(title, 40, 170, W - 80, 52);
-  g.globalAlpha = 0.85;
-  g.font = '400 24px "Figtree Variable", system-ui, sans-serif';
-  wrap(line, 40, after + 20, W - 80, 32);
-  g.globalAlpha = 1;
-  g.font = '700 20px "Space Mono", ui-monospace, monospace';
-  g.fillText('NOW BOOKING', 40, H - 52);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
-}
-
-export function buildBackstage(scene, services) {
-  const k = new Kit(); // drawn unlit (see C)
-  const glow = new Kit();
-  const { x0, x1, z0, z1, top, door } = BACKSTAGE;
+export function buildBackstage(scene) {
+  const k = new Kit();
+  const { floor: f, height: h, x0, x1, z, half } = BACKSTAGE;
+  const top = f + h;
+  const len = x1 - x0;
   const mx = (x0 + x1) / 2;
-  const mz = (z0 + z1) / 2;
-  const len = z1 - z0;
+  const zL = z - half; // the left wall, as you look down the corridor
+  const zR = z + half;
 
-  // The passage: floor, far wall, ceiling, and the ends.
-  k.box(x1 - x0, 0.04, len, C.floor, mx, 0.02, mz);
-  k.box(0.04, top, len, C.wall, x1 + 0.02, top / 2, mz);
-  k.box(x1 - x0 + 0.1, 0.04, len, C.wall, mx, top, mz);
-  k.box(x1 - x0, top, 0.05, C.wall, mx, top / 2, z1);
-  // The near wall (the back of the hall's panelling), with the stage door through it.
-  const d0 = door.z - door.w / 2;
-  const d1 = door.z + door.w / 2;
-  k.box(0.04, top, d0 - z0, C.wall, x0 - 0.02, top / 2, (z0 + d0) / 2);
-  k.box(0.04, top, z1 - d1, C.wall, x0 - 0.02, top / 2, (d1 + z1) / 2);
-  k.box(0.04, top - door.h, door.w, C.wall, x0 - 0.02, (top + door.h) / 2, door.z);
-  // A tape line down the floor.
-  glow.box(0.05, 0.005, len - 0.4, C.tape, x0 + 0.3, 0.045, mz);
+  // Floor, ceiling and the far end.
+  k.box(len, 0.04, half * 2, C.carpet, mx, f + 0.02, z);
+  k.box(len, 0.04, half * 2 + 0.1, C.ceiling, mx, top, z);
+  for (let x = x0 + 1.6; x < x1 - 0.5; x += 2.6) k.box(0.05, 0.006, half * 2, C.strip, x, f + 0.043, z);
 
-  // Black drapes at the far end, hung in folds.
-  for (let i = 0; i < 9; i++) {
-    const x = x0 + 0.08 + i * ((x1 - x0 - 0.16) / 8);
-    k.box(0.2, top - 0.05, 0.06, C.drape, x, (top - 0.05) / 2, z0 + 0.2 + (i % 2) * 0.08, 0, i % 2 ? 0.5 : -0.5);
+  // The walls, with a skirting board and a maroon band at shoulder height. The right wall has an
+  // opening into a bay of flight cases.
+  const bay = [15.2, 17.2]; // along x
+  const wall = (z0, from, to, colour = C.wall) => {
+    const w = to - from;
+    const m = (from + to) / 2;
+    k.box(w, h, 0.06, colour, m, f + h / 2, z0);
+    k.box(w, 0.1, 0.07, C.skirting, m, f + 0.05, z0 + (z0 < z ? 0.01 : -0.01));
+    k.box(w, 0.12, 0.07, C.band, m, f + 1.25, z0 + (z0 < z ? 0.01 : -0.01));
+  };
+  wall(zL, x0, x1);
+  wall(zR, x0, bay[0]);
+  wall(zR, bay[1], x1);
+  k.box(bay[1] - bay[0], h - 2.25, 0.06, C.wall, (bay[0] + bay[1]) / 2, f + 2.25 + (h - 2.25) / 2, zR); // over the opening
+
+  // The bay: a short room off to the right with flight cases on castors.
+  const bz = zR + 1.0;
+  k.box(bay[1] - bay[0], 0.04, 2.0, C.carpet, (bay[0] + bay[1]) / 2, f + 0.02, bz);
+  k.box(bay[1] - bay[0], h, 0.06, C.wallFar, (bay[0] + bay[1]) / 2, f + h / 2, zR + 2.0);
+  for (const x of bay) k.box(0.06, h, 2.0, C.wallFar, x, f + h / 2, bz);
+  k.box(bay[1] - bay[0], 0.04, 2.0, C.ceiling, (bay[0] + bay[1]) / 2, top, bz);
+  const flightCase = (cx, cy, cz, w, hh, d, colour) => {
+    k.box(w, hh, d, colour, cx, cy + hh / 2 + 0.06, cz);
+    for (const dy of [0.02, hh - 0.02]) k.box(w + 0.02, 0.03, d + 0.02, C.caseEdge, cx, cy + 0.06 + dy, cz);
+    for (const dx of [-w / 2, w / 2]) for (const dz of [-d / 2, d / 2]) k.box(0.03, hh, 0.03, C.caseEdge, cx + dx, cy + hh / 2 + 0.06, cz + dz);
+    for (const dx of [-w / 2 + 0.06, w / 2 - 0.06]) k.box(0.05, 0.06, 0.05, 0x222222, cx + dx, cy + 0.03, cz + d / 2 - 0.06);
+  };
+  flightCase(bay[0] + 0.5, f, zR + 1.45, 0.8, 1.1, 0.7, C.caseRed);
+  flightCase(bay[0] + 0.5, f + 1.16, zR + 1.45, 0.7, 0.5, 0.6, C.caseBlack);
+  flightCase(bay[1] - 0.55, f, zR + 1.5, 0.75, 0.8, 0.65, C.caseBlack);
+  flightCase(bay[1] - 0.6, f, zR + 0.6, 0.6, 0.55, 0.55, C.caseRed);
+  // And one in the corridor, by the stage door, as if just wheeled out.
+  flightCase(x0 + 1.4, f, zL + 0.45, 0.6, 0.7, 0.55, C.caseBlack);
+
+  // Doors along both sides: frames, leaves and handles. One on the left stands ajar, lit inside.
+  const sideDoor = (x, side, ajar = false) => {
+    const zw = side < 0 ? zL : zR;
+    const off = side < 0 ? 0.04 : -0.04;
+    for (const dx of [-0.48, 0.48]) k.box(0.06, 2.1, 0.05, C.frame, x + dx, f + 1.05, zw + off);
+    k.box(1.02, 0.06, 0.05, C.frame, x, f + 2.13, zw + off);
+    if (ajar) {
+      k.box(0.92, 2.04, 0.02, 0xfff1cf, x, f + 1.03, zw + off * 0.3); // light from the room behind
+      k.box(0.04, 2.04, 0.9, C.door, x - 0.46 + 0.02, f + 1.03, zw + off * 12);
+    } else {
+      k.box(0.9, 2.04, 0.04, C.door, x, f + 1.03, zw + off);
+      k.box(0.12, 0.03, 0.03, C.handle, x + 0.32, f + 1.0, zw + off * 2);
+    }
+  };
+  sideDoor(13.6, -1);
+  sideDoor(13.6, 1);
+  sideDoor(18.4, -1, true);
+  sideDoor(18.9, 1);
+
+  // The double doors at the far end, with small windows, and a lit sign above them.
+  for (const dz of [-0.36, 0.36]) {
+    k.box(0.05, 2.1, 0.7, C.door, x1 - 0.03, f + 1.05, z + dz);
+    k.box(0.06, 0.34, 0.16, C.glass, x1 - 0.06, f + 1.55, z + dz);
+    k.box(0.04, 0.03, 0.14, C.handle, x1 - 0.07, f + 1.0, z + dz * 0.2);
   }
+  k.box(0.06, 2.2, 0.06, C.frame, x1 - 0.04, f + 1.1, z);
+  k.box(0.06, h, half * 2, C.wallFar, x1 + 0.02, f + h / 2, z);
+  k.box(0.04, 0.14, 0.5, C.sign, x1 - 0.06, f + 2.22, z);
 
-  // A work light on a bar, the brightest thing back here.
-  const lightZ = z0 + 2.6;
-  k.box(x1 - x0, 0.05, 0.05, 0x2a2a2a, mx, top - 0.25, lightZ);
-  k.box(0.18, 0.16, 0.2, 0x1a1a1a, mx + 0.2, top - 0.4, lightZ);
-  glow.box(0.02, 0.12, 0.14, 0xfff1d0, mx + 0.1, top - 0.42, lightZ);
-
-  // A ladder against the far wall by the drapes, and a flight case on the floor.
-  const lz = z0 + 1.1;
-  for (const dz of [-0.22, 0.22]) k.bar(new THREE.Vector3(x1 - 0.5, 0, lz + dz), new THREE.Vector3(x1 - 0.06, 2.6, lz + dz), 0.05, C.ladder);
-  for (let i = 1; i < 9; i++) {
-    const t = i / 9;
-    k.box(0.04, 0.03, 0.44, C.ladder, x1 - 0.5 + 0.44 * t, 2.6 * t, lz);
+  // Ceiling lights down the middle.
+  const lights = [];
+  for (let x = x0 + 1.2; x < x1 - 0.4; x += 2.3) {
+    k.box(0.5, 0.03, 0.3, C.light, x, top - 0.03, z);
+    lights.push([x, top - 0.12, z, 0xfff4dc]);
   }
-  const cz = z0 + 3.5;
-  k.box(0.7, 0.62, 0.55, C.case, x0 + 0.55, 0.33, cz);
-  for (const y of [0.04, 0.62]) k.box(0.72, 0.03, 0.57, C.caseEdge, x0 + 0.55, y, cz);
-  for (const dz of [-0.28, 0.28]) k.box(0.72, 0.6, 0.02, C.caseEdge, x0 + 0.55, 0.33, cz + dz);
 
   scene.add(new THREE.Mesh(k.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true })));
-  scene.add(new THREE.Mesh(glow.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true })));
 
-  // The posters, one per service, framed along the far wall from opposite the door onward.
-  const list = [...services.engineering.map((s) => ['engineering', ...s]), ...services.music.map((s) => ['music', ...s])];
-  const first = z1 - 0.6;
-  const span = first - (z0 + 3.1);
-  const gap = span / Math.max(1, list.length - 1);
-  const frames = new Kit();
-  const geo = new THREE.PlaneGeometry(0.5, 0.72);
-  list.forEach(([kind, title, line], i) => {
-    const z = first - i * gap;
-    const y = i % 2 ? 1.62 : 1.58;
-    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: posterTexture(kind, title, line), color: 0xd8d2c8 }));
-    mesh.position.set(x1 - 0.03, y, z); // just in front of its frame
-    mesh.rotation.y = -Math.PI / 2;
-    scene.add(mesh);
-    frames.box(0.02, 0.78, 0.56, C.frame, x1 - 0.005, y, z);
-  });
-  scene.add(new THREE.Mesh(frames.geometry(), new THREE.MeshBasicMaterial({ vertexColors: true })));
-
-  return {
-    glows: [
-      [mx + 0.1, top - 0.5, lightZ, 0xfff1d0],
-      [x0 + 0.2, 1.6, door.z, 0xffe2b0],
-    ],
-  };
+  return { glows: [...lights, [x1 - 0.1, f + 2.22, z, 0x5fdc8a], [18.4, f + 1.3, zL + 0.2, 0xffe6b8]] };
 }

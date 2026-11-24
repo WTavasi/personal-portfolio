@@ -182,6 +182,7 @@ a.topbar-btn {
 }
 .track:hover {
   background: var(--surface-2);
+  box-shadow: 0 0 14px rgb(var(--glow) / 0.22);
 }
 .track:active {
   transform: translateY(1px);
@@ -281,6 +282,10 @@ a.topbar-btn {
     text-align: center;
     white-space: nowrap;
     text-decoration: none;
+  }
+  .tab:hover {
+    background: var(--surface-2);
+    box-shadow: 0 0 12px rgb(var(--glow) / 0.25);
   }
   .tab[aria-current='page'] {
     color: var(--accent-text);

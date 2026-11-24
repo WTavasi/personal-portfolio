@@ -259,9 +259,16 @@
   letter-spacing: -0.02em;
 }
 /* About me: the arrows take the whole row; Print and Mail sit under them, on the right. */
+/* About me: the bar of arrows (with Print and Mail) holds the top while the page scrolls. */
 .p-bar:has(.room-nav) {
+  position: sticky;
+  top: var(--topbar-h);
+  z-index: 3;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+.is-over-hall .p-bar:has(.room-nav) {
+  top: 0;
 }
 .p-bar .room-nav {
   flex: 1 1 100%;
