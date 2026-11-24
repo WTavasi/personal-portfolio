@@ -148,8 +148,50 @@ a.topbar-btn {
 }
 
 /* The Tracklist menu: a numbered list of the rooms, like an album's track list. */
-.tracklist {
+/* The two menus in the top bar: Résumé, and All Sections. */
+.menu {
   position: relative;
+}
+.menu-panel {
+  display: grid;
+  gap: var(--s-2);
+  width: min(300px, calc(100vw - 2 * var(--s-4)));
+}
+.menu-panel[hidden] {
+  display: none;
+}
+.menu-item {
+  justify-content: flex-start;
+  min-height: 48px;
+}
+.menu-panel .mail-form:not([hidden]) {
+  display: grid;
+  gap: var(--s-2);
+}
+.menu-panel .mail-form {
+  padding: var(--s-2) var(--s-1) var(--s-1);
+  background: none;
+  border: 0;
+}
+.menu-panel .mail-form input {
+  min-height: 44px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-inner);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.menu-panel .mail-form input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+.menu-panel .mail-form input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+.menu-panel .mail-note {
+  color: var(--text-2);
+  font-size: var(--t-sm);
 }
 .tracklist-panel {
   position: absolute;
@@ -226,9 +268,15 @@ a.topbar-btn {
   .topbar-role {
     display: none;
   }
-  .topbar-sound,
-  .topbar-resume {
+  /* The sound control moves into All Sections. */
+  .topbar-sound {
     display: none;
+  }
+  .topbar-nav {
+    gap: var(--s-2);
+  }
+  .topbar-btn {
+    padding: 0 var(--s-3);
   }
   .tracklist-extra {
     display: grid;

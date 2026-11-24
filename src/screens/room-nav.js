@@ -1,4 +1,5 @@
-// The arrows between rooms, shown at the top of every room (over the hall and as a page): the
+// The arrows between rooms, shown at the top of every room (over the hall and as a page), and the
+// footer every page ends with. The arrows: the
 // previous room, back to the hall, the next room. Each arrow says where it goes. The keyboard's
 // left and right arrows do the same (main.js). The notice board is not in the loop: it only has
 // the way back to the hall. Pure, so the build can write it into every page.
@@ -39,3 +40,9 @@ export function caseNav(prev, next) {
       ${next ? arrow('next', pathFor('project', next.slug), next.name, 'Next:', 'next') : arrow('next', pathFor(neighbours('work').next.key), neighbours('work').next.label, 'Next:', 'next')}
     </nav>`;
 }
+
+// The one footer every page ends with.
+export const pageFoot = () => `
+    <footer class="doc-foot">
+      <p>No cookies, no tracking. <a href="${pathFor('privacy')}">Privacy and credits</a></p>
+    </footer>`;

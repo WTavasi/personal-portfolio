@@ -3,9 +3,9 @@
 // the page uses it at runtime, and the build uses the same function to write /about and /resume,
 // so it can be read, printed and indexed even before (or without) JavaScript. Printing prints the
 // résumé part only. Instead of repeating other rooms, it links to them.
-import { person, contact, experience, leadership, projects, skills, education, certifications, honors, interests, credits } from '../content.js';
+import { person, contact, experience, leadership, projects, skills, education, certifications, honors, interests } from '../content.js';
 import { pathFor } from '../lib/router.js';
-import { roomNav } from './room-nav.js';
+import { roomNav, pageFoot } from './room-nav.js';
 
 export const esc = (s) =>
   String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -16,47 +16,19 @@ const list = (items) => `<ul>${items.map((b) => `<li>${esc(b)}</li>`).join('')}<
 
 const see = (key, label) => `<p class="see-also"><a href="${pathFor(key)}">${esc(label)} <span aria-hidden="true">→</span></a></p>`;
 
-export function aboutMarkup() {
+// The résumé itself: on the page under About me, and on its own when printed (shell.js). On screen
+// it is headed "Résumé" (the page has already said who and what); printed, it opens with the name.
+export function resumePart() {
   const contactLinks = [
     contact.email && `<a href="mailto:${esc(contact.email)}">${esc(contact.email)}</a>`,
     contact.github && ext(contact.github, 'GitHub'),
     contact.linkedin && ext(contact.linkedin, 'LinkedIn'),
   ].filter(Boolean);
-
   return `
-    <div class="p-bar">
-      ${roomNav('about')}
-      <div class="p-actions" role="group" aria-label="Résumé">
-        <button class="btn btn-secondary" data-act="print">Print</button>
-        <button class="btn btn-secondary" data-act="mail" aria-expanded="false" aria-controls="mail-form">Mail</button>
-      </div>
-    </div>
-
-    <form class="mail-form" id="mail-form" hidden novalidate>
-      <label for="mail-to">Send this résumé to</label>
-      <div class="mail-row">
-        <input id="mail-to" type="email" aria-describedby="mail-note" autocomplete="email" placeholder="name@company.com" required />
-        <button class="btn btn-primary" type="submit">Write the email</button>
-      </div>
-      <p class="mail-note" id="mail-note" data-bind="mail-note" aria-live="polite">This opens your own mail app with a message ready to send. The address you type stays on your device; this site does not store or send it.</p>
-    </form>
-
-    <main class="doc">
-      <header class="doc-head about-head">
-        <h1 tabindex="-1">About me</h1>
-        <p class="doc-lead">${esc(person.description)}</p>
-        <ul class="about-links">
-          <li><a href="${pathFor('work')}">See my work <span aria-hidden="true">→</span></a></li>
-          <li><a href="${pathFor('music')}">Hear the music <span aria-hidden="true">→</span></a></li>
-          <li><a href="${pathFor('services')}">Services and quotes <span aria-hidden="true">→</span></a></li>
-          <li><a href="#resume">Read my résumé <span aria-hidden="true">↓</span></a></li>
-        </ul>
-      </header>
-
       <section class="resume-part" id="resume" aria-label="Résumé" tabindex="-1">
       <header class="doc-head">
-        <p class="resume-name">${esc(person.name)}</p>
-        <p class="doc-full">${esc(person.headline)} · ${esc(person.location)}</p>
+        <h2 class="resume-name"><span class="screen-only">Résumé</span><span class="print-only">${esc(person.name)}</span></h2>
+        <p class="doc-full print-only">${esc(person.headline)} · ${esc(person.location)}</p>
         <p class="doc-avail">${esc(person.availability)}</p>
         <p class="doc-links">${contactLinks.join('')}</p>
       </header>
@@ -142,10 +114,24 @@ export function aboutMarkup() {
 
       </section>
 
-      <footer class="doc-foot">
-        <p>This site sets no cookies and has no analytics. It saves your sound settings on your own device only.</p>
-        ${credits.map((c) => `<p>${esc(c)}</p>`).join('')}
-      </footer>
+`;
+}
+
+export function aboutMarkup() {
+  return `
+    <main class="doc room-doc">
+      ${roomNav('about')}
+      <header class="doc-head about-head">
+        <h1 tabindex="-1">About me</h1>
+        <p class="doc-lead">${esc(person.description)}</p>
+        <ul class="about-links">
+          <li><a href="${pathFor('work')}">See my work <span aria-hidden="true">→</span></a></li>
+          <li><a href="${pathFor('music')}">Hear the music <span aria-hidden="true">→</span></a></li>
+          <li><a href="${pathFor('services')}">Services and quotes <span aria-hidden="true">→</span></a></li>
+        </ul>
+      </header>
+      ${resumePart()}
+      ${pageFoot()}
     </main>
   `;
 }

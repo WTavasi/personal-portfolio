@@ -265,9 +265,6 @@
   margin: 0;
   padding: var(--s-6) var(--s-6) var(--s-7);
 }
-.is-over-hall .p-bar {
-  background: var(--bg);
-}
 body.over-hall .world {
   filter: brightness(0.55);
 }

@@ -1,8 +1,8 @@
-// The top bar shared by every screen: the name (home), the mini-player, the Tracklist menu, the
-// sound control and the résumé. It lives outside the screens, so it stays put while pages change underneath it.
-// On narrow screens the sound and résumé controls move into the Tracklist menu, and a tab bar
-// along the bottom gives one-tap access to the rooms.
-import { person } from './content.js';
+// The top bar shared by every screen: the name (home), the mini-player, the sound control, the
+// Résumé menu (print it, or email it) and All Sections. It lives outside the screens, so it stays
+// put while pages change underneath it. On narrow screens the sound control moves into All
+// Sections, and a tab bar along the bottom gives one-tap access to the rooms.
+import { person, contact } from './content.js';
 import { TRACKS, pathFor } from './lib/router.js';
 
 // The tab bar on phones: the four core rooms (Home is the name; the notice board, an extra, is in
@@ -16,7 +16,42 @@ const ICON = {
   play: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M4 2.5v11l9.5-5.5z" fill="currentColor"/></svg>',
   pause: '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3.5 2.5h3v11h-3zM9.5 2.5h3v11h-3z" fill="currentColor"/></svg>',
 };
-import { esc } from './screens/resume-markup.js';
+import { esc, resumePart } from './screens/resume-markup.js';
+
+// The email that "Email the résumé" writes: the visitor's own mail app sends it, so nothing leaves
+// the page and no address is kept. Mail apps cannot take attachments this way, so it links to the
+// résumé on the web instead.
+function mailtoFor(to) {
+  const site = new URL(pathFor('home'), window.location.origin).href;
+  const resumeUrl = new URL(pathFor('resume'), window.location.origin).href;
+  const lines = [
+    'Hello,',
+    '',
+    `Here is the résumé of ${person.name}, a ${person.headline.toLowerCase().replace('devops', 'DevOps')} based in ${person.location}.`,
+    person.availability,
+    '',
+    `Résumé (web): ${resumeUrl}`,
+    `Interactive portfolio: ${site}`,
+    '',
+    `Contact: ${[contact.email, contact.linkedin].filter(Boolean).join(' | ')}`,
+  ];
+  const q = (v) => encodeURIComponent(v);
+  return `mailto:${q(to)}?subject=${q(`Résumé: ${person.name}, ${person.headline}`)}&body=${q(lines.join('\n'))}`;
+}
+
+// Print the résumé, from any page: it is written into a page of its own that only print shows.
+function printResume() {
+  let sheet = document.querySelector('.print-resume');
+  if (!sheet) {
+    sheet = document.createElement('div');
+    sheet.className = 'print-resume';
+    document.body.append(sheet);
+  }
+  sheet.innerHTML = `<main class="doc room-doc">${resumePart()}</main>`;
+  document.body.classList.add('printing-resume');
+  window.print();
+}
+window.addEventListener('afterprint', () => document.body.classList.remove('printing-resume'));
 
 export function createShell({ onSound }) {
   const el = document.createElement('header');
@@ -33,9 +68,21 @@ export function createShell({ onSound }) {
         <label class="player-vol"><span class="sr-only">Volume</span><input type="range" min="0" max="100" step="1" data-act="volume" /></label>
       </div>
       <button class="link-quiet topbar-sound" type="button" data-act="sound" aria-pressed="false"></button>
-      <a class="btn btn-secondary topbar-btn topbar-resume" href="${pathFor('resume')}">Résumé</a>
-      <div class="tracklist">
-        <button class="btn btn-secondary topbar-btn" type="button" data-act="tracklist" aria-expanded="false" aria-controls="tracklist">All Sections</button>
+      <div class="menu resume-menu">
+        <button class="btn btn-secondary topbar-btn" type="button" data-act="menu" aria-expanded="false" aria-controls="resume-menu">Résumé</button>
+        <div class="tracklist-panel menu-panel" id="resume-menu" hidden>
+          <button class="btn btn-secondary menu-item" type="button" data-act="print">Print the résumé</button>
+          <button class="btn btn-secondary menu-item" type="button" data-act="mail" aria-expanded="false" aria-controls="mail-form">Email the résumé</button>
+          <form class="mail-form" id="mail-form" hidden novalidate>
+            <label for="mail-to">Send it to</label>
+            <input id="mail-to" type="email" aria-describedby="mail-note" autocomplete="email" placeholder="name@company.com" required />
+            <button class="btn btn-primary" type="submit">Write the email</button>
+            <p class="mail-note" id="mail-note" aria-live="polite">This opens your own mail app with a message ready to send. The address stays on your device.</p>
+          </form>
+        </div>
+      </div>
+      <div class="menu tracklist">
+        <button class="btn btn-secondary topbar-btn" type="button" data-act="menu" aria-expanded="false" aria-controls="tracklist">All Sections</button>
         <div class="tracklist-panel" id="tracklist" hidden>
           <ol class="tracks">
             ${TRACKS.map(
@@ -56,14 +103,39 @@ export function createShell({ onSound }) {
   tabbar.setAttribute('aria-label', 'Rooms');
   tabbar.innerHTML = TABS.map((t) => `<a class="tab" href="${pathFor(t.key)}" data-track="${t.key}">${esc(t.label)}</a>`).join('');
 
-  const button = el.querySelector('[data-act="tracklist"]');
-  const panel = el.querySelector('.tracklist-panel');
-
-  function setOpen(open, { focus = false } = {}) {
-    panel.hidden = !open;
-    button.setAttribute('aria-expanded', String(open));
-    if (open && focus) panel.querySelector('.track')?.focus();
+  // The two menus (Résumé, All Sections): one open at a time.
+  const menus = [...el.querySelectorAll('.menu')].map((root) => ({ root, button: root.querySelector('[data-act="menu"]'), panel: root.querySelector('.menu-panel, #tracklist') }));
+  function setOpen(menu, open, { focus = false } = {}) {
+    for (const m of menus) {
+      const on = m === menu && open;
+      m.panel.hidden = !on;
+      m.button.setAttribute('aria-expanded', String(on));
+    }
+    if (open && focus) menu.panel.querySelector('a, button')?.focus();
   }
+  const closeAll = () => setOpen(null, false);
+  const openMenu = () => menus.find((m) => !m.panel.hidden);
+
+  // Email the résumé: the address field opens under the option.
+  const mailForm = el.querySelector('.mail-form');
+  const mailTo = el.querySelector('#mail-to');
+  const mailNote = el.querySelector('#mail-note');
+  const NOTE = mailNote.textContent;
+  mailTo.addEventListener('input', () => {
+    mailTo.removeAttribute('aria-invalid');
+    mailNote.textContent = NOTE;
+  });
+  mailForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const to = mailTo.value.trim();
+    if (!to || !mailTo.checkValidity()) {
+      mailTo.setAttribute('aria-invalid', 'true');
+      mailNote.textContent = 'Please enter an email address, like name@company.com.';
+      return mailTo.focus();
+    }
+    window.location.href = mailtoFor(to);
+    closeAll();
+  });
 
   function renderSound() {
     const on = getState().sound;
@@ -121,8 +193,22 @@ export function createShell({ onSound }) {
   }
 
   el.addEventListener('click', (e) => {
-    const act = e.target.closest('[data-act]')?.dataset.act;
-    if (act === 'tracklist') return setOpen(panel.hidden, { focus: e.detail === 0 });
+    const actEl = e.target.closest('[data-act]');
+    const act = actEl?.dataset.act;
+    if (act === 'menu') {
+      const menu = menus.find((m) => m.button === actEl);
+      return setOpen(menu, menu.panel.hidden, { focus: e.detail === 0 });
+    }
+    if (act === 'print') {
+      closeAll();
+      return printResume();
+    }
+    if (act === 'mail') {
+      mailForm.hidden = !mailForm.hidden;
+      actEl.setAttribute('aria-expanded', String(!mailForm.hidden));
+      if (!mailForm.hidden) mailTo.focus();
+      return;
+    }
     if (act === 'sound') {
       ensureAudio();
       setState({ sound: !getState().sound });
@@ -130,21 +216,24 @@ export function createShell({ onSound }) {
       playClick();
       return;
     }
-    if (e.target.closest('.track')) setOpen(false);
+    if (e.target.closest('.track')) closeAll();
   });
 
-  // Esc closes the menu and puts focus back on its button; it does not also close a panel behind it.
+  // Esc closes a menu and puts focus back on its button; it does not also close a panel behind it.
   el.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || panel.hidden) return;
+    const m = openMenu();
+    if (e.key !== 'Escape' || !m) return;
     e.stopPropagation();
-    setOpen(false);
-    button.focus();
+    closeAll();
+    m.button.focus();
   });
   document.addEventListener('pointerdown', (e) => {
-    if (!panel.hidden && !e.target.closest('.tracklist')) setOpen(false);
+    const m = openMenu();
+    if (m && !m.root.contains(e.target)) closeAll();
   });
   el.addEventListener('focusout', (e) => {
-    if (!panel.hidden && e.relatedTarget && !e.relatedTarget.closest('.tracklist')) setOpen(false);
+    const m = openMenu();
+    if (m && e.relatedTarget && !m.root.contains(e.relatedTarget)) closeAll();
   });
 
   renderSound();
@@ -163,7 +252,7 @@ export function createShell({ onSound }) {
         if (a.dataset.track === route) a.setAttribute('aria-current', 'page');
         else a.removeAttribute('aria-current');
       });
-      setOpen(false);
+      closeAll();
     },
   };
 }

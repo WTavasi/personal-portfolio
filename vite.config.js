@@ -30,7 +30,7 @@ function prerender() {
           .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
           .replace('<body>', `<body data-screen="${screen}" data-surface="paper">`)
           .replace('id="world"', 'id="world" hidden')
-          .replace('<div id="app"></div>', `<div id="app"><div class="screen ${screen === 'resume' || screen === 'about' ? 'resume' : 'room'}">${html}</div></div>`);
+          .replace('<div id="app"></div>', `<div id="app"><div class="screen room">${html}</div></div>`);
         if (page === shell || !page.includes(`<div class="screen`)) throw new Error('prerender: index.html did not match');
         const dir = resolve(outDir, path.slice(base.length));
         await mkdir(dir, { recursive: true });

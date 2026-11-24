@@ -4,7 +4,7 @@
    marks. The body stays Source Serif 4 at a reading size, so it reads as easily as before.
    Applies to every room page and to About me, on their own and opened over the hall. */
 
-:is(.room, .resume, .screen.is-over-hall) {
+:is(.room, .page-paper) {
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.29 0 0 0 0 0.12 0 0 0 0.09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
   background:
     radial-gradient(ellipse 95% 80% at 50% 45%, transparent 60%, rgb(110 70 25 / 0.16) 100%),
@@ -12,7 +12,7 @@
     var(--bg);
 }
 @media (prefers-color-scheme: dark) {
-  :is(.room, .resume, .screen.is-over-hall) {
+  :is(.room, .page-paper) {
     background:
       radial-gradient(ellipse 95% 80% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.35) 100%),
       var(--bg);
@@ -55,8 +55,12 @@
 .screen.is-over-hall::-webkit-scrollbar {
   display: none;
 }
+/* An open page is transparent: its paper (and the ornament on it) is the layer under it. */
+.screen.is-over-hall {
+  background: transparent;
+}
 /* The arrows and the bar keep the page's own paper behind them as the page scrolls under. */
-:is(.room, .resume, .screen.is-over-hall) :is(.room-nav, .p-bar) {
+:is(.room, .screen.is-over-hall) .room-nav {
   background: var(--bg);
 }
 

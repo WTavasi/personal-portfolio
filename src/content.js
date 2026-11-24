@@ -228,7 +228,11 @@ export const certifications = [
 ];
 
 // Third-party media used on the site, credited on the résumé page.
-export const credits = ['Orchestra tuning recording: "Orchestra Tuning Sound Effect" by Effects Grinder.'];
+export const credits = [
+  'Orchestra tuning recording: “Orchestra Tuning Sound Effect” by Effects Grinder.',
+  'Audience chatter: “People Talking in Background, Version 1” by Finnolia Sound Effects.',
+  'Type: Source Serif 4 (Adobe), Bodoni Moda (Owen Earl) and Space Mono (Colophon), under the SIL Open Font License.',
+];
 
 export const honors = [
   'Represented Kenya at the national Spell It Right spelling bee, placing 10th of over 200 competitors.',
