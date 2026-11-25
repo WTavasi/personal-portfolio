@@ -236,6 +236,7 @@ export async function createWorld({ canvas, onStep }) {
   const frameListeners = new Set();
   let active = null; // which section is playing on its own, or null for everyone
   let beatSource = null;
+  let levelSource = null; // how loud the tuning and each section are playing, for the players
   let fallbackBpm = 80;
 
   function spotTarget() {
@@ -318,9 +319,10 @@ export async function createWorld({ canvas, onStep }) {
     }
 
     if (!still && revealed) {
-      // Without music there is no beat: the orchestra is tuning and the conductor waits.
+      // The players follow what is actually sounding (the tuning, the music); the conductor
+      // beats the music's time. Without music there is no beat and the conductor waits.
       const beats = beatSource?.() ?? null;
-      fx.animate(t, beats, active, dt);
+      fx.animate(t, dt, { beats, levels: levelSource?.() ?? null, bpm: fallbackBpm, focus: active });
       const pos = fx.dust.geometry.attributes.position;
       for (let i = 0; i < pos.count; i++) {
         let y = pos.getY(i) + dt * 0.1;
@@ -376,11 +378,22 @@ export async function createWorld({ canvas, onStep }) {
       pinned = v.length ? v : null;
       dirty = true;
     };
-    // Make the orchestra play to a steady beat without music, to check the players' movement.
+    // Make the orchestra play to a steady beat without music, to check the players' movement
+    // (the real level source is set aside while it does).
+    let kept = null;
     window.__hallPlay = (on = true) => {
-      const t0 = performance.now();
-      beatSource = on ? () => ((performance.now() - t0) / 1000) * (fallbackBpm / 60) : null;
+      if (on) {
+        kept ??= { beatSource, levelSource };
+        const t0 = performance.now();
+        beatSource = () => ((performance.now() - t0) / 1000) * (fallbackBpm / 60);
+        levelSource = null;
+      } else if (kept) {
+        ({ beatSource, levelSource } = kept);
+        kept = null;
+      }
     };
+    // The players' state, for checking the movement: section efforts, sway, together or alone.
+    window.__hallBand = () => fx.orchestraState();
   }
 
   return {
@@ -493,6 +506,9 @@ export async function createWorld({ canvas, onStep }) {
     setBeatSource(fn, bpm = fallbackBpm) {
       beatSource = fn;
       fallbackBpm = bpm;
+    },
+    setLevelSource(fn) {
+      levelSource = fn;
     },
     // The full-house moment: the audience applauds and throws flowers onto the stage.
     celebrate() {
