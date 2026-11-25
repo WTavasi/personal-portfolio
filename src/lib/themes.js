@@ -17,7 +17,7 @@
 // with your stems under the same names. Every stem must be the same length and tempo and loop
 // cleanly; set BPM below to your piece's tempo so the conductor keeps time with it, and set
 // MATCH_LOUDNESS to false so your own balance between the sections is kept.
-import { audioOut } from './audio.js';
+import { audioOut, meter, effort } from './audio.js';
 import { prepareApplause, prepareApplauseLoop } from './applause.js';
 
 // Get both applause recordings ready in the background.
@@ -69,6 +69,7 @@ const fileFor = (id) => {
 let decoded = null; // Promise of { name: { buffer, trim } }
 let ctx = null;
 let bus = null; // every stem and the applause go through here, then the limiter
+const meters = {}; // one per stem, after its level in the mix, so the players follow the music
 let watching = false;
 let set = null; // what is playing: { t0, length, sources, gains, stopping, timer }
 let starting = null; // Promise while the first play() is waiting for the stems
@@ -165,6 +166,7 @@ function output() {
       osc.connect(g).connect(hum);
       osc.start();
     }
+    for (const name of STEMS) meters[name] = meter(ctx);
     bus.connect(filter).connect(level).connect(limiter).connect(out);
     hum.connect(limiter);
     tone = { filter, level, hum };
@@ -256,6 +258,7 @@ function start(stems, countIn) {
     g.gain.setValueAtTime(0, when);
     g.gain.linearRampToValueAtTime(levelFor(name) * trim, when + fadeIn);
     g.connect(bus);
+    g.connect(meters[name]);
     const src = ctx.createBufferSource();
     src.buffer = buffer;
     src.loop = true;
@@ -391,6 +394,17 @@ export const themes = {
     if (!set || set.stopping || !ctx || ctx.state !== 'running') return null;
     const latency = ctx.outputLatency || ctx.baseLatency || 0;
     return ((ctx.currentTime - latency - set.t0) * BPM) / 60;
+  },
+
+  // How hard each section is playing, 0 to 1, by stem: it follows the music's own dynamics, the
+  // mix (a featured section plays out, the others under it) and every fade, so the players stop
+  // when the music does. A stem matched to -24 dB is full at the featured level. Null when no
+  // music has been set up.
+  levels() {
+    if (!ctx || !bus) return null;
+    const out = {};
+    for (const name of STEMS) out[name] = set && ctx.state === 'running' ? effort(meters[name], -48, -26) : 0;
+    return out;
   },
 
   // The full house: an ovation with cheers over the music, which carries on underneath. As the

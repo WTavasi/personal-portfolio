@@ -28,6 +28,26 @@ export function audioOut() {
   return ensureAudio() ? master : null;
 }
 
+/* ---------- How loud something is playing, for the players' movement ---------- */
+
+// A meter on a sound, read each frame. It listens before the volume control, so the orchestra
+// keeps playing in step with the conductor when the sound is turned down.
+const meterData = new Float32Array(2048);
+export function meter(c) {
+  const a = c.createAnalyser();
+  a.fftSize = meterData.length;
+  return a;
+}
+// How hard the players should be working, 0 to 1, from a meter: silent at `quiet` dB and below,
+// full at `loud` dB and above.
+export function effort(a, quiet, loud) {
+  a.getFloatTimeDomainData(meterData);
+  let sum = 0;
+  for (let i = 0; i < meterData.length; i += 2) sum += meterData[i] * meterData[i];
+  const db = 10 * Math.log10(sum / (meterData.length / 2) + 1e-12);
+  return Math.min(1, Math.max(0, (db - quiet) / (loud - quiet)));
+}
+
 /* ---------- The orchestra tuning, with the audience talking, while the hall builds ---------- */
 
 // The audience's chatter: any recording in src/assets/audio/ whose name contains "chatter",
@@ -51,6 +71,8 @@ let tuningData = null; // Promise of the raw file, fetched while the hall loads
 let tuningBuffer = null; // decoded audio, ready to play
 let tuningVoice = null; // what is playing now, so it can be faded out
 let tuningWanted = false;
+let tuningMeter = null; // the tuning (and its fallback A), not the audience's chatter
+const tuningTap = (c) => (tuningMeter ??= meter(c));
 
 const fetchAudio = (url) =>
   fetch(url)
@@ -127,6 +149,7 @@ export async function playTuning() {
   gain.gain.setValueAtTime(TUNING.level, t + length - TUNING.fadeOut);
   gain.gain.linearRampToValueAtTime(0, t + length);
   src.connect(gain).connect(master);
+  gain.connect(tuningTap(c));
   src.onended = () => {
     if (tuningVoice?.src === src) tuningVoice = null;
   };
@@ -138,6 +161,13 @@ export async function playTuning() {
 
 // True while the tuning recording is playing or about to.
 export const tuningActive = () => tuningWanted && !!tuningVoice;
+
+// How hard the orchestra is tuning, 0 to 1, as it sounds (fading in and out with the recording).
+// The recording sits around -20 dB.
+export function tuningLevel() {
+  if (!tuningMeter || ctx.state !== 'running') return 0;
+  return effort(tuningMeter, -44, -23);
+}
 
 // Fade the recording out, for example when leaving the menu or turning sound off.
 export function stopTuning(seconds = 0.6) {
@@ -178,6 +208,7 @@ export function playTuningA() {
   lp.frequency.value = 2400;
 
   out.connect(lp).connect(master);
+  lp.connect(tuningTap(c));
 
   // A few harmonics with a gentle vibrato give a reedy tone without samples.
   [

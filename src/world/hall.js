@@ -220,7 +220,7 @@ function conductorKits() {
 function chairKit() {
   const k = new Kit();
   for (const sx of [-1, 1]) {
-    k.box(0.03, 0.9, 0.03, COL.chair, sx * 0.19, 0.45, -0.19, 0.06);
+    k.box(0.03, 0.9, 0.03, COL.chair, sx * 0.19, 0.45, -0.19, -0.06); // raked back, under the backrest
     k.box(0.03, 0.45, 0.03, COL.chair, sx * 0.19, 0.225, 0.18);
   }
   k.box(0.44, 0.05, 0.42, COL.chairSeat, 0, 0.47, 0);
@@ -667,6 +667,8 @@ export async function buildHall(scene, step) {
   // Built facing +z, where a figure's right hand is on -x.
   rightArm.position.set(-0.24, 1.47, 0.02);
   leftArm.position.set(0.24, 1.47, 0.02);
+  rightArm.rotation.set(0.55, 0, 0); // at rest until the music starts (see REST_R below)
+  leftArm.rotation.set(0.5, 0, 0);
   rightArm.add(new THREE.Mesh(ck.right, personMat));
   leftArm.add(new THREE.Mesh(ck.left, personMat));
   maestro.add(body, rightArm, leftArm);
@@ -698,25 +700,45 @@ export async function buildHall(scene, step) {
     encore = on;
     if (instant) maestro.rotation.y = on ? 0 : Math.PI;
   };
-  fx.animate = (t, beats, active, dt) => {
-    orchestra.animate(t, beats, active, dt);
+  fx.orchestraState = () => ({
+    amp: [...orchestra.state.amp],
+    sway: [...orchestra.state.sway],
+    loose: orchestra.state.u.uLoose.value,
+    beat: orchestra.state.beat,
+  });
+  // The conductor's arms: rest (arms down, baton lowered) and how far into the beating they are.
+  const REST_R = [0.55, 0, 0];
+  const REST_L = [0.5, 0, 0];
+  let conducting = 0;
+  const settle = (arm, to, k) => {
+    const r = arm.rotation;
+    r.set(r.x + (to[0] - r.x) * k, r.y + (to[1] - r.y) * k, r.z + (to[2] - r.z) * k);
+  };
+  fx.animate = (t, dt, { beats = null, levels = null, bpm, focus = null } = {}) => {
+    orchestra.animate(t, dt, { beats, levels, bpm, focus });
     crowd.animate(t, dt);
     const turn = encore ? 0 : Math.PI;
     maestro.rotation.y += (turn - maestro.rotation.y) * Math.min(1, dt * 2.2);
-    // No music (the orchestra is tuning): the conductor waits, arms down, baton lowered.
+    // No music (the orchestra is tuning, or the piece has ended): the conductor lowers the arms,
+    // unhurried, and waits.
     if (beats == null) {
-      rightArm.rotation.set(0.55, 0, 0);
-      leftArm.rotation.set(0.5, 0, 0);
+      conducting = 0;
+      const k = 1 - Math.exp(-dt / 0.6);
+      settle(rightArm, REST_R, k);
+      settle(leftArm, REST_L, k);
       return;
     }
+    // Coming in, the arms rise into the pattern over half a second rather than jumping to it.
+    conducting = Math.min(1, conducting + dt / 0.5);
     const b = beats;
     let lift; // arm rotation about x: higher values put the hand lower
     let side;
+    let leftTo;
     if (b < 0) {
       const f = Math.max(0, 1 + b); // 0 until the preparatory beat, then 0 to 1 through it
       lift = f < 0.5 ? RAISED - 0.08 * Math.sin(Math.PI * (f / 0.5)) : RAISED + (NEUTRAL + DEPTH[0] - RAISED) * ((f - 0.5) / 0.5) ** 2;
       side = 0;
-      leftArm.rotation.set(-0.1, 0.12, 0);
+      leftTo = [-0.1, 0.12, 0];
     } else {
       const frac = b - Math.floor(b);
       const beat = Math.floor(b) % 4;
@@ -725,9 +747,11 @@ export async function buildHall(scene, step) {
       const depth = DEPTH[beat] + (DEPTH[next] - DEPTH[beat]) * frac;
       lift = NEUTRAL + depth * (1 - up) - REBOUND[beat] * up;
       side = SIDE[beat] + (SIDE[next] - SIDE[beat]) * smooth(0.15, 0.9, frac);
-      leftArm.rotation.set(0.15 + 0.06 * (1 - up), 0.15 - side * 0.3, 0);
+      leftTo = [0.15 + 0.06 * (1 - up), 0.15 - side * 0.3, 0];
     }
-    rightArm.rotation.set(lift, -side, 0);
+    const k = conducting < 1 ? 1 - Math.exp(-dt / 0.12) : 1;
+    settle(rightArm, [lift, -side, 0], k);
+    settle(leftArm, leftTo, k);
   };
 
   // The audience: the same people in the same seats on every visit, scattered so the hall reads
@@ -741,7 +765,7 @@ export async function buildHall(scene, step) {
   const HOUSE = 0.66;
   crowd.setCount(Math.round(audienceMx.length * HOUSE));
   fx.celebrate = (instant, now) => crowd.celebrate(instant, now);
-  fx.animate(0, null, null, 1);
+  fx.animate(0, 0.1); // the first pose, before any music
 
   /* ---------- Rooms: what can be clicked, where its marker sits, where the follow spot points ---------- */
   const box = (w, h, d, x, y, z) => {

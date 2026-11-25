@@ -19,7 +19,7 @@ import { aboutScreen } from './screens/resume.js';
 import { roomScreen } from './screens/room.js';
 import { boardScreen } from './screens/board.js';
 import { themes, BPM } from './lib/themes.js';
-import { stopTuning } from './lib/audio.js';
+import { stopTuning, tuningLevel } from './lib/audio.js';
 import { getState } from './lib/state.js';
 import { startRouter, currentRoute, navigate, neighbours } from './lib/router.js';
 import { createShell } from './shell.js';
@@ -59,6 +59,8 @@ const world = {
     this.loading ??= this.prefetch().then(async ({ createWorld }) => {
       this.api = await createWorld({ canvas, onStep });
       this.api.setBeatSource(() => themes.beats(), BPM);
+      // The players move to what is actually sounding: the tuning, then each section's music.
+      this.api.setLevelSource(() => ({ tuning: tuningLevel(), stems: themes.levels() }));
     });
     return this.loading;
   },

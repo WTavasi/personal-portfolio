@@ -78,23 +78,30 @@ function ik(S, G, pole) {
   return S.clone().addScaledVector(d, x).addScaledVector(p, h);
 }
 
+// How a point moves with a stroke. The CPU works out, once, where every moving point is at both
+// ends of its stroke (g = -1 and g = 1; g = 0 is the pose as modelled), with the real joints: the
+// shoulder and elbow turn, nothing stretches. Each point stores the parabola through those three
+// places, p + lin * g + quad * g², so the GPU only has to evaluate it.
+const KIND = { none: 0, bow: 1, strike: 2 };
+const smoothstep = (a, b, x) => {
+  const k = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return k * k * (3 - 2 * k);
+};
+
 class Rig {
   constructor() {
     this.parts = [];
-    this.moves = [null];
+    this.motions = [null];
     this.cur = 0;
+    this.hip = 0.6; // the height the body sways from: seated, or standing (set by the legs)
+    this.band = null; // where the sway fades in, if not just above the hips: [from, to] high
   }
-  // Parts added after this turn around `joint` (an elbow) while their section plays.
-  move(joint, axis, amp, phase = 0) {
-    this.moves.push({ joint: joint.clone(), axis: axis.clone().normalize(), amp, phase, kind: 'turn' });
-    this.cur = this.moves.length - 1;
-    return this;
-  }
-  // Parts added after this slide along `axis` while their section plays, up to `length` metres
-  // each way, each point by `weight(point)` of that (1 moves fully, 0 stays put): a bow stroke.
-  slide(axis, length, weight, phase = 0) {
-    this.moves.push({ joint: V(0, 0, 0), axis: axis.clone().normalize(), amp: length, phase, kind: 'slide', weight });
-    this.cur = this.moves.length - 1;
+  // Parts added after this follow a stroke. `at(p, g)` is where template point p is at stroke
+  // position g. A 'bow' stroke goes to and fro; a 'strike' lifts slowly and falls fast, with
+  // g = -1 the moment the mallet meets the instrument.
+  motion(kind, phase, at) {
+    this.motions.push({ kind: KIND[kind], phase, at });
+    this.cur = this.motions.length - 1;
     return this;
   }
   still() {
@@ -106,7 +113,7 @@ class Rig {
     if (matrix) g.applyMatrix4(matrix);
     for (const k of Object.keys(g.attributes)) if (k !== 'position' && k !== 'normal') g.deleteAttribute(k);
     g.clearGroups();
-    this.parts.push({ g, color, move: this.cur });
+    this.parts.push({ g, color, motion: this.cur });
     return this;
   }
   box(w, h, d, color, x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0) {
@@ -135,37 +142,45 @@ class Rig {
   }
   build() {
     const pt = new THREE.Vector3();
-    const geos = this.parts.map(({ g, color, move }) => {
+    const geos = this.parts.map(({ g, color, motion }) => {
       const n = g.attributes.position.count;
+      const pos = g.attributes.position;
       const col = new Float32Array(n * 3);
       const tone = new Float32Array(n);
-      const mv = new Float32Array(n).fill(move);
-      const wt = new Float32Array(n).fill(1);
-      const weight = this.moves[move]?.weight;
+      const lin = new Float32Array(n * 3);
+      const quad = new Float32Array(n * 3);
+      const mot = new Float32Array(n * 3);
+      const m = this.motions[motion];
       const c = typeof color === 'number' ? linear(color) : null;
       for (let i = 0; i < n; i++) {
         if (c) col.set([c.r, c.g, c.b], i * 3);
         tone[i] = color === 'skin' ? 1 : color === 'hair' ? 2 : 0;
-        if (weight) wt[i] = weight(pt.fromBufferAttribute(g.attributes.position, i));
+        pt.fromBufferAttribute(pos, i);
+        // The legs stay on the chair (or the floor); from the hips up the body sways.
+        const [lo, hi] = this.band ?? [this.hip - 0.06, this.hip + 0.14];
+        mot.set([m ? m.kind : 0, m ? m.phase : 0, smoothstep(lo, hi, pt.y)], i * 3);
+        if (!m) continue;
+        const a = m.at(pt.clone(), -1);
+        const b = m.at(pt.clone(), 1);
+        lin.set([(b.x - a.x) / 2, (b.y - a.y) / 2, (b.z - a.z) / 2], i * 3);
+        quad.set([(a.x + b.x) / 2 - pt.x, (a.y + b.y) / 2 - pt.y, (a.z + b.z) / 2 - pt.z], i * 3);
       }
       g.setAttribute('color', new THREE.BufferAttribute(col, 3));
       g.setAttribute('aTone', new THREE.BufferAttribute(tone, 1));
-      g.setAttribute('aMove', new THREE.BufferAttribute(mv, 1));
-      g.setAttribute('aW', new THREE.BufferAttribute(wt, 1));
+      g.setAttribute('aLin', new THREE.BufferAttribute(lin, 3));
+      g.setAttribute('aQuad', new THREE.BufferAttribute(quad, 3));
+      g.setAttribute('aMot', new THREE.BufferAttribute(mot, 3));
       return g;
     });
     const geo = mergeGeometries(geos, false);
     // Mirror x (see the note at the top) and reverse the winding so faces still point outward.
-    const p = geo.attributes.position;
-    const nr = geo.attributes.normal;
-    for (let i = 0; i < p.count; i++) {
-      p.setX(i, -p.getX(i));
-      nr.setX(i, -nr.getX(i));
+    for (const k of ['position', 'normal', 'aLin', 'aQuad']) {
+      const a = geo.attributes[k];
+      for (let i = 0; i < a.count; i++) a.setX(i, -a.getX(i));
     }
     const idx = geo.index.array;
     for (let i = 0; i < idx.length; i += 3) [idx[i + 1], idx[i + 2]] = [idx[i + 2], idx[i + 1]];
-    const moves = this.moves.map((m) => m && { ...m, weight: null, joint: m.joint.clone().setX(-m.joint.x), axis: m.axis.clone().setX(-m.axis.x) });
-    return { geo, moves };
+    return { geo, hip: this.hip };
   }
 }
 
@@ -209,6 +224,7 @@ function seatedLegs(r, spread = 0.1) {
 }
 
 function standingLegs(r) {
+  r.hip = 0.98;
   for (const sx of [-1, 1]) {
     const hip = V(sx * 0.1, 0.96, 0);
     const knee = V(sx * 0.11, 0.53, 0.03);
@@ -235,16 +251,45 @@ function arm(r, S, G, pole, hint) {
   return E;
 }
 
-// An arm whose forearm swings around the elbow (a bow stroke or a mallet stroke). Anything
-// added inside `held` swings with the hand.
-function swingingArm(r, S, G, pole, axisFrom, amp, phase, held) {
+// Turning about a point: where p goes when turned by `angle` about `axis` through `c`.
+const turnAbout = (p, c, axis, angle) => p.clone().sub(c).applyAxisAngle(axis, angle).add(c);
+// Find x in [0, hi] where f(x) = goal, for f rising with x.
+function solve(f, goal, hi) {
+  let lo = 0;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) < goal) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// An arm beating with a mallet (or a triangle beater) held in the hand at G. The stroke comes
+// mostly from the wrist, a little from the elbow; the upper arm stays where it is. At g = -1 the
+// head just meets the surface (point Q, normal n, facing the head), at g = 1 it is lifted `lift`
+// higher than it rests. `held` adds the stick and head, given the head's resting centre.
+function malletArm(r, S, G, pole, Q, n, { head, hover, lift, phase, held }) {
+  const tip = Q.clone().addScaledVector(n, hover + head);
   const E = ik(S, G, pole);
+  const d = G.clone().sub(E).normalize();
+  const W = G.clone().addScaledVector(d, -0.06);
+  const axis = new THREE.Vector3().crossVectors(tip.clone().sub(E), n).normalize();
+  const ELBOW = 0.3; // the elbow's share of the turn; the wrist does the rest
+  const lower = (p, a) => turnAbout(p, E, axis, a * ELBOW);
+  const hand = (p, a) => turnAbout(lower(p, a), lower(W, a), axis, a * (1 - ELBOW));
+  // How far the head is from the surface after turning by a (positive turns lift it).
+  const sign = hand(tip, 0.05).clone().sub(Q).dot(n) > hover + head ? 1 : -1;
+  const gap = (a) => hand(tip, sign * a).sub(Q).dot(n) - head;
+  const down = solve((a) => -gap(-a), -0.003, 1.2);
+  const up = solve(gap, hover + lift, 1.2);
+  const angle = (g) => sign * (g < 0 ? g * down : g * up);
   r.tube(S, E, 0.05, 0.043, BLACK, 6);
-  r.move(E, axisFrom(E), amp, phase);
-  forearm(r, E, G);
-  held?.();
+  r.motion('strike', phase, (p, g) => lower(p, angle(g)));
+  r.tube(E, W, 0.042, 0.034, BLACK, 6);
+  r.motion('strike', phase, (p, g) => hand(p, angle(g)));
+  r.plank(W, G.clone().addScaledVector(d, 0.035), 0.07, 0.035, 'skin');
+  held(tip);
   r.still();
-  return E;
 }
 
 /* ---------------------------------------------------------- string family */
@@ -312,36 +357,52 @@ function stringed(r, B, s, endpin = 0) {
 // A bow lying across the strings, its hair through `contact`, frog toward the player's right.
 // A stroke is what a real one is: the bow slides along its own length across the strings, so the
 // hair stays on them and never cuts through the instrument or the player. The hand goes with the
-// frog, the forearm follows it, and the upper arm moves a little from the shoulder.
-function bowingArm(r, S, ins, s, pole, stroke) {
+// frog, and the arm follows it on its joints: the elbow opens and closes, the upper arm swings
+// from the shoulder, and neither changes length. At rest the frog is `reach` from the strings;
+// a stroke moves it `stroke` either way (g = 1 in toward the strings, g = -1 out to the tip).
+function bowingArm(r, S, ins, s, pole, { reach, stroke, phase = 0 }) {
   const f = ins.across.clone();
   if (f.x < 0) f.negate();
   const tip = f.clone().negate();
-  const along = THREE.MathUtils.clamp(S.clone().sub(ins.contact).dot(f), 0.12, s.bow * 0.6);
-  const frog = ins.contact.clone().addScaledVector(f, along);
-  const G = frog.clone().addScaledVector(tip, 0.05);
   const n = ins.normal;
+  const grip = (g) => ins.contact.clone().addScaledVector(f, reach - g * stroke).addScaledVector(tip, 0.05);
+  const G = grip(0);
   const E = ik(S, G, pole);
-  // How far along a segment a point is, 0 at a and 1 at b.
-  const share = (a, b) => {
-    const ab = b.clone().sub(a);
-    const len2 = ab.lengthSq();
-    return (p) => THREE.MathUtils.clamp(p.clone().sub(a).dot(ab) / len2, 0, 1);
+  const armAt = (g) => {
+    const Gg = grip(g);
+    return { G: Gg, E: ik(S, Gg, pole) };
   };
-  const upperArm = share(S, E);
-  const lowerArm = share(E, G);
-  r.slide(tip, stroke, (p) => 0.3 * upperArm(p));
+  const swing = (from, to) => new THREE.Quaternion().setFromUnitVectors(from.clone().normalize(), to.clone().normalize());
+  r.motion('bow', phase, (p, g) => {
+    const a = armAt(g);
+    return p.sub(S).applyQuaternion(swing(E.clone().sub(S), a.E.clone().sub(S))).add(S);
+  });
   r.tube(S, E, 0.05, 0.043, BLACK, 6);
-  r.slide(tip, stroke, (p) => 0.3 + 0.7 * lowerArm(p));
+  r.motion('bow', phase, (p, g) => {
+    const a = armAt(g);
+    return p.sub(E).applyQuaternion(swing(G.clone().sub(E), a.G.clone().sub(a.E))).add(a.E);
+  });
   forearm(r, E, G);
-  r.slide(tip, stroke, () => 1);
+  r.motion('bow', phase, (p, g) => p.addScaledVector(tip, g * stroke));
+  const frog = ins.contact.clone().addScaledVector(f, reach);
   const end = frog.clone().addScaledVector(tip, s.bow);
   r.tube(frog.clone().addScaledVector(n, s.stick * 2.2), end.clone().addScaledVector(n, s.stick * 1.6), s.stick * 0.6, s.stick * 0.4, STICK, 5);
   r.plank(frog, end, s.stick * 1.2, 0.002, HAIR_WHITE, n);
   r.plank(frog.clone().addScaledVector(tip, -0.012), frog.clone().addScaledVector(tip, 0.045), s.stick * 2.2, s.stick * 2.6, EBONY, n);
   r.bar(end, end.clone().addScaledVector(n, s.stick * 2.4), s.stick * 0.9, HAIR_WHITE);
   r.still();
+  // The arm must reach the frog all through the stroke, or the hand would leave the bow.
+  if (import.meta.env?.DEV) for (const g of [-1, 1]) if (S.distanceTo(grip(g)) > ARM_A + ARM_B) console.warn('bow arm cannot reach', S.distanceTo(grip(g)));
 }
+
+// Where each bow rests and how far a stroke takes it, in metres (see bowingArm).
+// Each is as long as fits: any nearer the strings and the arm meets the instrument; any further
+// and the arm cannot reach (cellos and basses are bowed low, a long way from the shoulder).
+const BOWING = {
+  violin: { reach: 0.3, stroke: 0.12 },
+  cello: { reach: 0.33, stroke: 0.1 },
+  bass: { reach: 0.34, stroke: 0.09 },
+};
 
 function violinist(s) {
   const r = new Rig();
@@ -354,13 +415,15 @@ function violinist(s) {
   const B = basis(base.clone().addScaledVector(d, s.L / 2), d, V(0.42, 0.9, 0.05));
   const ins = stringed(r, B, s);
   arm(r, b.L, ins.neck(0.42).addScaledVector(ins.normal, -0.025), V(0.2, -1, 0.1), ins.normal);
-  bowingArm(r, b.R, ins, s, V(0.6, -0.8, -0.2), 0.2);
+  bowingArm(r, b.R, ins, s, V(0.6, -0.8, -0.2), BOWING.violin);
   return r.build();
 }
 
 function cellist() {
   const r = new Rig();
   seatedLegs(r, 0.23);
+  // The cello is bowed at hip height: the sway starts above that, so bow and strings move as one.
+  r.band = [0.7, 0.92];
   const b = upper(r, 0.6);
   // Between the knees, leaning back onto the chest, the scroll beside the left ear (not in the
   // player's head).
@@ -369,13 +432,14 @@ function cellist() {
   const B = basis(bottom.clone().addScaledVector(d, CELLO.L / 2), d, V(0.2, 0.35, 0.92));
   const ins = stringed(r, B, CELLO, bottom.y / d.y);
   arm(r, b.L, ins.neck(0.32).addScaledVector(ins.normal, -0.05), V(-1, -0.3, 0.1), ins.normal);
-  bowingArm(r, b.R, ins, CELLO, V(0.8, -0.5, -0.3), 0.22);
+  bowingArm(r, b.R, ins, CELLO, V(0.8, -0.5, -0.3), BOWING.cello);
   return r.build();
 }
 
 function bassist() {
   const r = new Rig();
   standingLegs(r);
+  r.band = [1.08, 1.3]; // above where the bow meets the strings (see the cellist)
   const b = upper(r, 1.0);
   // Standing behind the bass, which leans back against the body, the neck past the left side of
   // the head (clear of the hair).
@@ -384,7 +448,7 @@ function bassist() {
   const B = basis(bottom.clone().addScaledVector(d, BASS.L / 2), d, V(0.25, 0.3, 0.92));
   const ins = stringed(r, B, BASS, bottom.y / d.y);
   arm(r, b.L, ins.neck(0.3).addScaledVector(ins.normal, -0.07), V(-1, -0.2, 0.2), ins.normal);
-  bowingArm(r, b.R, ins, BASS, V(0.8, -0.6, -0.2), 0.18);
+  bowingArm(r, b.R, ins, BASS, V(0.8, -0.6, -0.2), BOWING.bass);
   return r.build();
 }
 
@@ -534,41 +598,63 @@ function tubist() {
 
 /* -------------------------------------------------------------- percussion */
 
-// A pair of mallets that strike in turn: stick length, head radius and colour.
-function malletPlayer(r, b, spread, reach, stick, head, headCol, amp) {
+// A pair of mallets that strike in turn, the hands at `hands` (x either side), each head over
+// `spot(sx)` on a surface `top` high. `stick` and `head` are the stick's and the head's radius.
+function malletPlayer(r, b, { hands, spot, top, stick, head, headCol, hover, lift }) {
   for (const sx of [-1, 1]) {
-    const G = V(sx * spread, 1.02, 0.3);
-    const dir = V(-sx * 0.15, -0.3, 1).normalize();
-    swingingArm(
-      r,
-      sx < 0 ? b.L : b.R,
-      G,
-      V(sx * 0.6, -1, -0.3),
-      (E) => new THREE.Vector3().crossVectors(G.clone().sub(E), UP),
-      amp,
-      sx < 0 ? Math.PI : 0,
-      () => {
-        const tip = G.clone().addScaledVector(dir, reach);
+    const G = V(sx * hands.x, hands.y, hands.z);
+    const Q = spot(sx).setY(top);
+    malletArm(r, sx < 0 ? b.L : b.R, G, V(sx * 0.6, -1, -0.3), Q, UP, {
+      head,
+      hover,
+      lift,
+      phase: sx < 0 ? Math.PI : 0,
+      held: (tip) => {
         r.tube(G, tip, stick, stick, STICK, 4);
         r.ball(head, headCol, tip, [1, 1, 1], 0);
       },
-    );
+    });
   }
 }
+
+// The timpani (see timpaniSet): drums at 27° either side, 0.9 m out; struck about 10 cm in from
+// the rim on the player's side, where a timpanist plays.
+const TIMPANI = [
+  [-80, 0.405],
+  [-27, 0.37],
+  [27, 0.33],
+  [80, 0.29],
+];
+const DRUM_TOP = 0.824;
+const drumAt = (deg) => V(0.9 * Math.sin(rad(deg)), 0, 0.9 * Math.cos(rad(deg)));
 
 function timpanist() {
   const r = new Rig();
   standingLegs(r);
   const b = upper(r, 1.0);
-  malletPlayer(r, b, 0.17, 0.36, 0.006, 0.026, FELT, 0.22);
+  malletPlayer(r, b, {
+    hands: V(0.2, 1.02, 0.3),
+    spot: (sx) => {
+      const [deg, rr] = TIMPANI[sx < 0 ? 1 : 2];
+      const p = drumAt(deg);
+      return p.multiplyScalar(1 - (rr - 0.1) / 0.9);
+    },
+    top: DRUM_TOP,
+    stick: 0.006,
+    head: 0.026,
+    headCol: FELT,
+    hover: 0.07,
+    lift: 0.13,
+  });
   return r.build();
 }
 
-function keyboardPercussionist(spread) {
+// Xylophone and glockenspiel players: mallets on the front row of bars.
+function keyboardPercussionist({ x, z, top, hands }) {
   const r = new Rig();
   standingLegs(r);
   const b = upper(r, 1.0);
-  malletPlayer(r, b, spread, 0.3, 0.005, 0.016, 0xd8d0c0, 0.18);
+  malletPlayer(r, b, { hands, spot: (sx) => V(sx * x, 0, z), top, stick: 0.005, head: 0.016, headCol: 0xd8d0c0, hover: 0.05, lift: 0.1 });
   return r.build();
 }
 
@@ -576,7 +662,7 @@ function trianglePlayer() {
   const r = new Rig();
   standingLegs(r);
   const b = upper(r, 1.0);
-  // Triangle hung from the left hand on a loop of string, beaten from inside.
+  // Triangle hung from the left hand on a loop of string, struck on its right side.
   const hold = V(-0.13, 1.4, 0.32);
   arm(r, b.L, hold, V(-0.6, -1, 0));
   const A = hold.clone().add(V(0, -0.06, 0.01));
@@ -586,18 +672,17 @@ function trianglePlayer() {
   r.bar(A, Bp, 0.007, SILVER);
   r.bar(Bp, Cp, 0.007, SILVER);
   r.bar(Cp, Cp.clone().lerp(A, 0.88), 0.007, SILVER);
-  const G = V(0.07, 1.25, 0.3);
-  const target = A.clone().add(V(0, -0.12, 0));
-  swingingArm(
-    r,
-    b.R,
-    G,
-    V(0.6, -1, -0.2),
-    (E) => new THREE.Vector3().crossVectors(G.clone().sub(E), UP),
-    0.12,
-    0,
-    () => r.bar(G, target, 0.005, SILVER),
-  );
+  // the middle of the right side, and the way out from it, in the triangle's plane
+  const Q = Cp.clone().lerp(A, 0.45);
+  const out = V(0.173, 0.1, 0).normalize();
+  const G = V(0.13, 1.2, 0.27);
+  malletArm(r, b.R, G, V(0.6, -1, -0.2), Q.addScaledVector(out, 0.0035), out, {
+    head: 0.0025,
+    hover: 0.035,
+    lift: 0.025,
+    phase: 0,
+    held: (tip) => r.bar(G, tip, 0.005, SILVER),
+  });
   return r.build();
 }
 
@@ -605,14 +690,9 @@ function trianglePlayer() {
 function timpaniSet() {
   const r = new Rig();
   // Four drums close around the player, largest on the left: 32, 29, 26 and 23 inches.
-  [
-    [-80, 0.405],
-    [-27, 0.37],
-    [27, 0.33],
-    [80, 0.29],
-  ].forEach(([deg, rr]) => {
-    const p = V(0.9 * Math.sin(rad(deg)), 0, 0.9 * Math.cos(rad(deg)));
-    const hh = 0.82;
+  TIMPANI.forEach(([deg, rr]) => {
+    const p = drumAt(deg);
+    const hh = DRUM_TOP - 0.004;
     r.add(new THREE.SphereGeometry(rr, 14, 5, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), COPPER, M(p.x, hh - 0.03, p.z, 0, 0, 0, 1, 0.9, 1));
     r.tube(V(p.x, hh - 0.06, p.z), V(p.x, hh, p.z), rr + 0.012, rr + 0.012, RIM, 14, true);
     r.tube(V(p.x, hh - 0.004, p.z), V(p.x, hh + 0.004, p.z), rr, rr, DRUM_HEAD, 14);
@@ -694,7 +774,7 @@ function singer() {
   standingLegs(r);
   const b = upper(r, 1.0);
   for (const sx of [-1, 1]) {
-    arm(r, sx < 0 ? b.L : b.R, V(sx * 0.12, 1.24, 0.3), V(sx * 0.6, -1, -0.2));
+    arm(r, sx < 0 ? b.L : b.R, V(sx * 0.12, 1.24, 0.3), V(sx * 0.25, -1, -0.3)); // elbows in, clear of a neighbour's
     // an open score, its two halves opened like a shallow V
     r.add(new THREE.BoxGeometry(0.2, 0.005, 0.28), 0x111014, M(sx * 0.1, 1.275, 0.36, -0.95, 0, sx * -0.25));
     r.add(new THREE.BoxGeometry(0.19, 0.004, 0.27), PAPER, M(sx * 0.1, 1.282, 0.362, -0.95, 0, sx * -0.25));
@@ -714,14 +794,17 @@ function pianist() {
 /* ---------------------------------------------------------------- shader */
 
 const SHADER_HEAD = /* glsl */ `
-attribute vec3 aPivot;
-attribute vec3 aJoint;
-attribute vec3 aAxis;
-attribute vec4 aInfo; // section, sway phase, stroke phase, stroke angle (or minus a slide length)
-attribute float aW; // how much of a slide this point follows
-uniform float uTime;
-uniform float uBeat;
-uniform float uAmp[6];
+attribute vec3 aPivot; // the player's hips, which the body sways from
+attribute vec3 aLin; // the stroke: this point at stroke g is position + aLin * g + aQuad * g * g
+attribute vec3 aQuad;
+attribute vec4 aInfo; // section, the player's own seed, stroke phase, stroke kind * 2 + sway share
+uniform float uBeat; // the music's beat, smoothed so it never jumps
+uniform float uFree; // a clock for playing on their own (tuning), slowing as the sound fades
+uniform float uSwayT; // the clock the bodies sway by
+uniform float uLoose; // 0 playing together on the beat, 1 each on their own
+uniform float uAmp[6]; // how hard each section is playing, 0 to 1
+uniform float uSway[6]; // how much each section sways
+uniform vec2 uConductor;
 mat3 turn(vec3 a, float g) {
   float s = sin(g), c = cos(g), o = 1.0 - c;
   return mat3(
@@ -729,24 +812,45 @@ mat3 turn(vec3 a, float g) {
     o * a.x * a.y - a.z * s, o * a.y * a.y + c, o * a.y * a.z + a.x * s,
     o * a.z * a.x + a.y * s, o * a.y * a.z - a.x * s, o * a.z * a.z + c);
 }
+// A mallet over one turn of its phase: 0 at the hit, rising slowly to 1, then falling fast.
+float lift(float ph) {
+  float u = fract(ph * 0.15915494);
+  return u < 0.7 ? 0.5 - 0.5 * cos(PI * u / 0.7) : 0.5 + 0.5 * cos(PI * (u - 0.7) / 0.3);
+}
 `;
 const SHADER_MOVE = /* glsl */ `
 vec3 objectNormal = vec3(normal);
 vec3 posed = vec3(position);
 if (aInfo.x > -0.5) {
-  float amp = uAmp[int(aInfo.x + 0.5)];
-  if (amp > 0.001) {
-    if (aInfo.w > 0.0) {
-      // one mallet stroke per beat, turning around the elbow
-      mat3 R = turn(aAxis, aInfo.w * amp * sin(uBeat * PI + aInfo.z));
-      posed = aJoint + R * (posed - aJoint);
-      objectNormal = R * objectNormal;
-    } else if (aInfo.w < 0.0) {
-      // one bow stroke per beat: the bow slides along its length, the arm follows
-      posed += aAxis * (-aInfo.w * amp * aW * sin(uBeat * PI + aInfo.z));
+  int sec = int(aInfo.x + 0.5);
+  float kind = floor(aInfo.w * 0.5);
+  float share = aInfo.w - 2.0 * kind;
+  float amp = uAmp[sec];
+  if (kind > 0.5 && amp > 0.001) {
+    // On the beat: a bow changes direction every beat, a mallet falls on alternate beats per hand.
+    // On their own: each player's strokes have their own length and pace, with pauses.
+    float onBeat = uBeat * PI + aInfo.z;
+    float own = uFree * (1.5 + 1.1 * fract(aInfo.y * 0.618)) + aInfo.z + aInfo.y;
+    float ease = 0.6 + 0.4 * sin(uFree * 0.29 + aInfo.y * 1.7);
+    float g;
+    if (kind < 1.5) {
+      g = amp * mix(sin(onBeat), sin(own) * ease, uLoose);
+    } else {
+      // A soft stroke still meets the instrument; it just starts from lower.
+      float h = mix(lift(onBeat), lift(own) * ease, uLoose);
+      g = mix(-min(1.0, amp * 3.0), amp, h);
     }
-    mat3 S = turn(vec3(0.0, 1.0, 0.0), 0.045 * amp * sin(uTime * 2.6 + aInfo.y))
-           * turn(vec3(1.0, 0.0, 0.0), 0.018 * amp * sin(uTime * 1.7 + aInfo.y * 1.3));
+    posed += aLin * g + aQuad * (g * g);
+  }
+  if (share > 0.001) {
+    // Leaning in and back, a little to the side, a little turn: slow, uneven, never quite still.
+    float e = uSway[sec] * share;
+    float a = uSwayT * (0.8 + 0.4 * fract(aInfo.y * 0.37)) + aInfo.y * 3.0;
+    float lean = e * (0.026 * sin(a * 0.71) + 0.012 * sin(a * 1.63 + 2.0));
+    float side = e * (0.014 * sin(a * 0.53 + 1.1) + 0.006 * sin(a * 1.37 + 0.4));
+    float yaw = e * (0.022 * sin(a * 0.61 + 0.5) + 0.01 * sin(a * 1.21 + 2.7));
+    vec2 f = normalize(uConductor - aPivot.xz);
+    mat3 S = turn(vec3(0.0, 1.0, 0.0), yaw) * turn(vec3(f.y, 0.0, -f.x), lean) * turn(vec3(f.x, 0.0, f.y), side);
     posed = aPivot + S * (posed - aPivot);
     objectNormal = S * objectNormal;
   }
@@ -775,8 +879,8 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
     trombone: trombonist(),
     tuba: tubist(),
     timpanist: timpanist(),
-    mallets: keyboardPercussionist(0.17),
-    xylo: keyboardPercussionist(0.22),
+    mallets: keyboardPercussionist({ x: 0.13, z: 0.37, top: 0.886, hands: V(0.17, 1.03, 0.17) }),
+    xylo: keyboardPercussionist({ x: 0.2, z: 0.44, top: 0.871, hands: V(0.2, 1.03, 0.22) }),
     triangle: trianglePlayer(),
     timpani: timpaniSet(),
     xylophone: xylophone(),
@@ -800,35 +904,26 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
     const n = g.attributes.position.count;
     const col = g.attributes.color.array;
     const tone = g.attributes.aTone.array;
-    const mv = g.attributes.aMove.array;
+    const mot = g.attributes.aMot.array;
     const skin = linear(extra.skin ?? pick(SKIN));
     const hair = linear(extra.hair ?? pick(HAIR));
-    const pivot = new THREE.Vector3().setFromMatrixPosition(matrix);
+    const hip = V(0, tpl.hip, 0).applyMatrix4(matrix);
     rot.setFromMatrix4(matrix);
-    const moves = tpl.moves.map((m) => m && { joint: m.joint.clone().applyMatrix4(matrix), axis: m.axis.clone().applyMatrix3(rot).normalize(), amp: m.amp, phase: m.phase, kind: m.kind });
+    for (const k of ['aLin', 'aQuad']) g.attributes[k].applyMatrix3(rot);
     const aPivot = new Float32Array(n * 3);
-    const aJoint = new Float32Array(n * 3);
-    const aAxis = new Float32Array(n * 3);
     const aInfo = new Float32Array(n * 4);
-    const sway = rand() * 6.283;
+    const seed = rand() * 6.283;
     const jitter = (rand() - 0.5) * 0.5; // players in a section bow together, not in lockstep
     for (let i = 0; i < n; i++) {
       if (tone[i] === 1) col.set([skin.r, skin.g, skin.b], i * 3);
       else if (tone[i] === 2) col.set([hair.r, hair.g, hair.b], i * 3);
-      aPivot.set([pivot.x, pivot.y, pivot.z], i * 3);
-      const m = moves[mv[i]];
-      if (m) {
-        aJoint.set([m.joint.x, m.joint.y, m.joint.z], i * 3);
-        aAxis.set([m.axis.x, m.axis.y, m.axis.z], i * 3);
-      }
-      // The stroke's size: an angle for a turn, or minus a length for a slide (a bow stroke).
-      aInfo.set([sec, sway, m ? m.phase + jitter : 0, m ? (m.kind === 'slide' ? -m.amp : m.amp) : 0], i * 4);
+      aPivot.set([hip.x, hip.y, hip.z], i * 3);
+      const kind = mot[i * 3];
+      aInfo.set([sec, seed, kind ? mot[i * 3 + 1] + jitter : 0, kind * 2 + mot[i * 3 + 2]], i * 4);
     }
     g.deleteAttribute('aTone');
-    g.deleteAttribute('aMove');
+    g.deleteAttribute('aMot');
     g.setAttribute('aPivot', new THREE.BufferAttribute(aPivot, 3));
-    g.setAttribute('aJoint', new THREE.BufferAttribute(aJoint, 3));
-    g.setAttribute('aAxis', new THREE.BufferAttribute(aAxis, 3));
     g.setAttribute('aInfo', new THREE.BufferAttribute(aInfo, 4));
     placed.push(g);
   }
@@ -867,20 +962,21 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
   row(4.55, 0, spread(-66, -8, 6), () => 'violin', 'experience', { mark: (p) => p.x < -1.5 });
   row(2.4, 0, spread(16, 74, 2), () => 'cello', 'experience', { mark: () => false });
   row(3.55, 0, spread(11, 76, 4), (d) => (d < 44 ? 'viola' : 'cello'), 'experience', { mark: () => false });
-  row(4.55, 0, spread(8, 77, 6), (d) => (d < 44 ? 'viola' : 'cello'), 'experience', { mark: () => false });
+  row(4.55, 0, spread(8, 74, 6), (d) => (d < 44 ? 'viola' : 'cello'), 'experience', { mark: () => false });
+  // A bass is as wide as a person: they stand a full step apart, clear of the cellos' bows.
   for (const [r, deg] of [
-    [4.4, 81],
-    [4.4, 89],
-    [5.6, 81],
-    [5.6, 89],
+    [4.4, 82],
+    [4.45, 93],
+    [5.6, 80.5],
+    [5.6, 90.5],
   ]) {
     const p = spot(r, deg, 0);
     place(T.bass, toward(p), SEC.experience);
     proxy('experience', p, 0.9, 2.0, 0.9);
   }
   {
-    const s = spot(3.75, 85, 0);
-    const c = spot(4.4, 85, 0);
+    const s = spot(3.75, 87.5, 0);
+    const c = spot(4.4, 87.5, 0);
     standMx.push(facing(s.x, s.y, s.z, c.x, c.z));
   }
 
@@ -893,7 +989,16 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
   // Brass: horns to the left of the woodwinds, trumpets, trombones and tuba at the back.
   row(5.9, 1, [-50, -42, -34, -26], () => 'horn', 'skills', { mark: () => false });
   row(9.55, 3, [-30, -24, -18], () => 'trumpet', 'skills');
-  row(9.55, 3, [-11, -5, 1], () => 'trombone', 'skills');
+  // A trombone's slide reaches past where a stand would be, so each trombonist's stand is set off
+  // to their right, clear of the slide and the bell.
+  row(9.55, 3, [-11, -5, 1], () => 'trombone', 'skills', { stands: false });
+  for (const deg of [-11, -5, 1]) {
+    const c = spot(9.55, deg, 3);
+    const ahead = V(C.x - c.x, 0, C.z - c.z).normalize();
+    const right = V(-ahead.z, 0, ahead.x);
+    const s = c.clone().addScaledVector(ahead, 0.62).addScaledVector(right, 0.36);
+    standMx.push(facing(s.x, s.y, s.z, c.x + right.x * 0.36, c.z + right.z * 0.36));
+  }
   row(9.55, 3, [8], () => 'tuba', 'skills');
 
   // Percussion at the back right: timpani, xylophone, glockenspiel, triangle and bass drum.
@@ -927,7 +1032,15 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
   const geo = mergeGeometries(placed, false);
   placed.length = 0;
 
-  const uniforms = { uTime: { value: 0 }, uBeat: { value: 0 }, uAmp: { value: [1, 1, 1, 1, 1, 1] } };
+  const uniforms = {
+    uBeat: { value: 0 },
+    uFree: { value: 0 },
+    uSwayT: { value: 0 },
+    uLoose: { value: 1 },
+    uAmp: { value: [0, 0, 0, 0, 0, 0] },
+    uSway: { value: [0, 0, 0, 0, 0, 0] },
+    uConductor: { value: new THREE.Vector2(C.x, C.z) },
+  };
   const mat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, uniforms);
@@ -940,21 +1053,82 @@ export function buildOrchestra({ C, levelY, onArc, rand, stageTop, piano }) {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
 
-  const amp = uniforms.uAmp.value;
-  const ORDER = Object.keys(SEC);
-  function animate(t, beats, active, dt) {
-    uniforms.uTime.value = t;
-    uniforms.uBeat.value = beats ?? 0;
-    const k = Math.min(1, dt * 2.5);
-    // Without music (tuning) the players hold their instruments up and barely move. Waiting for
-    // the downbeat, everyone is still. When a section is featured, the others keep playing
-    // underneath, so they keep moving, just less.
-    const waiting = beats != null && beats < 0;
-    ORDER.forEach((id, i) => {
-      const on = beats == null ? 0.12 : waiting ? 0 : active == null || active === 'about' || active === id ? 1 : 0.35;
-      amp[i] += (on - amp[i]) * k;
-    });
-  }
+  const play = new Orchestra(uniforms);
+  return { mesh, chairMx, standMx, proxies, marks, animate: (...a) => play.step(...a), state: play, triangles: geo.index.count / 3 };
+}
 
-  return { mesh, chairMx, standMx, proxies, marks, animate, triangles: geo.index.count / 3 };
+/* ------------------------------------------------------------ how they play */
+
+const ORDER = Object.keys(SEC);
+// How much of each section joins in the tuning: the strings and winds tune, brass a little, the
+// timpanist taps a drum now and then, the choir and pianist wait.
+const TUNING = { experience: 1, projects: 0.8, skills: 0.55, certifications: 0.3, education: 0, piano: 0 };
+// Which recording drives which section once the music plays.
+const STEM = { experience: 'strings', projects: 'woodwinds', skills: 'brass', certifications: 'percussion', education: 'choir', piano: 'piano' };
+// How fast things follow the sound, in seconds (the time to get about two thirds of the way). They
+// come in quickly; they stop the way an orchestra does at the end of a piece: the last strokes
+// slow and shorten, the bows settle, and the players' bodies come to rest a while after.
+const ATTACK = 0.25;
+const RELEASE = 1.1;
+const SWAY_IN = 0.7;
+const SWAY_OUT = 2.2;
+const SWAY_REST = 0.22; // the sway left when nobody plays: breathing, shifting on the chair
+const ease = (from, to, dt, up, down) => from + (to - from) * (1 - Math.exp(-dt / (to > from ? up : down)));
+
+class Orchestra {
+  constructor(u) {
+    this.u = u;
+    this.amp = u.uAmp.value;
+    this.sway = u.uSway.value;
+    this.sway.fill(SWAY_REST);
+    this.beat = 0;
+    this.bps = 80 / 60;
+    this.on = false;
+  }
+  // levels: { tuning, stems: { strings, ... } }, each 0 to 1, or null if nothing reports a level
+  // (the debug beat). beats: the music's position, or null. focus: the open section, for the
+  // debug beat only (with real music the mix itself brings the featured section forward).
+  step(t, dt, { levels = null, beats = null, bpm = 80, focus = null } = {}) {
+    const u = this.u;
+    dt = Math.min(dt, 0.1);
+    const tuning = levels?.tuning ?? 0;
+    let music = 0;
+    let most = 0;
+    ORDER.forEach((id, i) => {
+      let want;
+      if (levels) {
+        const stem = levels.stems?.[STEM[id]] ?? 0;
+        music = Math.max(music, stem);
+        want = Math.max(stem, tuning * TUNING[id]);
+      } else want = beats != null && beats >= 0 ? (focus == null || focus === 'about' || focus === id ? 1 : 0.35) : 0;
+      this.amp[i] = ease(this.amp[i], want, dt, ATTACK, RELEASE);
+      if (this.amp[i] < 1e-3 && want === 0) this.amp[i] = 0;
+      this.sway[i] = ease(this.sway[i], SWAY_REST + (1 - SWAY_REST) * want, dt, SWAY_IN, SWAY_OUT);
+      most = Math.max(most, this.amp[i]);
+    });
+    if (!levels && beats != null && beats >= 0) music = 1;
+    // Tuning, everyone plays on their own; in the music, together on the beat. Between the two,
+    // whichever is louder leads; in silence nothing changes.
+    if (tuning > music + 0.05) u.uLoose.value = ease(u.uLoose.value, 1, dt, 0.7, 0.7);
+    else if (music > 0.05) u.uLoose.value = ease(u.uLoose.value, 0, dt, 0.7, 0.7);
+    // The beat clock follows the music without ever jumping: it runs at the tempo and is pulled
+    // gently into phase (a bow stroke repeats every two beats). With no music it runs on, slowing
+    // as the players stop.
+    if (bpm) this.bps = bpm / 60;
+    const together = (1 - u.uLoose.value) * most;
+    if (beats != null && beats >= 0) {
+      if (together < 0.02) this.beat = beats;
+      else {
+        const off = beats - this.beat;
+        const wrap = off - 2 * Math.round(off / 2);
+        this.beat += dt * this.bps + wrap * Math.min(1, dt * 3);
+      }
+    } else this.beat += dt * this.bps * (0.3 + 0.7 * most);
+    u.uBeat.value = this.beat;
+    u.uFree.value += dt * (0.45 + 0.55 * most);
+    let swaying = 0;
+    for (const v of this.sway) swaying += v / this.sway.length;
+    u.uSwayT.value += dt * (0.55 + 0.6 * swaying);
+    this.on = most > 0.02;
+  }
 }
