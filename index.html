@@ -15,12 +15,15 @@
     />
   </head>
   <body>
-    <canvas
-      id="world"
-      class="world"
-      role="img"
-      aria-label="A warm wooden concert hall seen from the back of the stalls: red seats, side galleries, and an orchestra and choir on stage around the conductor's podium, with organ pipes behind. Glowing markers over places in the hall (the control booth, the stage, the box office, the stage door and the notice board) open the rooms of the portfolio."
-    ></canvas>
+    <!-- A landmark of its own, so screen-reader users can find the hall like any other region. -->
+    <div class="world-region" role="region" aria-label="The concert hall">
+      <canvas
+        id="world"
+        class="world"
+        role="img"
+        aria-label="A warm wooden concert hall seen from the back of the stalls: red seats, side galleries, and an orchestra and choir on stage around the conductor's podium, with organ pipes behind. Glowing markers over places in the hall (the control booth, the stage, the box office, the stage door and the notice board) open the rooms of the portfolio."
+      ></canvas>
+    </div>
     <div id="app"></div>
     <noscript>
       <p style="padding:2rem;font-family:sans-serif">

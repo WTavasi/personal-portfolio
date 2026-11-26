@@ -23,7 +23,7 @@ const hall = () =>
 export function roomNav(key) {
   const n = neighbours(key);
   return `
-    <nav class="room-nav" aria-label="Rooms">
+    <nav class="room-nav" aria-label="Previous and next room">
       ${n ? arrow('prev', pathFor(n.prev.key), n.prev.label, 'Previous:', 'prev') : '<span></span>'}
       ${hall()}
       ${n ? arrow('next', pathFor(n.next.key), n.next.label, 'Next:', 'next') : '<span></span>'}
