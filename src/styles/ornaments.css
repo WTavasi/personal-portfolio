@@ -1,5 +1,5 @@
-/* Ornaments, for decoration only and kept faint: damask-like curls, with a G clef and an F clef
-   hidden among them, behind the welcome screen and the text pages; a looping flourish under the
+/* Ornaments, for decoration only and kept faint so they never get in the way of reading: acanthus
+   scrolls behind the welcome screen and the text pages; a looping flourish under the
    welcome and at the top and bottom of an open page; and looping bands down the sides of the
    pages that drift as the page scrolls (--scroll, set by main.js; still with reduced motion).
    The drawings are masks, so they take the colour of the surface they sit on. */
@@ -13,7 +13,7 @@
   }
 }
 
-/* The curls, as a layer of their own behind a page's content. */
+/* The scrolls, as a layer of their own behind a page's content. */
 .home,
 .room {
   position: relative;
@@ -27,8 +27,8 @@
   inset: 0;
   z-index: -1;
   background: var(--rubric);
-  -webkit-mask: url('../assets/ornaments/ornament-tile.svg') 0 calc(var(--scroll, 0) * -0.3px * var(--drift)) / 420px repeat;
-  mask: url('../assets/ornaments/ornament-tile.svg') 0 calc(var(--scroll, 0) * -0.3px * var(--drift)) / 420px repeat;
+  -webkit-mask: url('../assets/ornaments/ornament-tile.svg') 0 calc(var(--scroll, 0) * -0.3px * var(--drift)) / 600px repeat;
+  mask: url('../assets/ornaments/ornament-tile.svg') 0 calc(var(--scroll, 0) * -0.3px * var(--drift)) / 600px repeat;
   opacity: 0.08;
   pointer-events: none;
 }
@@ -63,7 +63,7 @@
 }
 
 /* Text pages on their own: looping bands down both sides of the reading column, drifting a
-   little faster than the curls as the page scrolls. */
+   little faster than the background pattern as the page scrolls. */
 .room::after {
   content: '';
   position: fixed;
@@ -86,7 +86,7 @@
   }
 }
 
-/* An open page over the hall: its paper is a layer of its own under the page (so the curls can
+/* An open page over the hall: its paper is a layer of its own under the page (so the scrolls can
    sit between the paper and the words), and its frame carries a flourish at the top and the
    bottom and looping bands down its sides, which drift as the page scrolls. */
 .page-paper {
