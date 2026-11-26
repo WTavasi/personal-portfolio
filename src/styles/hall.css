@@ -142,7 +142,7 @@
 }
 .panel {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--surface); /* the fill's own colour: a solid bar, no outline */
   border-radius: var(--r-panel);
 }
 .sections {

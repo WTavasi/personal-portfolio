@@ -37,6 +37,11 @@ const screens = {
 };
 
 const canvas = document.getElementById('world');
+const hallRegion = canvas.parentElement; // the landmark around it, hidden with it
+const setHallHidden = (on) => {
+  canvas.hidden = on;
+  hallRegion.hidden = on;
+};
 const root = document.getElementById('app');
 
 // The 3D hall is built once, when the visitor turns it on, and reused. Its code is fetched while
@@ -67,11 +72,11 @@ const world = {
   show() {
     canvas.classList.toggle('is-ready', !this.fallback);
     document.body.classList.toggle('no-webgl', this.fallback);
-    canvas.hidden = this.fallback;
+    setHallHidden(this.fallback);
   },
   hide() {
     this.api?.stop();
-    canvas.hidden = true;
+    setHallHidden(true);
   },
 };
 
@@ -83,7 +88,7 @@ let current = null;
 let still = document.querySelector('.hall-still');
 function showStill() {
   if (!still) {
-    canvas.insertAdjacentHTML('afterend', stillMarkup());
+    hallRegion.insertAdjacentHTML('afterend', stillMarkup());
     still = document.querySelector('.hall-still');
   }
   still.removeAttribute('data-prerendered');

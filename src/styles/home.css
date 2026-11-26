@@ -119,7 +119,7 @@
   position: relative;
   width: min(100%, 720px);
   background: var(--term-bg);
-  border: 1px solid var(--line);
+  border: 1px solid var(--term-bg); /* the fill's own colour: no outline */
   border-radius: var(--r-panel);
   overflow: hidden;
   transition:

@@ -66,6 +66,7 @@ export const leadership = [
     when: '2021 to 2022',
     bullets: [
       'Led and conducted the almost 50-member school band for a year: rehearsals five days a week (hymns four days, marching drill one), festival and event preparation, and improvements to the music department; took the band to national level, won 9 trophies and 6 certificates, and conducted it at the State House winners’ gala before the President and Deputy President, a rare opportunity for a student conductor.',
+      'Ran the band’s Instagram page, Patch Music Society: clips, videos and photos of its performances.',
     ],
   },
   {
@@ -245,6 +246,8 @@ export const interests = 'Music: principal clarinet, choral singing, conducting 
 // The Studio. Repertoire as Wyclef listed it, in two lists.
 export const music = {
   conductingVideo: { href: 'https://youtu.be/2LJcng0SELA', label: 'Watch the Nairobi School band, conducted by Wyclef (YouTube)' },
+  // The band's own page, which Wyclef ran: clips and photos, some of him conducting, some playing.
+  bandPage: { href: 'https://www.instagram.com/nsmusicians/', label: 'The band’s Instagram page, which Wyclef ran: Patch Music Society' },
   chamber: 'Recitals in duos, a clarinet quartet and several solo performances.',
   repertoire: {
     classical: [

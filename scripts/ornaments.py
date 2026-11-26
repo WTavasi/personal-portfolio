@@ -1,8 +1,9 @@
 # Run: python3 scripts/ornaments.py src/assets/ornaments
 """Draws the site's ornaments as SVG files (used as masks, so the strokes are plain black).
 
-ornament-tile.svg: a seamless tile of fine looping curls, damask-like, with a G clef and an
-F clef hidden among them. flourish.svg: a symmetric looping flourish for the top and bottom of a
+ornament-tile.svg: a seamless tile of acanthus scrolls: two waving vines, and in the hollow of each
+bend a branch that winds into a scroll, with lobed leaves following the curl. Leaves are drawn at
+partial opacity, so in the mask they come out a shade lighter than the vines. flourish.svg: a symmetric looping flourish for the top and bottom of a
 page. flourish-band.svg: a looping band that repeats down the sides of a page.
 """
 import math
@@ -11,14 +12,17 @@ import sys
 
 OUT = sys.argv[1]
 random.seed(7)
-W = H = 420
 
 
 def fmt(v):
     return str(round(v))
 
 
-def path_from(points):
+def fine(v):
+    return f"{v:.1f}".rstrip("0").rstrip(".")
+
+
+def path_from(points, fmt=fmt):
     """A smooth path through points (Catmull-Rom turned into cubic Béziers)."""
     d = [f"M{fmt(points[0][0])} {fmt(points[0][1])}"]
     for i in range(len(points) - 1):
@@ -31,96 +35,122 @@ def path_from(points):
     return "".join(d)
 
 
-def curl(cx, cy, size, turns, start, sign, tail):
-    """A spiral curl that winds in to its centre, with a long S-shaped tendril sweeping out of it,
-    like the vines of a damask."""
+def smooth_closed(points):
+    """A smooth closed outline through points."""
+    return path_from(points + [points[0], points[1]], fine) + "Z"
+
+
+T = 600  # the tile: large, so the pattern repeats rarely
+AMP = 70  # how far the vines wave either side
+
+
+def vine(k):
+    """One of two vines across the tile, 300 apart and half a wave out of step, so the scrolls
+    stagger diagonally. Its period is the tile's width, so it joins itself at the edges."""
+    y0 = T * (0.25 + 0.5 * k)
+    sh = k * T / 2
+
+    def at(x):
+        u = 2 * math.pi * (x - sh) / T
+        return x, y0 - AMP * math.sin(u), math.atan2(-AMP * 2 * math.pi / T * math.cos(u), 1)
+
+    return [at(x)[:2] for x in range(-60, T + 61, 25)], at, sh
+
+
+def scroll(ax, ay, leave, r0, turns, way):
+    """A branch that leaves a vine at (ax, ay) heading in direction `leave`, sweeps round a circle
+    of radius r0 and winds in to its centre; and its direction at each point. Leaving at an angle,
+    it parts from the vine at once instead of running alongside it."""
+    t0 = math.atan2(-way * math.cos(leave), way * math.sin(leave))
+    cx, cy = ax - r0 * math.cos(t0), ay - r0 * math.sin(t0)
+    n = int(turns * 18)
     pts = []
-    steps = int(turns * 9)
-    for k in range(steps + 1):
-        t = k / steps
-        a = start + sign * t * turns * 2 * math.pi
-        r = size * (1 - t) ** 1.1 + 1.0
-        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
-    # The tendril: two arcs bending opposite ways, carrying on from the spiral's outer end.
-    ox, oy = pts[0]
-    head = start - sign * math.pi / 2  # the direction the spiral was travelling as it began
-    tendril = []
-    x, y, a = ox, oy, head + math.pi
-    for bend, length in ((-sign * 0.05, tail * 0.6), (sign * 0.045, tail * 0.7)):
-        n = 4
-        for _ in range(n):
-            a += bend * (length / n) * 2.2 / max(size, 8) * 8
-            x += math.cos(a) * length / n
-            y += math.sin(a) * length / n
-            tendril.append((x, y))
-    return list(reversed(tendril)) + pts
+    for i in range(n + 1):
+        u = i / n
+        r = r0 * (1 - u) ** 1.25 + 5
+        th = t0 + way * u * turns * 2 * math.pi
+        pts.append((cx + r * math.cos(th), cy + r * math.sin(th)))
+    angs = [math.atan2(pts[min(i + 1, n)][1] - pts[max(i - 1, 0)][1], pts[min(i + 1, n)][0] - pts[max(i - 1, 0)][0]) for i in range(n + 1)]
+    return pts, angs
 
 
-# A treble (G) clef and a bass (F) clef as single strokes, in their own little boxes.
-G_CLEF = [
-    (26, 128), (18, 132), (14, 124), (20, 118), (28, 122), (30, 134), (24, 142),
-    (22, 120), (24, 90), (28, 62), (34, 34), (36, 16), (30, 8), (22, 14), (20, 34),
-    (26, 52), (38, 64), (44, 80), (38, 96), (24, 100), (12, 92), (12, 78), (22, 70),
-    (32, 74), (34, 84), (26, 90),
-]
-F_CLEF = [(10, 24), (8, 14), (16, 6), (30, 6), (38, 16), (36, 32), (24, 46), (6, 56)]
+def leaf(x, y, a, length, bend, side, lobes=4):
+    """An acanthus leaf: a broad blade curving with the scroll, its edge cut into pointed lobes,
+    fuller on the outer side, the tip turned over. Returns its outline and its midrib."""
+    mid = []
+    n = 16
+    for i in range(n + 1):
+        t = i / n
+        mid.append((x, y, a, t))
+        a += bend * (0.3 + 2.2 * t * t) / n
+        x += math.cos(a) * length / n
+        y += math.sin(a) * length / n
+    left, right = [], []
+    for mx, my, ang, t in mid:
+        body = length * 0.34 * math.sin(math.pi * min(1, t ** 0.7)) ** 0.8
+        tooth = 0.55 + 0.45 * ((lobes * t) % 1) ** 1.6  # each lobe swells, then drops back to a point
+        nx, ny = -math.sin(ang), math.cos(ang)
+        outer, inner = body * tooth, body * (0.35 + 0.25 * tooth)
+        wl, wr = (outer, inner) if side > 0 else (inner, outer)
+        left.append((mx + nx * wl, my + ny * wl))
+        right.append((mx - nx * wr, my - ny * wr))
+    outline = left + list(reversed(right))
+    return smooth_closed(outline), path_from([(m[0], m[1]) for m in mid[: int(n * 0.85)]], fine)
 
 
-def place(points, x, y, scale, angle=0.0):
-    c, s = math.cos(angle), math.sin(angle)
-    return [(x + scale * (px * c - py * s), y + scale * (px * s + py * c)) for px, py in points]
+stems, leaves, ribs, knots = [], [], [], []
+for k in (0, 1):
+    pts, at, sh = vine(k)
+    stems.append(pts)
+    # small leaves along the vine itself, alternating sides
+    side = 1
+    for x in range(40, T, 100):
+        vx, vy, va = at(x)
+        o, r = leaf(vx, vy, va + side * 0.9, 32 * random.uniform(0.85, 1.1), -side * 1.2, side, 3)
+        leaves.append(o)
+        ribs.append(r)
+        side = -side
+    # a scroll in the hollow of each bend: under the crest, over the trough
+    for xc, way in ((T * 0.25 + sh, 1), (T * 0.75 + sh, -1)):
+        ax, ay, va = at(xc - T * 0.13)
+        spts, sangs = scroll(ax, ay, va + way * 0.75, 112, 1.55, way)
+        stems.append(spts)
+        knots.append((ax, ay, va))
+        # a sheath leaf over the fork, leaves along the outside of the curl, one curled in its eye
+        o, r = leaf(ax, ay, va + math.pi - way * 0.5, 78, way * 1.2, way, 4)
+        leaves.append(o)
+        ribs.append(r)
+        n = len(spts)
+        for frac, size, bend in ((0.12, 80, 2.0), (0.3, 70, 2.0), (0.47, 58, 2.0), (0.62, 44, 2.0), (0.8, 30, 2.6)):
+            j = int(n * frac)
+            o, r = leaf(spts[j][0], spts[j][1], sangs[j] + way * (0.35 if frac < 0.8 else 0), size * random.uniform(0.92, 1.08), way * bend, way, 4 if size > 40 else 3)
+            leaves.append(o)
+            ribs.append(r)
 
 
-g_at = (70, 150, 0.95, -0.12)
-f_at = (300, 300, 1.05, 0.18)
-g_box = (60, 140, 120, 300)
-f_box = (290, 290, 350, 360)
+def everywhere(svg):
+    """The drawing once, then reused at each neighbouring tile position, so anything crossing an
+    edge reappears on the opposite side and the tile repeats without seams."""
+    return [f'<defs><g id="a">{svg}</g></defs>'] + [f'<use href="#a" x="{ox}" y="{oy}"/>' for ox in (-T, 0, T) for oy in (-T, 0, T)]
 
 
-def clear_of_clefs(x, y, r):
-    for (x0, y0, x1, y1) in (g_box, f_box):
-        if x0 - r + 4 < x < x1 + r - 4 and y0 - r + 4 < y < y1 + r - 4:
-            return False
-    return True
+def knot(q):
+    x, y, a = q
+    return f'<ellipse rx="6.8" ry="4.2" transform="translate({fmt(x)} {fmt(y)}) rotate({fmt(math.degrees(a) + 90)})"/>'
 
 
-curls = []
-tries = 0
-while len(curls) < 70 and tries < 20000:
-    tries += 1
-    size = random.uniform(7, 30)
-    x, y = random.uniform(0, W), random.uniform(0, H)
-    if not clear_of_clefs(x, y, size):
-        continue
-    if any(math.hypot((x - cx + W / 2) % W - W / 2, (y - cy + H / 2) % H - H / 2) < (size + cs) * 0.92 + 2 for cx, cy, cs, *_ in curls):
-        continue
-    curls.append((x, y, size, random.uniform(1.5, 2.6), random.uniform(0, 2 * math.pi), random.choice([-1, 1]), size * random.uniform(1.8, 3.2)))
-
-paths = []
-for cx, cy, size, turns, start, sign, tail in curls:
-    for ox in (-W, 0, W):
-        for oy in (-H, 0, H):
-            pts = curl(cx + ox, cy + oy, size, turns, start, sign, tail)
-            if all(p[0] < -40 or p[0] > W + 40 or p[1] < -40 or p[1] > H + 40 for p in pts):
-                continue
-            paths.append(path_from(pts))
-
-g = place(G_CLEF, *g_at)
-f = place(F_CLEF, *f_at)
-fx, fy, fs, fa = f_at
-dots = [place([(46, 14)], fx, fy, fs, fa)[0], place([(46, 30)], fx, fy, fs, fa)[0], place([(10, 24)], fx, fy, fs, fa)[0]]
-
+art = "".join(
+    [f'<path d="{d}" fill-opacity="0.45" stroke="#000" stroke-width="1.4" stroke-linejoin="round"/>' for d in leaves]
+    + [f'<path d="{d}" fill="none" stroke="#000" stroke-width="1" stroke-linecap="round"/>' for d in ribs]
+    + [f'<path d="{path_from(p, fine)}" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"/>' for p in stems]
+    + [knot(q) for q in knots]
+)
 tile = [
-    f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
-    '<g fill="none" stroke="#000" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">',
-    *[f'<path d="{d}"/>' for d in paths],
-    f'<path d="{path_from(g)}"/>',
-    f'<path d="{path_from(f)}"/>',
-    "</g>",
-    *[f'<circle cx="{fmt(x)}" cy="{fmt(y)}" r="{2.4 if i < 2 else 3}"/>' for i, (x, y) in enumerate(dots)],
+    f'<svg xmlns="http://www.w3.org/2000/svg" width="{T}" height="{T}" viewBox="0 0 {T} {T}">',
+    *everywhere(art),
     "</svg>",
 ]
-open(f"{OUT}/ornament-tile.svg", "w").write("\n".join(tile))
+open(f"{OUT}/ornament-tile.svg", "w").write("".join(tile))
 
 
 # The flourish: one half drawn, mirrored to the other side, curling into scrolls at each end.
@@ -156,4 +186,4 @@ band = [
     "</svg>",
 ]
 open(f"{OUT}/flourish-band.svg", "w").write("\n".join(band))
-print("curls:", len(curls), "paths:", len(paths))
+print("scrolls:", len(knots), "leaves:", len(leaves))

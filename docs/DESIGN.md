@@ -64,8 +64,9 @@ Terminal (builds the hall, sound and volume, Enter the hall) -> lights come up -
 ## Design system (src/styles/tokens.css)
 - Surfaces: the dark hall (default) and score paper for reading pages (`<body data-surface="paper">`), light or dark with the visitor's system setting. The redesign document (section 10) is the reference from here on.
 - Colour: warm near-black surfaces, one accent (brass #e3b552) used for the primary action, selected states and links. Crimson appears only inside the 3D hall.
-- Spacing: 4px base (4, 8, 12, 16, 24, 32, 48, 64, 96). Related things sit close, groups are separated by the larger steps. No dividers, borders or coloured-edge cards for grouping.
-- Type: Fraunces (display and section headings, upright only), Figtree (UI and body), Space Mono (boot log only). Numerals use tabular figures. Headings use balanced wrapping.
+- Spacing: 4px base (4, 8, 12, 16, 24, 32, 48, 64, 96). Related things sit close, groups are separated by the larger steps. No dividers, borders or coloured-edge cards for grouping. Bars, panels, buttons and the terminal are solid fills whose border is the fill's own colour, so none has an outline; only text fields keep a visible edge, because a field has to be found.
+- Type: Source Serif 4 for everything people read (headings, body, controls), Source Code Pro for the terminal only. Numerals use tabular figures. Headings use balanced wrapping. Body text 17px at 1.55 line height; long text stops at about 68 characters a line.
+- Background: faint acanthus scrolls (two waving vines, a leafy scroll in the hollow of each bend), drawn by `scripts/ornaments.py` as a 600px seamless tile and shown at about 8% in the surface's own colour, so it is there without getting in the way of reading.
 - Radii: panel 12px, padding 8px, so inner controls are 4px (inner = outer minus padding).
 - Feedback: state changes are instant. Movement is the feedback (press shifts 1px, panels slide in, the camera glides to what was chosen). Nothing fades on hover.
 - Icons: none. Labels do the work.
@@ -97,6 +98,23 @@ Checked by `npm run check:contrast` (scripts/contrast.mjs), which reads `src/sty
 
 ## Content rule
 Only claims that can be backed up: a repo, a date, a number, a named employer. No buzzwords.
+
+## Voice
+Plain, warm and direct, in short sentences. Say what was done, at what scale and with what result. Music is described in musicians' words, engineering in engineers'.
+
+## Never
+Every change, by hand or with an AI tool, keeps to these.
+- Autoplaying video, or sound before the visitor asks for it.
+- Carousels and sliders.
+- Invented numbers, testimonials, clients or results.
+- Embedded third-party players or feeds (Instagram, YouTube): link out instead, so the site keeps its promise of no cookies and nothing loaded from other companies.
+- Stock photos.
+- A second accent colour.
+- Outlines around bars, panels and buttons.
+- Text below WCAG 2.2 AA contrast; the build refuses it.
+
+## Search and link previews
+Every page is written as its own HTML file with its own title and one-sentence description. With `SITE_URL` set at build time (the Pages workflow sets it), pages also carry a canonical address and a link preview: title, description and a picture of the hall (`public/og-image.jpg`, 1200 by 630). About me and the home page describe Wyclef as structured data, using only what the pages already say.
 
 ## Roadmap
 | Version | Ships |

@@ -157,17 +157,21 @@
   min-width: 0;
   min-height: 48px;
   padding: 0 var(--s-3);
-  border: 1px solid var(--line);
+  /* Filled, with the border in the fill's own colour (no outline), like the hall's section bar. */
+  background: var(--surface-2);
+  border: 1px solid var(--surface-2);
   border-radius: var(--r-inner);
   color: var(--text);
   font-weight: 600;
   text-decoration: none;
 }
 .nav-arrow:hover {
-  border-color: var(--accent-text);
-  background: var(--surface-2);
+  background: var(--surface-2-hover);
+  border-color: var(--surface-2-hover);
   color: var(--text);
-  box-shadow: 0 0 16px rgb(var(--glow) / 0.32);
+  box-shadow:
+    0 0 0 1px rgb(var(--glow) / 0.6),
+    0 0 16px rgb(var(--glow) / 0.3);
 }
 .nav-arrow:active {
   transform: translateY(1px);
@@ -355,4 +359,9 @@ body.over-hall .world {
 .desk-actions .btn {
   width: auto;
   min-height: 48px;
+}
+
+/* Long text stays at a comfortable reading length (about 68 characters a line) on wide screens. */
+.room-doc :is(p, li) {
+  max-width: 68ch;
 }

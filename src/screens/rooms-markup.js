@@ -92,6 +92,7 @@ function studio() {
       <h2 id="h-cond">Conducting</h2>
       ${entry(band)}
       <p class="entry-link">${ext(music.conductingVideo.href, music.conductingVideo.label)}</p>
+      <p class="entry-link">${ext(music.bandPage.href, music.bandPage.label)}</p>
     </section>
     <section aria-labelledby="h-choir"><h2 id="h-choir">Choral singing</h2>${entry(choirs)}</section>
     <section aria-labelledby="h-chamber"><h2 id="h-chamber">Chamber and solo</h2><p>${esc(music.chamber)}</p></section>
@@ -198,7 +199,7 @@ function privacy() {
     </section>
     <section aria-labelledby="h-not">
       <h2 id="h-not">What is not collected</h2>
-      <p>No names, email addresses, IP addresses or browsing history. Links to other sites, such as GitHub, LinkedIn or YouTube, open those sites, whose own privacy policies then apply.</p>
+      <p>No names, email addresses, IP addresses or browsing history. Links to other sites, such as GitHub, LinkedIn, YouTube or Instagram, open those sites, whose own privacy policies then apply.</p>
     </section>
     <section aria-labelledby="h-changes">
       <h2 id="h-changes">Changes</h2>
@@ -214,16 +215,26 @@ function privacy() {
 
 /* ------------------------------------------------------------------ registry */
 
+// Each room's title, and the one-sentence description search engines and link previews show.
 const ROOMS = {
-  work: { title: () => 'Work', markup: work },
-  project: { title: (slug) => projects.find((p) => p.slug === slug)?.name ?? 'Work', markup: project },
-  music: { title: () => 'Music', markup: studio },
-  services: { title: () => 'Services', markup: boxOffice },
-  wall: { title: () => 'Notice board', markup: noticeBoard },
-  privacy: { title: () => 'Privacy and credits', markup: privacy },
+  work: { title: () => 'Work', about: () => `Cloud, back-end and mobile projects by ${person.name}, strongest first. Each case study links to its code.`, markup: work },
+  project: {
+    title: (slug) => projects.find((p) => p.slug === slug)?.name ?? 'Work',
+    about: (slug) => projects.find((p) => p.slug === slug)?.oneLine ?? '',
+    markup: project,
+  },
+  music: { title: () => 'Music', about: () => `${person.name} in music: principal clarinet, conductor, choral singer, mentor and arranger.`, markup: studio },
+  services: {
+    title: () => 'Services',
+    about: () => `Freelance work and commissions from ${person.name}: websites, cloud set-up, mobile apps, system design reviews, arrangement and composition.`,
+    markup: boxOffice,
+  },
+  wall: { title: () => 'Notice board', about: () => `What ${person.name} is listening to, watching, playing and reading right now.`, markup: noticeBoard },
+  privacy: { title: () => 'Privacy and credits', about: () => 'This site sets no cookies, runs no analytics and loads nothing from other companies.', markup: privacy },
 };
 
 export const roomTitle = (key, param) => `${ROOMS[key].title(param)} | ${person.name}`;
+export const roomAbout = (key, param) => ROOMS[key].about(param);
 export const roomMarkup = (key, param) => `<main class="doc room-doc">${ROOMS[key].markup(param)}</main>`;
 
 // Every room address, for the build to write as its own HTML file.
